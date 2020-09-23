@@ -28,5 +28,5 @@ git clone --quiet https://github.com/borglab/gtsam.git $PACKAGE_NAME --branch 4.
 cd $PACKAGE_NAME
 git archive --prefix=$PACKAGE_NAME/ --output=../$ORIG_TAR --format tar.gz HEAD || exit 1
 cp -r ../$DEB_DIR debian
-debuild -us -uc || exit 1
-cd ..
+#debuild -us -uc || exit 1
+#cd ..

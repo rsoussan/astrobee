@@ -16,7 +16,10 @@
  * under the License.
  */
 
-#include "gtsam/nonlinear/NonlinearFactorGraph.h"
+// #include "gtsam/nonlinear/NonlinearFactorGraph.h"
+#include <gtsam/nonlinear/NonlinearFactorGraph.h>
+#include "gtsam/3rdparty/ceres/autodiff.h"
+#include <gtsam/3rdparty/CCOLAMD/Include/ccolamd.h>
 
 #include <iostream>
 
