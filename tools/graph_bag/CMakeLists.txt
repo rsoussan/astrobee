@@ -60,7 +60,7 @@ find_package(Eigen3 REQUIRED)
 #  LIBS ${GTSAM_BOOST_LIBRARIES}# profiler
 #  INC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS}
 #)
-file(GLOB_RECURSE source_list "*.cc" "*.h" "*.cpp" "*.hpp")
+file(GLOB_RECURSE source_list "*.cc" "*.h" "*.cpp" "*.hpp" "*.c")
 MESSAGE(STATUS "source list" ${source_list})
 add_executable(gtsam_test ${source_list})
 include_directories(${EIGEN3_INCLUDE_DIR})
