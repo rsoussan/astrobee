@@ -313,8 +313,7 @@ void GraphLocalizer::AddSmartFactor(const FeatureTrack& feature_track, FactorsTo
   SharedRobustSmartFactor smart_factor;
   smart_factor = boost::make_shared<RobustSmartFactor>(
     params_.noise.optical_flow_nav_cam_noise, params_.calibration.nav_cam_intrinsics,
-    params_.calibration.body_T_nav_cam, smart_projection_params_, params_.factor.robust_smart_factor,
-    params_.factor.enable_rotation_only_fallback);
+    params_.calibration.body_T_nav_cam, smart_projection_params_, params_.factor.robust_smart_factor);
 
   KeyInfos key_infos;
   key_infos.reserve(feature_track.points.size());
@@ -369,35 +368,6 @@ void GraphLocalizer::AddSparseMappingMeasurement(
   LOG(INFO) << "AddSparseMappingMeasurement: Adding sparse mapping measurement.";
   AddProjectionMeasurement(matched_projections_measurement, params_.calibration.body_T_nav_cam,
                            params_.calibration.nav_cam_intrinsics, params_.noise.loc_nav_cam_noise);
-}
-
-// TODO(rsoussan): Clean this function up (duplicate code), address other todo's
-void GraphLocalizer::SplitSmartFactorsIfNeeded(FactorsToAdd& factors_to_add) {
-  for (auto& factor_to_add : factors_to_add.Get()) {
-    auto smart_factor = dynamic_cast<RobustSmartFactor*>(factor_to_add.factor.get());
-    if (!smart_factor) continue;
-    // Can't remove measurements if there are only 2 or fewer
-    if (smart_factor->measured().size() <= 2) continue;
-    const auto point = smart_factor->triangulateSafe(smart_factor->cameras(graph_values_.values()));
-    if (point.valid()) continue;
-    {
-      const auto fixed_smart_factor =
-        FixSmartFactorByRemovingIndividualMeasurements(params_, *smart_factor, smart_projection_params_, graph_values_);
-      if (fixed_smart_factor) {
-        factor_to_add.factor = *fixed_smart_factor;
-        continue;
-      }
-    }
-    {
-      const auto fixed_smart_factor =
-        FixSmartFactorByRemovingMeasurementSequence(params_, *smart_factor, smart_projection_params_, graph_values_);
-      if (fixed_smart_factor) {
-        factor_to_add.factor = *fixed_smart_factor;
-        continue;
-      }
-    }
-    LOG(ERROR) << "SplitSmartFactorsIfNeeded: Failed to fix smart factor";
-  }
 }
 
 void GraphLocalizer::AddProjectionMeasurement(const lm::MatchedProjectionsMeasurement& matched_projections_measurement,
@@ -795,8 +765,6 @@ bool GraphLocalizer::DoGraphAction(FactorsToAdd& factors_to_add) {
     case GraphAction::kDeleteExistingSmartFactors:
       VLOG(2) << "DoGraphAction: Deleting smart factors.";
       DeleteFactors<RobustSmartFactor>();
-      // TODO(rsoussan): rename this graph action to handle smart factors
-      if (params_.factor.smart_factor_splitting) SplitSmartFactorsIfNeeded(factors_to_add);
       return true;
     case GraphAction::kTransformARMeasurementAndUpdateDockTWorld:
       return TransformARMeasurementAndUpdateDockTWorld(factors_to_add);

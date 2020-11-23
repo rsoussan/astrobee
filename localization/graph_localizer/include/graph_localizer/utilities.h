@@ -79,14 +79,6 @@ geometry_msgs::PoseStamped PoseMsg(const Eigen::Isometry3d& global_T_body, const
 geometry_msgs::PoseStamped PoseMsg(const gtsam::Pose3& global_T_body, const localization_common::Time time);
 
 gtsam::noiseModel::Robust::shared_ptr Robust(const gtsam::SharedNoiseModel& noise);
-
-boost::optional<SharedRobustSmartFactor> FixSmartFactorByRemovingIndividualMeasurements(
-  const GraphLocalizerParams& params, const RobustSmartFactor& smart_factor,
-  const gtsam::SmartProjectionParams& smart_projection_params, const GraphValues& graph_values);
-
-boost::optional<SharedRobustSmartFactor> FixSmartFactorByRemovingMeasurementSequence(
-  const GraphLocalizerParams& params, const RobustSmartFactor& smart_factor,
-  const gtsam::SmartProjectionParams& smart_projection_params, const GraphValues& graph_values);
 }  // namespace graph_localizer
 
 #endif  // GRAPH_LOCALIZER_UTILITIES_H_

@@ -28,6 +28,7 @@ namespace gtsam {
 template <class CALIBRATION>
 class RobustSmartProjectionPoseFactor : public SmartProjectionPoseFactor<CALIBRATION> {
   typedef PinholePose<CALIBRATION> Camera;
+  typedef CameraSet<Camera> Cameras;
   typedef SmartFactorBase<Camera> Base;
   typedef typename Camera::Measurement Z;
   static const int Dim = traits<Camera>::dimension;  ///< Camera dimension
@@ -37,106 +38,126 @@ class RobustSmartProjectionPoseFactor : public SmartProjectionPoseFactor<CALIBRA
   // For serialization
   RobustSmartProjectionPoseFactor() {}
 
-  /**
-   * Constructor
-   * @param sharedNoiseModel isotropic noise model for the 2D feature measurements
-   * @param K (fixed) calibration, assumed to be the same for all cameras
-   * @param params parameters for the smart projection factors
-   */
   RobustSmartProjectionPoseFactor(const SharedNoiseModel& sharedNoiseModel, const boost::shared_ptr<CALIBRATION> K,
                                   const boost::optional<Pose3> body_P_sensor,
                                   const SmartProjectionParams& params = SmartProjectionParams(),
-                                  const bool robust = true, const bool rotation_only_fallback = false)
+                                  const bool robust = true)
       : SmartProjectionPoseFactor<CALIBRATION>(sharedNoiseModel, K, body_P_sensor, params),
         robust_(robust),
-        rotation_only_fallback_(rotation_only_fallback) {
+        params_(params) {
     // From SmartFactorBase
     if (!sharedNoiseModel) throw std::runtime_error("RobustSmartProjectionPoseFactor: sharedNoiseModel is required");
     SharedIsotropic sharedIsotropic = boost::dynamic_pointer_cast<noiseModel::Isotropic>(sharedNoiseModel);
     if (!sharedIsotropic) throw std::runtime_error("RobustSmartProjectionPoseFactor: needs isotropic");
     noise_inv_sigma_ = 1.0 / sharedIsotropic->sigma();
-    triangulation_params_ = params.triangulation;
+    noiseModel2_ = sharedIsotropic;
+  }
+
+  template <class CAMERA>
+  std::pair<TriangulationResult, std::vector<bool>> triangulateWithFaults(
+    const CameraSet<CAMERA>& cameras, const typename CAMERA::MeasurementVector& measured,
+    const TriangulationParameters& params) const {
+    const size_t m = cameras.size();
+    if (m < 2) return {TriangulationResult::Degenerate(), {}};
+
+    std::vector<Matrix34, Eigen::aligned_allocator<Matrix34>> projection_matrices;
+    for (const auto& camera : cameras)
+      projection_matrices.push_back(
+        CameraProjectionMatrix<typename CAMERA::CalibrationType>(camera.calibration())(camera.pose()));
+    const auto point = triangulateDLT(projection_matrices, measured, params.rankTolerance);
+
+    std::vector<bool> valid_indices;
+    valid_indices.reserve(cameras.size());
+    for (int i = 0; i < cameras.size(); ++i) {
+      const auto& camera = cameras[i];
+      // Check for camera errors
+      const Point3& p_local = camera.pose().transformTo(point);
+      if (p_local.z() <= 0)
+        valid_indices.emplace_back(false);
+      else if (params.landmarkDistanceThreshold > 0 &&
+               distance3(camera.pose().translation(), point) > params.landmarkDistanceThreshold)
+        valid_indices.emplace_back(false);
+      else if (params.dynamicOutlierRejectionThreshold > 0 &&
+               params.dynamicOutlierRejectionThreshold < (camera.project(point) - measured.at(i)).norm())
+        valid_indices.emplace_back(false);
+      else
+        valid_indices.emplace_back(true);
+    }
+    return {point, valid_indices};
+  }
+
+  // Returns result and indices where behind camera faults occured
+  std::pair<TriangulationResult, std::vector<bool>> triangulateWithFaults(const Cameras& cameras) const {
+    size_t m = cameras.size();
+    if (m < 2)  // if we have a single pose the corresponding factor is uninformative
+      return {TriangulationResult::Degenerate(), {}};
+
+    bool retriangulate = this->decideIfTriangulate(cameras);
+    if (retriangulate) result2_ = triangulateWithFaults(cameras, this->measured(), params_.triangulation);
+    return result2_;
   }
 
   boost::shared_ptr<GaussianFactor> linearize(const Values& values) const override {
     typename Base::Cameras cameras = this->cameras(values);
-    // if (!this->triangulateForLinearize(cameras)) return boost::make_shared<JacobianFactorSVD<Dim, 2>>(this->keys());
-    const auto result = this->triangulateSafe(cameras);
+    const auto result = triangulateWithFaults(cameras);
+    if (!result.first.valid()) return boost::make_shared<JacobianFactorSVD<Dim, 2>>(this->keys());
+    auto keys = this->keys();
+    const auto& valid_indices = result.second;
+    // Remove invalid indices from keys and cameras
+    int key_camera_index = 0;
+    for (const auto valid_index : valid_indices) {
+      if (!valid_index) {
+        cameras.erase(cameras.begin() + key_camera_index);
+        keys.erase(keys.begin() + key_camera_index);
+      } else {
+        ++key_camera_index;
+      }
+    }
+    // TODO(rsoussan): enable this?
+    // if (cameras.size() < 2) return boost::make_shared<JacobianFactorSVD<Dim, 2>>(this->keys());
     // Adapted from SmartFactorBase::CreateJacobianSVDFactor
-    size_t m = this->keys().size();
+    size_t m = keys.size();
     typename Base::FBlocks F;
     Vector b;
     const size_t M = ZDim * m;
     Matrix E0(M, M - 3);
-
-    // Handle behind camera result with rotation only factors (see paper)
-    // Degenerate result tends to lead to solve failures, so return empty factor in this case
-    if (result.valid()) {
-      this->computeJacobiansSVD(F, E0, b, cameras, *(this->point()));
-      // TODO(rsoussan): This should be here but leads to a degeneracy.  It is done like this in gtsam
-      // for the jacobiansvd factorization but not the hessian factorization -> why?
-    }       // else if (useForRotationOnly(result)) {  // Rotation only factor
-            // Unit3 backProjected = cameras[0].backprojectPointAtInfinity(this->measured().at(0));
-            // this->computeJacobiansSVD(F, E0, b, cameras, backProjected);
-            // }
-    else {  // Empty factor  // NOLINT
-      return boost::make_shared<JacobianFactorSVD<Dim, 2>>(this->keys());
-    }
-    return createRegularJacobianFactorSVD<Dim, ZDim>(this->keys(), F, E0, b);
+    this->computeJacobiansSVD(F, E0, b, cameras, *(result.first));
+    return createRegularJacobianFactorSVD<Dim, ZDim>(keys, F, E0, b);
   }
 
-  bool useForRotationOnly(const gtsam::TriangulationResult& result) const {
-    if (!rotation_only_fallback_) return false;
-    // Enable some 'invalid' results as these can still be useful for rotation errors
-    // return (result.degenerate());
-    return (result.behindCamera());
+  double totalReprojectionError(const Cameras& cameras) const {
+    const auto result = triangulateWithFaults(cameras);
+    const auto& point = result.first;
+    const auto& valid_indices = result.second;
+    if (!point.valid()) return 0;
+    // Remove invalid cameras and measurements
+    auto valid_cameras = cameras;
+    auto valid_measurements = this->measured();
+    int camera_index = 0;
+    for (const auto valid_index : valid_indices) {
+      if (!valid_index) {
+        valid_cameras.erase(valid_cameras.begin() + camera_index);
+        valid_measurements.erase(valid_measurements.begin() + camera_index);
+      } else {
+        ++camera_index;
+      }
+    }
+
+    Vector e = valid_cameras.reprojectionError(*point, valid_measurements);
+    if (noiseModel2_) noiseModel2_->whitenInPlace(e);
+    return 0.5 * e.dot(e);
   }
 
   double error(const Values& values) const override {
     if (this->active(values)) {
-      try {
-        const double total_reprojection_loss = this->totalReprojectionError(this->cameras(values));
-        const auto result = this->point();
-        // TODO(rsoussan): This should be here but leads to a degeneracy (see comment in linearize)
-        // if (!result.valid() && !useForRotationOnly(result)) return 0.0;
-        // Multiply by 2 since totalReporjectionError divides mahal distance by 2, and robust_model_->loss
-        // expects mahal distance
-        const double loss = robust_ ? robustLoss(2.0 * total_reprojection_loss) : total_reprojection_loss;
-        return loss;
-      } catch (...) {
-        // Catch cheirality and other errors, zero on errors
-        return 0.0;
-      }
+      const double total_reprojection_loss = totalReprojectionError(this->cameras(values));
+      // Multiply by 2 since totalReporjectionError divides mahal distance by 2, and robust_model_->loss
+      // expects mahal distance
+      const double loss = robust_ ? robustLoss(2.0 * total_reprojection_loss) : total_reprojection_loss;
+      return loss;
     } else {  // Inactive
       return 0.0;
     }
-  }
-
-  // These "serialized" functions are only needed due to an error in gtsam for serializing result_.
-  // Call these instead of error() and point() for a smart factor that has been serialized.
-  // TODO(rsoussan): Remove these when gtsam bug fixed
-  double serialized_error(const Values& values) const {
-    if (this->active(values)) {
-      try {
-        const auto point = serialized_point(values);
-        const double total_reprojection_loss = this->totalReprojectionError(this->cameras(values), point);
-        // TODO(rsoussan): This should be here but leads to a degeneracy (see comment in linearize)
-        // if (!result.valid() && !useForRotationOnly(result)) return 0.0;
-        // Multiply by 2 since totalReporjectionError divides mahal distance by 2, and robust_model_->loss
-        // expects mahal distance
-        const double loss = robust_ ? robustLoss(2.0 * total_reprojection_loss) : total_reprojection_loss;
-        return loss;
-      } catch (...) {
-        // Catch cheirality and other errors, zero on errors
-        return 0.0;
-      }
-    } else {  // Inactive
-      return 0.0;
-    }
-  }
-
-  TriangulationResult serialized_point(const Values& values) const {
-    return gtsam::triangulateSafe(this->cameras(values), this->measured(), triangulation_params_);
   }
 
   bool robust() const { return robust_; }
@@ -202,17 +223,19 @@ class RobustSmartProjectionPoseFactor : public SmartProjectionPoseFactor<CALIBRA
     ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(SmartProjectionPoseFactor<CALIBRATION>);
     ar& BOOST_SERIALIZATION_NVP(noise_inv_sigma_);
     ar& BOOST_SERIALIZATION_NVP(robust_);
-    ar& BOOST_SERIALIZATION_NVP(rotation_only_fallback_);
-    ar& BOOST_SERIALIZATION_NVP(triangulation_params_);
+    ar& BOOST_SERIALIZATION_NVP(params_);
+    ar& BOOST_SERIALIZATION_NVP(noiseModel2_);
+    ar& BOOST_SERIALIZATION_NVP(result2_);
   }
 
   double noise_inv_sigma_;
   // From gtsam
   const double huber_k_ = 1.345;
   double robust_;
-  bool rotation_only_fallback_;
-  // TODO(rsoussan): Remove once result_ serialization bug in gtsam fixed
-  TriangulationParameters triangulation_params_;
+  SmartProjectionParams params_;
+  SharedIsotropic noiseModel2_;
+  // gtsam requires linearize() to be const, but this modifies result2_
+  mutable std::pair<TriangulationResult, std::vector<bool>> result2_;
 };
 }  // namespace gtsam
 
