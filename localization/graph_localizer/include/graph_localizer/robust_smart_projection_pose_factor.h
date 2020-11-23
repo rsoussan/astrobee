@@ -72,18 +72,23 @@ class RobustSmartProjectionPoseFactor : public SmartProjectionPoseFactor<CALIBRA
       const auto& camera = cameras[i];
       // Check for camera errors
       const Point3& p_local = camera.pose().transformTo(point);
-      if (p_local.z() <= 0)
+      if (p_local.z() <= 0) {
+        // LOG(ERROR) << "behind cam!";
         valid_indices.emplace_back(false);
-      else if (params.landmarkDistanceThreshold > 0 &&
-               distance3(camera.pose().translation(), point) > params.landmarkDistanceThreshold)
+      } else if (params.landmarkDistanceThreshold > 0 &&
+                 distance3(camera.pose().translation(), point) > params.landmarkDistanceThreshold) {
+        // LOG(ERROR) << "dist thresh!";
         valid_indices.emplace_back(false);
-      else if (params.dynamicOutlierRejectionThreshold > 0 &&
-               params.dynamicOutlierRejectionThreshold < (camera.project(point) - measured.at(i)).norm())
+      } else if (params.dynamicOutlierRejectionThreshold > 0 &&
+                 params.dynamicOutlierRejectionThreshold < (camera.project(point) - measured.at(i)).norm()) {
+        // LOG(ERROR) << "outlier!";
         valid_indices.emplace_back(false);
-      else
+      } else {
+        // LOG(ERROR) << "valid proj!";
         valid_indices.emplace_back(true);
+      }
     }
-    return {point, valid_indices};
+    return {TriangulationResult(point), valid_indices};
   }
 
   // Returns result and indices where behind camera faults occured
@@ -100,7 +105,9 @@ class RobustSmartProjectionPoseFactor : public SmartProjectionPoseFactor<CALIBRA
   boost::shared_ptr<GaussianFactor> linearize(const Values& values) const override {
     typename Base::Cameras cameras = this->cameras(values);
     const auto result = triangulateWithFaults(cameras);
-    if (!result.first.valid()) return boost::make_shared<JacobianFactorSVD<Dim, 2>>(this->keys());
+    if (!result.first.valid()) {
+      return boost::make_shared<JacobianFactorSVD<Dim, 2>>(this->keys());
+    }
     auto keys = this->keys();
     const auto& valid_indices = result.second;
     // Remove invalid indices from keys and cameras
@@ -113,8 +120,10 @@ class RobustSmartProjectionPoseFactor : public SmartProjectionPoseFactor<CALIBRA
         ++key_camera_index;
       }
     }
-    // TODO(rsoussan): enable this?
-    // if (cameras.size() < 2) return boost::make_shared<JacobianFactorSVD<Dim, 2>>(this->keys());
+    // TODO(rsoussan): check if empty instead?
+    if (cameras.size() < 3) {
+      return boost::make_shared<JacobianFactorSVD<Dim, 2>>(this->keys());
+    }
     // Adapted from SmartFactorBase::CreateJacobianSVDFactor
     size_t m = keys.size();
     typename Base::FBlocks F;
@@ -129,7 +138,9 @@ class RobustSmartProjectionPoseFactor : public SmartProjectionPoseFactor<CALIBRA
     const auto result = triangulateWithFaults(cameras);
     const auto& point = result.first;
     const auto& valid_indices = result.second;
-    if (!point.valid()) return 0;
+    if (!point.valid()) {
+      return 0.0;
+    }
     // Remove invalid cameras and measurements
     auto valid_cameras = cameras;
     auto valid_measurements = this->measured();
@@ -141,6 +152,10 @@ class RobustSmartProjectionPoseFactor : public SmartProjectionPoseFactor<CALIBRA
       } else {
         ++camera_index;
       }
+    }
+    // TODO(rsoussan): change this to if empty?
+    if (valid_cameras.size() < 3) {
+      return 0.0;
     }
 
     Vector e = valid_cameras.reprojectionError(*point, valid_measurements);
@@ -155,9 +170,25 @@ class RobustSmartProjectionPoseFactor : public SmartProjectionPoseFactor<CALIBRA
       // expects mahal distance
       const double loss = robust_ ? robustLoss(2.0 * total_reprojection_loss) : total_reprojection_loss;
       return loss;
-    } else {  // Inactive
+    } else {
       return 0.0;
     }
+  }
+
+  size_t dim() const override {
+    int num_valid_measurements = 0;
+    for (const auto valid_index : result2_.second) {
+      if (valid_index) ++num_valid_measurements;
+    }
+    return ZDim * num_valid_measurements;
+  }
+
+  bool valid() const {
+    int num_valid_measurements = 0;
+    for (const auto valid_index : result2_.second) {
+      if (valid_index) ++num_valid_measurements;
+    }
+    return num_valid_measurements > 2;
   }
 
   bool robust() const { return robust_; }
