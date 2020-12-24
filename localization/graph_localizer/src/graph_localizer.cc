@@ -684,7 +684,7 @@ bool GraphLocalizer::SlideWindow(const boost::optional<gtsam::Marginals>& margin
   }
   if (new_oldest_time > *feature_tracker_oldest_time)
     LogWarning("SlideWindow: Ideal oldest time is more recent than oldest feature track time.");
-  new_oldest_time = std::min(new_oldest_time, *feature_tracker_oldest_time);
+//  new_oldest_time = std::min(new_oldest_time, *feature_tracker_oldest_time);
 
   // Add marginal factors for marginalized values
   auto old_keys = graph_values_->OldKeys(new_oldest_time);
@@ -822,7 +822,7 @@ void GraphLocalizer::RemovePriors(const int key_index) {
 void GraphLocalizer::BufferCumulativeFactors() {
   // Remove measurements here so they don't grow too large before adding to graph
   // TODO(rsoussan): Clean this up, slide window before optimizing?
-  feature_tracker_->RemovePointsOutsideWindow();
+//  feature_tracker_->RemovePointsOutsideWindow();
   if (params_.factor.smart_projection_adder.enabled) {
     BufferFactors(smart_projection_cumulative_factor_adder_->AddFactors());
   }
@@ -1126,6 +1126,10 @@ bool GraphLocalizer::Update() {
       levenberg_marquardt_params_.orderingType = gtsam::Ordering::COLAMD;
     }
   }
+
+  // Hack to add smart factors after they have been marginalized!
+  // TODO(rsoussan): prevent smart factors from being added twice!!!! Add id to smart factor???
+  BufferCumulativeFactors();
 
   // Optimize
   gtsam::LevenbergMarquardtOptimizer optimizer(graph_, graph_values_->values(), levenberg_marquardt_params_);

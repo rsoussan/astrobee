@@ -45,7 +45,7 @@ void FeatureTracker::UpdateFeatureTracks(const lm::FeaturePoints& feature_points
   LogDebug("UpdateFeatureTracks: Added feature tracks: " << post_add_num_feature_tracks - starting_num_feature_tracks);
 
   // Remove features that weren't detected
-  const auto image_id = feature_points.empty() ? 0 : feature_points.front().image_id;
+/*  const auto image_id = feature_points.empty() ? 0 : feature_points.front().image_id;
   const bool remove_all_features = feature_points.empty();
   for (auto feature_it = feature_tracks_.cbegin(); feature_it != feature_tracks_.cend();) {
     if (feature_it->second.latest_image_id != image_id || remove_all_features) {
@@ -53,7 +53,7 @@ void FeatureTracker::UpdateFeatureTracks(const lm::FeaturePoints& feature_points
     } else {
       ++feature_it;
     }
-  }
+  }*/
 
   const int removed_num_feature_tracks = post_add_num_feature_tracks - feature_tracks_.size();
   LogDebug("UpdateFeatureTracks: Removed feature tracks: " << removed_num_feature_tracks);
