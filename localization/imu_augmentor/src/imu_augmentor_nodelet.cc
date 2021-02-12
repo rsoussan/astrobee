@@ -66,11 +66,7 @@ boost::optional<ff_msgs::EkfState> ImuAugmentorNodelet::PublishLatestImuAugmente
     LogDebugEveryN(100, "PublishLatestImuAugmentedLocalizationState: Failed to get latest imu augmented loc msg.");
     return boost::none;
   }
-  const auto timestamp = lc::TimeFromHeader(latest_imu_augmented_loc_msg->header);
-  // Avoid sending repeat msgs
-  if (timestamp == last_imu_augmented_loc_msg_timestamp_) return boost::none;
   state_pub_.publish(*latest_imu_augmented_loc_msg);
-  last_imu_augmented_loc_msg_timestamp_ = timestamp;
   return latest_imu_augmented_loc_msg;
 }
 
