@@ -44,6 +44,29 @@
 #include "slider_property.h"  // NOLINT
 #endif
 
+namespace gtsam {
+template <class CAMERA>
+Point3 triangulatePoint3Ryan(const CameraSet<CAMERA>& cameras, const typename CAMERA::MeasurementVector& measurements,
+                             double rank_tol = 1e-9, bool optimize = false) {
+  size_t m = cameras.size();
+  assert(measurements.size() == m);
+
+  if (m < 2) throw(TriangulationUnderconstrainedException());
+
+  // construct projection matrices from poses & calibration
+  std::vector<Matrix34, Eigen::aligned_allocator<Matrix34>> projection_matrices;
+  for (const CAMERA& camera : cameras)
+    projection_matrices.push_back(
+      CameraProjectionMatrix<typename CAMERA::CalibrationType>(camera.calibration())(camera.pose()));
+  Point3 point = triangulateDLT(projection_matrices, measurements, rank_tol);
+
+  // The n refine using non-linear optimization
+  if (optimize) point = triangulateNonlinear<CAMERA>(cameras, measurements, point);
+
+  return point;
+}
+}  // namespace gtsam
+
 // Forward declarations for ogre and rviz
 namespace Ogre {
 class SceneNode;
@@ -86,6 +109,7 @@ class LocalizationGraphDisplay : public rviz::MessageFilterDisplay<ff_msgs::Loca
   void addSmartFactorProjectionVisual(const SmartFactor& smart_factor,
                                       const graph_localizer::GraphValues& graph_values);
   cv::Scalar textColor(const double val, const double green_threshold, const double yellow_threshold);
+  void addCheiralFailImage();
 
   std::vector<std::unique_ptr<rviz::Axes>> graph_pose_axes_;
   std::vector<std::unique_ptr<rviz::Arrow>> imu_factor_arrows_;

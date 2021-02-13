@@ -203,7 +203,7 @@ void LocalizationGraphDisplay::addProjectionVisual(const gtsam::CameraSet<Camera
     cv::rectangle(images[i], distorted_measurement - rectangle_offset, distorted_measurement + rectangle_offset,
                   cv::Scalar(0, 255, 0), 8);
     // TODO(rsoussan): account for case where triangulation fails
-    if (true) {
+    if (false) {
       const auto projection = cameras[i].project2(world_t_landmark);
       const auto distorted_projection = graph_bag::Distort(projection, *nav_cam_params_);
       cv::circle(images[i], distorted_projection, 15 /* Radius*/, cv::Scalar(255, 0, 0), -1 /*Filled*/, 8);
@@ -274,6 +274,69 @@ void LocalizationGraphDisplay::addLocProjectionVisual(
   loc_projection_factor_image_pub_.publish(loc_projection_factor_image.toImageMsg());
 }
 
+void LocalizationGraphDisplay::addCheiralFailImage() {
+  if (!latest_graph_localizer_) {
+    LogError("addSmartFactorsProjectionVisual: No latest graph localizer available.");
+    return;
+  }
+  std::vector<SmartFactor*> cheiral_error_smart_factors;
+  std::vector<SmartFactor*> valid_smart_factors;
+  double latest_timestamp = 0;
+  for (const auto& smart_factor : latest_smart_factors_) {
+    const auto landmark_point = smart_factor->serialized_point(latest_graph_localizer_->graph_values().values());
+    if (landmark_point) {
+      valid_smart_factors.emplace_back(smart_factor);
+    } else {
+      cheiral_error_smart_factors.emplace_back(smart_factor);
+    }
+    for (const auto& key : smart_factor->keys()) {
+      const auto timestamp = latest_graph_localizer_->graph_values().Timestamp(key);
+      if (!timestamp) {
+        LogError("addSmartFactorsProjectionVisual: Failed to get timestamp.");
+        return;
+      }
+      if (*timestamp > latest_timestamp) latest_timestamp = *timestamp;
+    }
+  }
+  const auto image = getImage(latest_timestamp);
+  if (!image) {
+    LogError("failed timestamp: " << latest_timestamp);
+    LogError("addSmartFactorsProjectionVisual: Failed to get image.");
+    return;
+  }
+  cv_bridge::CvImagePtr cv_image;
+  try {
+    cv_image = cv_bridge::toCvCopy(image, sensor_msgs::image_encodings::RGB8);
+  } catch (cv_bridge::Exception& e) {
+    LogError("cv_bridge exception: " << e.what());
+    return;
+  }
+  cv_bridge::CvImage cheiral_image;
+  cheiral_image.encoding = sensor_msgs::image_encodings::RGB8;
+  cheiral_image.image = cv_image->image.clone();  // cv::Mat(image.rows, image.cols, CV_8UC3, cv::Scalar(0, 0, 0));
+
+  for (const auto factor : cheiral_error_smart_factors) {
+    const auto& measurement = factor->measured().back();
+    const auto distorted_measurement = graph_bag::Distort(measurement, *nav_cam_params_);
+    cv::circle(cheiral_image.image, distorted_measurement, 20 /* Radius*/, cv::Scalar(255, 0, 0), -1 /*Filled*/, 8);
+    const cv::Point rectangle_offset(40, 40);
+    // cv::rectangle(cheiral_image.image, distorted_measurement - rectangle_offset, distorted_measurement +
+    // rectangle_offset,
+    //            cv::Scalar(0, 255, 0), 8);
+  }
+  for (const auto factor : valid_smart_factors) {
+    const auto& measurement = factor->measured().back();
+    const auto distorted_measurement = graph_bag::Distort(measurement, *nav_cam_params_);
+    cv::circle(cheiral_image.image, distorted_measurement, 20 /* Radius*/, cv::Scalar(0, 255, 0), -1 /*Filled*/, 8);
+    const cv::Point rectangle_offset(40, 40);
+    // cv::rectangle(cheiral_image.image, distorted_measurement - rectangle_offset, distorted_measurement +
+    // rectangle_offset,
+    //            cv::Scalar(0, 255, 0), 8);
+  }
+
+  smart_factor_projection_image_pub_.publish(cheiral_image.toImageMsg());
+}
+
 void LocalizationGraphDisplay::addSmartFactorsProjectionVisual() {
   landmark_points_.clear();
   camera_pose_axes_.clear();
@@ -295,8 +358,12 @@ void LocalizationGraphDisplay::addSmartFactorsProjectionVisual() {
   const auto landmark_point = smart_factor->serialized_point(latest_graph_localizer_->graph_values().values());
   // TODO(rsoussan): Draw failed landmark points, indicate with point and line colors there was a failure (color red on
   // failure, green on success)
-  if (!landmark_point) return;
+  // if (landmark_point) return;
+  if (!landmark_point.behindCamera()) return;
   const auto cameras = smart_factor->cameras(latest_graph_localizer_->graph_values().values());
+  const auto faulty_point = gtsam::triangulatePoint3Ryan<Camera>(cameras, smart_factor->measured(),
+                                                                 smart_factor->triangulation_params_.rankTolerance,
+                                                                 smart_factor->triangulation_params_.enableEPI);
   std::vector<cv::Mat> images;
   for (const auto& key : smart_factor->keys()) {
     const auto timestamp = latest_graph_localizer_->graph_values().Timestamp(key);
@@ -319,7 +386,7 @@ void LocalizationGraphDisplay::addSmartFactorsProjectionVisual() {
 
     images.emplace_back(cv_image->image);
   }
-  addProjectionVisual(cameras, smart_factor->measured(), *landmark_point, images);
+  addProjectionVisual(cameras, smart_factor->measured(), faulty_point, images);
 }
 
 void LocalizationGraphDisplay::addSmartFactorProjectionVisual(const SmartFactor& smart_factor,
@@ -416,7 +483,7 @@ void LocalizationGraphDisplay::addSmartFactorProjectionVisual(const SmartFactor&
   const auto text_color = textColor(summed_error, 1.0, 1.5);
   cv::putText(smart_factor_projection_image.image, text, cv::Point(cols / 2 - 100, rows - 20), CV_FONT_NORMAL, 1,
               text_color, 3, cv::LINE_AA);
-  smart_factor_projection_image_pub_.publish(smart_factor_projection_image.toImageMsg());
+  // smart_factor_projection_image_pub_.publish(smart_factor_projection_image.toImageMsg());
 }
 
 void LocalizationGraphDisplay::addImuVisual(const graph_localizer::GraphLocalizer& graph_localizer,
@@ -508,6 +575,7 @@ void LocalizationGraphDisplay::processMessage(const ff_msgs::LocalizationGraph::
 
   projection_factor_slider_->setMaximum(latest_smart_factors_.size() - 1);
   addSmartFactorsProjectionVisual();
+  addCheiralFailImage();
 }
 
 }  // namespace localization_rviz_plugins

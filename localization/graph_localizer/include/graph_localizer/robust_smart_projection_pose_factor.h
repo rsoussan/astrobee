@@ -34,6 +34,7 @@ class RobustSmartProjectionPoseFactor : public SmartProjectionPoseFactor<CALIBRA
   static const int ZDim = traits<Z>::dimension;      ///< Measurement dimension
 
  public:
+  TriangulationParameters triangulation_params_;
   // For serialization
   RobustSmartProjectionPoseFactor() {}
 
@@ -214,7 +215,6 @@ class RobustSmartProjectionPoseFactor : public SmartProjectionPoseFactor<CALIBRA
   double huber_k_;
   double noise_inv_sigma_;
   // TODO(rsoussan): Remove once result_ serialization bug in gtsam fixed
-  TriangulationParameters triangulation_params_;
 };
 }  // namespace gtsam
 
