@@ -54,6 +54,15 @@ boost::optional<lm::ImuMeasurement> DynamicImuFilter::AddMeasurement(const lm::I
 void DynamicImuFilter::SetFanSpeedMode(const lm::FanSpeedMode fan_speed_mode) {
   if (fan_speed_mode != fan_speed_mode_) {
     switch (fan_speed_mode) {
+      case lm::FanSpeedMode::kOff: {
+        acceleration_x_filter_ = LoadFilter("none");
+        acceleration_y_filter_ = LoadFilter("none");
+        acceleration_z_filter_ = LoadFilter("none");
+        angular_velocity_x_filter_ = LoadFilter("none");
+        angular_velocity_y_filter_ = LoadFilter("none");
+        angular_velocity_z_filter_ = LoadFilter("none");
+        break;
+      }
       case lm::FanSpeedMode::kQuiet: {
         acceleration_x_filter_ = LoadFilter(params_.quiet_accel);
         acceleration_y_filter_ = LoadFilter(params_.quiet_accel);
