@@ -19,6 +19,7 @@
 #include <imu_integration/utilities.h>
 #include <imu_integration/butterworth_lowpass_filter.h>
 #include <imu_integration/butterworth_lowpass_filter_20_83_notch.h>
+#include <imu_integration/butterworth_lowpass_filter_15_83_notch.h>
 #include <imu_integration/butterworth_lowpass_filter_3rd_order.h>
 #include <imu_integration/butterworth_lowpass_filter_5th_order.h>
 #include <imu_integration/butterworth_lowpass_filter_5th_order_05.h>
@@ -114,6 +115,8 @@ std::unique_ptr<Filter> LoadFilter(const std::string& filter_type) {
     return std::unique_ptr<Filter>(new ButterworthLowpassFilter());
   } else if (filter_type == "butter20_83_notch") {
     return std::unique_ptr<Filter>(new ButterworthLowpassFilter20_83_Notch());
+  } else if (filter_type == "butter15_83_notch") {
+    return std::unique_ptr<Filter>(new ButterworthLowpassFilter15_83_Notch());
   } else if (filter_type == "butter3") {
     return std::unique_ptr<Filter>(new ButterworthLowpassFilter3rdOrder());
   } else if (filter_type == "butter5") {
