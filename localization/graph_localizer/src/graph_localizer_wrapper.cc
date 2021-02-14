@@ -35,7 +35,7 @@ namespace lm = localization_measurements;
 namespace mc = msg_conversions;
 
 GraphLocalizerWrapper::GraphLocalizerWrapper(const std::string& graph_config_path_prefix)
-    : reset_world_T_dock_(false), fan_speed_mode_(lm::FanSpeedMode::kOff) {
+    : reset_world_T_dock_(false), fan_speed_mode_(lm::FanSpeedMode::kNominal) {
   config_reader::ConfigReader config;
   lc::LoadGraphLocalizerConfig(config, graph_config_path_prefix);
   config.AddFile("transforms.config");
@@ -215,6 +215,7 @@ void GraphLocalizerWrapper::ImuCallback(const sensor_msgs::Imu& imu_msg) {
 void GraphLocalizerWrapper::FlightModeCallback(const ff_msgs::FlightMode& flight_mode) {
   fan_speed_mode_ = lm::ConvertFanSpeedMode(flight_mode.speed);
   if (graph_localizer_) graph_localizer_->SetFanSpeedMode(fan_speed_mode_);
+  graph_localizer_initializer_.SetFanSpeedMode(fan_speed_mode_);
 }
 
 void GraphLocalizerWrapper::InitializeGraph() {

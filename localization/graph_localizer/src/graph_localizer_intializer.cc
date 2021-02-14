@@ -31,6 +31,7 @@ GraphLocalizerInitializer::GraphLocalizerInitializer()
     : has_biases_(false),
       has_start_pose_(false),
       has_params_(false),
+      has_fan_speed_mode_(false),
       estimate_biases_(false),
       removed_gravity_from_bias_if_necessary_(false) {}
 void GraphLocalizerInitializer::SetBiases(const gtsam::imuBias::ConstantBias& imu_bias,
@@ -59,6 +60,11 @@ void GraphLocalizerInitializer::SetStartPose(const gtsam::Pose3& global_T_body_s
   params_.graph_initializer.global_T_body_start = global_T_body_start;
   has_start_pose_ = true;
   RemoveGravityFromBiasIfPossibleAndNecessary();
+}
+
+void GraphLocalizerInitializer::SetFanSpeedMode(const lm::FanSpeedMode fan_speed_mode) {
+  params_.initial_fan_speed_mode = fan_speed_mode;
+  has_fan_speed_mode_ = true;
 }
 
 void GraphLocalizerInitializer::RemoveGravityFromBiasIfPossibleAndNecessary() {
@@ -175,7 +181,7 @@ void GraphLocalizerInitializer::LoadGraphLocalizerParams(config_reader::ConfigRe
 }
 
 bool GraphLocalizerInitializer::ReadyToInitialize() const {
-  return HasBiases() && HasStartPose() && HasParams() && RemovedGravityFromBiasIfNecessary();
+  return HasBiases() && HasStartPose() && HasParams() && HasFanSpeedMode() && RemovedGravityFromBiasIfNecessary();
 }
 
 void GraphLocalizerInitializer::StartBiasEstimation() { estimate_biases_ = true; }
@@ -183,6 +189,7 @@ void GraphLocalizerInitializer::StartBiasEstimation() { estimate_biases_ = true;
 bool GraphLocalizerInitializer::HasBiases() const { return has_biases_; }
 bool GraphLocalizerInitializer::HasStartPose() const { return has_start_pose_; }
 bool GraphLocalizerInitializer::HasParams() const { return has_params_; }
+bool GraphLocalizerInitializer::HasFanSpeedMode() const { return has_fan_speed_mode_; }
 bool GraphLocalizerInitializer::EstimateBiases() const { return estimate_biases_; }
 bool GraphLocalizerInitializer::RemovedGravityFromBiasIfNecessary() const {
   return removed_gravity_from_bias_if_necessary_;
