@@ -1062,7 +1062,7 @@ void GraphLocalizer::PrintFactorDebugInfo() const {
   }
 }
 
-void GraphLocalizer::SetFanSpeedMode(const ii::FanSpeedMode fan_speed_mode) {
+void GraphLocalizer::SetFanSpeedMode(const lm::FanSpeedMode fan_speed_mode) {
   latest_imu_integrator_.SetFanSpeedMode(fan_speed_mode);
 }
 

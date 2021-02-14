@@ -123,7 +123,9 @@ boost::optional<gtsam::PreintegratedCombinedMeasurements> ImuIntegrator::Integra
   return pim;
 }
 
-void ImuIntegrator::SetFanSpeedMode(const FanSpeedMode fan_speed_mode) { imu_filter_->SetFanSpeedMode(fan_speed_mode); }
+void ImuIntegrator::SetFanSpeedMode(const lm::FanSpeedMode fan_speed_mode) {
+  imu_filter_->SetFanSpeedMode(fan_speed_mode);
+}
 
 boost::shared_ptr<gtsam::PreintegratedCombinedMeasurements::Params> ImuIntegrator::pim_params() const {
   // Make a copy so internal params aren't exposed.  Gtsam expects a point to a

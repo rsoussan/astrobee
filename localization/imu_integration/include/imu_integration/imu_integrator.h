@@ -24,6 +24,7 @@
 
 #include <localization_common/combined_nav_state.h>
 #include <localization_common/time.h>
+#include <localization_measurements/fan_speed_mode.h>
 #include <localization_measurements/imu_measurement.h>
 
 #include <gtsam/navigation/CombinedImuFactor.h>
@@ -66,7 +67,7 @@ class ImuIntegrator {
 
   int Size() const;
 
-  void SetFanSpeedMode(const FanSpeedMode fan_speed_mode);
+  void SetFanSpeedMode(const localization_measurements::FanSpeedMode fan_speed_mode);
 
   boost::shared_ptr<gtsam::PreintegratedCombinedMeasurements::Params> pim_params() const;
 

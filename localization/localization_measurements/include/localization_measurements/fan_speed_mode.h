@@ -16,15 +16,15 @@
  * under the License.
  */
 
-#ifndef IMU_INTEGRATION_FAN_SPEED_MODE_H_
-#define IMU_INTEGRATION_FAN_SPEED_MODE_H_
+#ifndef LOCALIZATION_MEASUREMENTS_FAN_SPEED_MODE_H_
+#define LOCALIZATION_MEASUREMENTS_FAN_SPEED_MODE_H_
 
-namespace imu_integration {
+namespace localization_measurements {
 enum class FanSpeedMode {
-  kOff,       // 0 rpm
-  kQuiet,     // 2000 rpm
-  kNominal,   // 2500 rpm
-  kAggresive  // 2800 rpm
+  kOff,        // 0 rpm
+  kQuiet,      // 2000 rpm
+  kNominal,    // 2500 rpm
+  kAggressive  // 2800 rpm
 };
-}  // namespace imu_integration
-#endif  // IMU_INTEGRATION_FAN_SPEED_MODE_H_
+}  // namespace localization_measurements
+#endif  // LOCALIZATION_MEASUREMENTS_FAN_SPEED_MODE_H_

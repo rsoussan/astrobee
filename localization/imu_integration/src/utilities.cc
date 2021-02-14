@@ -105,8 +105,8 @@ void LoadImuFilterParams(config_reader::ConfigReader& config, ImuFilterParams& p
   params.quiet_ang_vel = mc::LoadString(config, "imu_filter_quiet_ang_vel");
   params.nominal_accel = mc::LoadString(config, "imu_filter_nominal_accel");
   params.nominal_ang_vel = mc::LoadString(config, "imu_filter_nominal_ang_vel");
-  params.fast_accel = mc::LoadString(config, "imu_filter_fast_accel");
-  params.fast_ang_vel = mc::LoadString(config, "imu_filter_fast_ang_vel");
+  params.aggressive_accel = mc::LoadString(config, "imu_filter_aggressive_accel");
+  params.aggressive_ang_vel = mc::LoadString(config, "imu_filter_aggressive_ang_vel");
 }
 
 std::unique_ptr<Filter> LoadFilter(const std::string& filter_type) {

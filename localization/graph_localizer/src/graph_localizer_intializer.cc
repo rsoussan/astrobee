@@ -25,15 +25,14 @@
 #include <string>
 
 namespace graph_localizer {
-namespace ii = imu_integration;
 namespace lc = localization_common;
+namespace lm = localization_measurements;
 GraphLocalizerInitializer::GraphLocalizerInitializer()
     : has_biases_(false),
       has_start_pose_(false),
       has_params_(false),
       estimate_biases_(false),
-      removed_gravity_from_bias_if_necessary_(false),
-      fan_speed_mode_(ii::FanSpeedMode::kOff) {}
+      removed_gravity_from_bias_if_necessary_(false) {}
 void GraphLocalizerInitializer::SetBiases(const gtsam::imuBias::ConstantBias& imu_bias,
                                           const bool loaded_from_previous_estimate, const bool save_to_file) {
   params_.graph_initializer.initial_imu_bias = imu_bias;
@@ -95,7 +94,7 @@ void GraphLocalizerInitializer::ResetStartPose() { has_start_pose_ = false; }
 
 void GraphLocalizerInitializer::ResetBiases() {
   has_biases_ = false;
-  imu_bias_filter_.reset(new imu_integration::ImuFilter(params_.graph_initializer.filter));
+  imu_bias_filter_.reset(new imu_integration::DynamicImuFilter(params_.graph_initializer.filter));
   imu_bias_measurements_.clear();
   StartBiasEstimation();
 }
@@ -133,11 +132,8 @@ void GraphLocalizerInitializer::ResetBiasesFromFile() {
 }
 
 void GraphLocalizerInitializer::EstimateAndSetImuBiases(
-  const localization_measurements::ImuMeasurement& imu_measurement, const ii::FanSpeedMode fan_speed_mode) {
-  if (fan_speed_mode != fan_speed_mode_) {
-    fan_speed_mode_ = fan_speed_mode;
-    imu_bias_filter_->SetFanSpeedMode(fan_speed_mode_);
-  }
+  const localization_measurements::ImuMeasurement& imu_measurement, const lm::FanSpeedMode fan_speed_mode) {
+  imu_bias_filter_->SetFanSpeedMode(fan_speed_mode);
   const auto filtered_imu_measurement = imu_bias_filter_->AddMeasurement(imu_measurement);
   if (filtered_imu_measurement) {
     imu_bias_measurements_.emplace_back(*filtered_imu_measurement);
@@ -161,7 +157,7 @@ void GraphLocalizerInitializer::EstimateAndSetImuBiases(
 
   gtsam::imuBias::ConstantBias biases(accelerometer_bias, gyro_bias);
   SetBiases(biases, false, true);
-  imu_bias_filter_.reset(new imu_integration::ImuFilter(params_.graph_initializer.filter));
+  imu_bias_filter_.reset(new imu_integration::DynamicImuFilter(params_.graph_initializer.filter));
   imu_bias_measurements_.clear();
 }
 

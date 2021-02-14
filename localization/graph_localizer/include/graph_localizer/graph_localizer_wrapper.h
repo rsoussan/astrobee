@@ -20,6 +20,7 @@
 
 #include <ff_msgs/GraphState.h>
 #include <ff_msgs/Feature2dArray.h>
+#include <ff_msgs/FlightMode.h>
 #include <ff_msgs/LocalizationGraph.h>
 #include <ff_msgs/VisualLandmarks.h>
 #include <graph_localizer/feature_counts.h>
@@ -27,7 +28,7 @@
 #include <graph_localizer/graph_localizer_initializer.h>
 #include <graph_localizer/graph_stats.h>
 #include <graph_localizer/sanity_checker.h>
-#include <imu_integration/fan_speed_mode.h>
+#include <localization_measurements/fan_speed_mode.h>
 #include <localization_measurements/imu_measurement.h>
 #include <localization_measurements/matched_projections_measurement.h>
 
@@ -76,7 +77,7 @@ class GraphLocalizerWrapper {
 
   void ImuCallback(const sensor_msgs::Imu& imu_msg);
 
-  void SetFanSpeedMode(const uint8_t speed);
+  void FlightModeCallback(const ff_msgs::FlightMode& flight_mode);
 
   boost::optional<const FeatureTrackMap&> feature_tracks() const;
 
@@ -118,7 +119,7 @@ class GraphLocalizerWrapper {
   bool estimate_world_T_dock_using_loc_;
   int ar_min_num_landmarks_;
   int sparse_mapping_min_num_landmarks_;
-  imu_integration::FanSpeedMode fan_speed_mode_;
+  localization_measurements::FanSpeedMode fan_speed_mode_;
 };
 }  // namespace graph_localizer
 
