@@ -27,6 +27,7 @@
 #include <graph_localizer/graph_localizer_initializer.h>
 #include <graph_localizer/graph_stats.h>
 #include <graph_localizer/sanity_checker.h>
+#include <imu_integration/fan_speed_mode.h>
 #include <localization_measurements/imu_measurement.h>
 #include <localization_measurements/matched_projections_measurement.h>
 
@@ -75,6 +76,8 @@ class GraphLocalizerWrapper {
 
   void ImuCallback(const sensor_msgs::Imu& imu_msg);
 
+  void SetFanSpeedMode(const uint8_t speed);
+
   boost::optional<const FeatureTrackMap&> feature_tracks() const;
 
   void MarkWorldTDockForResettingIfNecessary();
@@ -115,6 +118,7 @@ class GraphLocalizerWrapper {
   bool estimate_world_T_dock_using_loc_;
   int ar_min_num_landmarks_;
   int sparse_mapping_min_num_landmarks_;
+  imu_integration::FanSpeedMode fan_speed_mode_;
 };
 }  // namespace graph_localizer
 

@@ -25,7 +25,15 @@
 #include <string>
 
 namespace graph_localizer {
+namespace ii = imu_integration;
 namespace lc = localization_common;
+GraphLocalizerInitializer::GraphLocalizerInitializer()
+    : has_biases_(false),
+      has_start_pose_(false),
+      has_params_(false),
+      estimate_biases_(false),
+      removed_gravity_from_bias_if_necessary_(false),
+      fan_speed_mode_(ii::FanSpeedMode::kOff) {}
 void GraphLocalizerInitializer::SetBiases(const gtsam::imuBias::ConstantBias& imu_bias,
                                           const bool loaded_from_previous_estimate, const bool save_to_file) {
   params_.graph_initializer.initial_imu_bias = imu_bias;
@@ -125,7 +133,11 @@ void GraphLocalizerInitializer::ResetBiasesFromFile() {
 }
 
 void GraphLocalizerInitializer::EstimateAndSetImuBiases(
-  const localization_measurements::ImuMeasurement& imu_measurement) {
+  const localization_measurements::ImuMeasurement& imu_measurement, const ii::FanSpeedMode fan_speed_mode) {
+  if (fan_speed_mode != fan_speed_mode_) {
+    fan_speed_mode_ = fan_speed_mode;
+    imu_bias_filter_->SetFanSpeedMode(fan_speed_mode_);
+  }
   const auto filtered_imu_measurement = imu_bias_filter_->AddMeasurement(imu_measurement);
   if (filtered_imu_measurement) {
     imu_bias_measurements_.emplace_back(*filtered_imu_measurement);

@@ -33,6 +33,7 @@
 #include <graph_localizer/smart_projection_cumulative_factor_adder.h>
 #include <graph_localizer/standstill_factor_adder.h>
 #include <imu_integration/latest_imu_integrator.h>
+#include <imu_integration/fan_speed_mode.h>
 #include <localization_common/combined_nav_state.h>
 #include <localization_common/combined_nav_state_covariances.h>
 #include <localization_common/time.h>
@@ -133,6 +134,8 @@ class GraphLocalizer {
   void LogOnDestruction(const bool log_on_destruction);
 
   const GraphStats& graph_stats() const;
+
+  void SetFanSpeedMode(const imu_integration::FanSpeedMode fan_speed_mode);
 
  private:
   gtsam::NonlinearFactorGraph MarginalFactors(const gtsam::NonlinearFactorGraph& old_factors,

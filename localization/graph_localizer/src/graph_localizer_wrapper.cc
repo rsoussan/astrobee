@@ -29,11 +29,13 @@
 #include <Eigen/Core>
 
 namespace graph_localizer {
+namespace ii = imu_integration;
 namespace lc = localization_common;
 namespace lm = localization_measurements;
 namespace mc = msg_conversions;
 
-GraphLocalizerWrapper::GraphLocalizerWrapper(const std::string& graph_config_path_prefix) : reset_world_T_dock_(false) {
+GraphLocalizerWrapper::GraphLocalizerWrapper(const std::string& graph_config_path_prefix)
+    : reset_world_T_dock_(false), fan_speed_mode_(ii::FanSpeedMode::kOff) {
   config_reader::ConfigReader config;
   lc::LoadGraphLocalizerConfig(config, graph_config_path_prefix);
   config.AddFile("transforms.config");
@@ -201,12 +203,38 @@ void GraphLocalizerWrapper::ImuCallback(const sensor_msgs::Imu& imu_msg) {
       LogError("ImuCallback: Failed to get latest biases.");
     }
   } else if (graph_localizer_initializer_.EstimateBiases()) {
-    graph_localizer_initializer_.EstimateAndSetImuBiases(lm::ImuMeasurement(imu_msg));
+    graph_localizer_initializer_.EstimateAndSetImuBiases(lm::ImuMeasurement(imu_msg), fan_speed_mode_);
   }
 
   if (!graph_localizer_ && graph_localizer_initializer_.ReadyToInitialize()) {
     InitializeGraph();
     LogDebug("ImuCallback: Initialized Graph.");
+  }
+}
+
+void GraphLocalizerWrapper::SetFanSpeedMode(const uint8_t speed) {
+  const ii::FanSpeedMode last_fan_speed_mode = fan_speed_mode_;
+  switch (speed) {
+    case 0: {
+      fan_speed_mode_ = ii::FanSpeedMode::kOff;
+      break;
+    }
+    case 1: {
+      fan_speed_mode_ = ii::FanSpeedMode::kQuiet;
+      break;
+    }
+    case 2: {
+      fan_speed_mode_ = ii::FanSpeedMode::kNominal;
+      break;
+    }
+    case 3: {
+      fan_speed_mode_ = ii::FanSpeedMode::kAggresive;
+      break;
+    }
+  }
+  // Don't always update graph localizer since setting flight mode resets the imu filter history
+  if (fan_speed_mode_ != last_fan_speed_mode) {
+    if (graph_localizer_) graph_localizer_->SetFanSpeedMode(fan_speed_mode_);
   }
 }
 

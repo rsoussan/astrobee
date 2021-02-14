@@ -51,7 +51,7 @@ boost::optional<lm::ImuMeasurement> DynamicImuFilter::AddMeasurement(const lm::I
   return filtered_imu_measurement;
 }
 
-void DynamicImuFilter::SetMode(const FanSpeedMode fan_speed_mode) {
+void DynamicImuFilter::SetFanSpeedMode(const FanSpeedMode fan_speed_mode) {
   if (fan_speed_mode != fan_speed_mode_) {
     switch (fan_speed_mode) {
       case FanSpeedMode::kQuiet: {
@@ -72,13 +72,13 @@ void DynamicImuFilter::SetMode(const FanSpeedMode fan_speed_mode) {
         angular_velocity_z_filter_ = LoadFilter(params_.nominal_ang_vel);
         break;
       }
-      case FanSpeedMode::kFast: {
-        acceleration_x_filter_ = LoadFilter(params_.fast_accel);
-        acceleration_y_filter_ = LoadFilter(params_.fast_accel);
-        acceleration_z_filter_ = LoadFilter(params_.fast_accel);
-        angular_velocity_x_filter_ = LoadFilter(params_.fast_ang_vel);
-        angular_velocity_y_filter_ = LoadFilter(params_.fast_ang_vel);
-        angular_velocity_z_filter_ = LoadFilter(params_.fast_ang_vel);
+      case FanSpeedMode::kAggresive: {
+        acceleration_x_filter_ = LoadFilter(params_.aggresive_accel);
+        acceleration_y_filter_ = LoadFilter(params_.aggresive_accel);
+        acceleration_z_filter_ = LoadFilter(params_.aggresive_accel);
+        angular_velocity_x_filter_ = LoadFilter(params_.aggresive_ang_vel);
+        angular_velocity_y_filter_ = LoadFilter(params_.aggresive_ang_vel);
+        angular_velocity_z_filter_ = LoadFilter(params_.aggresive_ang_vel);
         break;
       }
       default: {

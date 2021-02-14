@@ -21,6 +21,7 @@
 #include <camera/camera_params.h>
 #include <config_reader/config_reader.h>
 #include <graph_localizer/graph_localizer_params.h>
+#include <imu_integration/fan_speed_mode.h>
 #include <imu_integration/imu_filter.h>
 #include <localization_measurements/imu_measurement.h>
 #include <msg_conversions/msg_conversions.h>
@@ -34,6 +35,7 @@
 namespace graph_localizer {
 class GraphLocalizerInitializer {
  public:
+  GraphLocalizerInitializer();
   void SetBiases(const gtsam::imuBias::ConstantBias& imu_bias, const bool loaded_from_previous_estimate = false,
                  const bool save_to_file = false);
   void SetStartPose(const gtsam::Pose3& global_T_body_start, const double timestamp);
@@ -52,20 +54,22 @@ class GraphLocalizerInitializer {
   const GraphLocalizerParams& params() const;
   void LoadGraphLocalizerParams(config_reader::ConfigReader& config);
   bool RemovedGravityFromBiasIfNecessary() const;
-  void EstimateAndSetImuBiases(const localization_measurements::ImuMeasurement& imu_measurement);
+  void EstimateAndSetImuBiases(const localization_measurements::ImuMeasurement& imu_measurement,
+                               imu_integration::FanSpeedMode fan_speed_mode);
 
  private:
   void RemoveGravityFromBias(const gtsam::Vector3& global_F_gravity, const gtsam::Pose3& body_T_imu,
                              const gtsam::Pose3& global_T_body, gtsam::imuBias::ConstantBias& imu_bias);
 
-  bool has_biases_ = false;
-  bool has_start_pose_ = false;
-  bool has_params_ = false;
-  bool estimate_biases_ = false;
-  bool removed_gravity_from_bias_if_necessary_ = false;
+  bool has_biases_;
+  bool has_start_pose_;
+  bool has_params_;
+  bool estimate_biases_;
+  bool removed_gravity_from_bias_if_necessary_;
   graph_localizer::GraphLocalizerParams params_;
   std::unique_ptr<imu_integration::ImuFilter> imu_bias_filter_;
   std::vector<localization_measurements::ImuMeasurement> imu_bias_measurements_;
+  imu_integration::FanSpeedMode fan_speed_mode_;
 };
 }  // namespace graph_localizer
 

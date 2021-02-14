@@ -94,6 +94,8 @@ class GraphLocalizerNodelet : public ff_util::FreeFlyerNodelet {
 
   void ImuCallback(const sensor_msgs::Imu::ConstPtr& imu_msg);
 
+  void FlightModeCallback(ff_msgs::FlightMode::ConstPtr const& mode);
+
   void Run();
 
   graph_localizer::GraphLocalizerWrapper graph_localizer_wrapper_;

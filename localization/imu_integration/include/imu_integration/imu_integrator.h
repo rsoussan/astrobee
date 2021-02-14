@@ -66,6 +66,8 @@ class ImuIntegrator {
 
   int Size() const;
 
+  void SetFanSpeedMode(const FanSpeedMode fan_speed_mode);
+
   boost::shared_ptr<gtsam::PreintegratedCombinedMeasurements::Params> pim_params() const;
 
   bool WithinBounds(const localization_common::Time timestamp);
