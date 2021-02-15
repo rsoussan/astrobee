@@ -122,8 +122,8 @@ void GraphLocalizerWrapper::ResetBiasesFromFileAndResetLocalizer() {
 }
 
 void GraphLocalizerWrapper::VLVisualLandmarksCallback(const ff_msgs::VisualLandmarks& visual_landmarks_msg) {
-  if (!ValidVLMsg(visual_landmarks_msg, sparse_mapping_min_num_landmarks_)) return;
   feature_counts_.vl = visual_landmarks_msg.landmarks.size();
+  if (!ValidVLMsg(visual_landmarks_msg, sparse_mapping_min_num_landmarks_)) return;
   if (graph_localizer_) {
     graph_localizer_->AddSparseMappingMeasurement(lm::MakeMatchedProjectionsMeasurement(visual_landmarks_msg));
   }
@@ -181,8 +181,8 @@ bool GraphLocalizerWrapper::CheckCovarianceSanity() const {
 }
 
 void GraphLocalizerWrapper::ARVisualLandmarksCallback(const ff_msgs::VisualLandmarks& visual_landmarks_msg) {
-  if (!ValidVLMsg(visual_landmarks_msg, ar_min_num_landmarks_)) return;
   feature_counts_.ar = visual_landmarks_msg.landmarks.size();
+  if (!ValidVLMsg(visual_landmarks_msg, ar_min_num_landmarks_)) return;
   if (graph_localizer_) {
     if (reset_world_T_dock_) {
       ResetWorldTDockUsingLoc(visual_landmarks_msg);
