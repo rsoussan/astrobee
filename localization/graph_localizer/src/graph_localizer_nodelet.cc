@@ -72,7 +72,7 @@ void GraphLocalizerNodelet::SubscribeAndAdvertise(ros::NodeHandle* nh) {
     private_nh_.subscribe(TOPIC_LOCALIZATION_ML_FEATURES, params_.max_vl_buffer_size,
                           &GraphLocalizerNodelet::VLVisualLandmarksCallback, this, ros::TransportHints().tcpNoDelay());
   flight_mode_sub_ =
-    private_nh_.subscribe(TOPIC_MOBILITY_FLIGHT_MODE, 1, &GraphLocalizerNodelet::FlightModeCallback, this);
+    private_nh_.subscribe(TOPIC_MOBILITY_FLIGHT_MODE, 10, &GraphLocalizerNodelet::FlightModeCallback, this);
   bias_srv_ =
     private_nh_.advertiseService(SERVICE_GNC_EKF_INIT_BIAS, &GraphLocalizerNodelet::ResetBiasesAndLocalizer, this);
   bias_from_file_srv_ = private_nh_.advertiseService(
