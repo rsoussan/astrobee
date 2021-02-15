@@ -83,6 +83,7 @@ ff_msgs::GraphState GraphStateMsg(const lc::CombinedNavState& combined_nav_state
   // Set Graph Feature Counts/Information
   loc_msg.num_detected_of_features = detected_feature_counts.of;
   loc_msg.num_detected_ml_features = detected_feature_counts.vl;
+  loc_msg.num_detected_ar_features = detected_feature_counts.ar;
   loc_msg.estimating_bias = estimating_bias;
 
   // Set Graph Stats

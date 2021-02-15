@@ -182,8 +182,7 @@ bool GraphLocalizerWrapper::CheckCovarianceSanity() const {
 
 void GraphLocalizerWrapper::ARVisualLandmarksCallback(const ff_msgs::VisualLandmarks& visual_landmarks_msg) {
   if (!ValidVLMsg(visual_landmarks_msg, ar_min_num_landmarks_)) return;
-  // TODO(rsoussan): Make seperate ar count, update GraphState and EkfState
-  feature_counts_.vl = visual_landmarks_msg.landmarks.size();
+  feature_counts_.ar = visual_landmarks_msg.landmarks.size();
   if (graph_localizer_) {
     if (reset_world_T_dock_) {
       ResetWorldTDockUsingLoc(visual_landmarks_msg);

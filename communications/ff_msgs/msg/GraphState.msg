@@ -33,6 +33,7 @@ uint8 CONFIDENCE_POOR = 1	# Tracking poorly
 uint8 CONFIDENCE_LOST = 2	# We are lost
 # Stats
 uint32 num_detected_of_features  
+uint32 num_detected_ar_features 
 uint32 num_detected_ml_features 
 uint32 iterations # Optimization iterations
 float32 optimization_time
