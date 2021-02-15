@@ -42,6 +42,8 @@ class DynamicImuFilter {
   void SetFanSpeedMode(const localization_measurements::FanSpeedMode fan_speed_mode,
                        const bool ignore_saved_fan_speed_mode = false);
 
+  localization_measurements::FanSpeedMode fan_speed_mode() const;
+
  private:
   // Acceleration Filters
   std::unique_ptr<Filter> acceleration_x_filter_;

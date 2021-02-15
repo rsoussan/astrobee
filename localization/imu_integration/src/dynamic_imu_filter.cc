@@ -91,4 +91,6 @@ void DynamicImuFilter::SetFanSpeedMode(const lm::FanSpeedMode fan_speed_mode, co
     fan_speed_mode_ = fan_speed_mode;
   }
 }
+
+lm::FanSpeedMode DynamicImuFilter::fan_speed_mode() const { return fan_speed_mode_; }
 }  // namespace imu_integration

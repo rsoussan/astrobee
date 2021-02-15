@@ -294,10 +294,11 @@ boost::optional<ff_msgs::GraphState> GraphLocalizerWrapper::LatestLocalizationSt
     LogDebugEveryN(50, "LatestLocalizationMsg: No combined nav state and covariances available.");
     return boost::none;
   }
-  const auto graph_state_msg = GraphStateMsg(
-    combined_nav_state_and_covariances->first, combined_nav_state_and_covariances->second, feature_counts_.of,
-    feature_counts_.vl, graph_localizer_initializer_.EstimateBiases(), position_cov_log_det_lost_threshold_,
-    orientation_cov_log_det_lost_threshold_, graph_localizer_->standstill(), graph_localizer_->graph_stats());
+  const auto graph_state_msg =
+    GraphStateMsg(combined_nav_state_and_covariances->first, combined_nav_state_and_covariances->second,
+                  feature_counts_.of, feature_counts_.vl, graph_localizer_initializer_.EstimateBiases(),
+                  position_cov_log_det_lost_threshold_, orientation_cov_log_det_lost_threshold_,
+                  graph_localizer_->standstill(), graph_localizer_->graph_stats(), graph_localizer_->fan_speed_mode());
   feature_counts_.Reset();
   return graph_state_msg;
 }

@@ -137,6 +137,8 @@ class GraphLocalizer {
 
   void SetFanSpeedMode(const localization_measurements::FanSpeedMode fan_speed_mode);
 
+  const localization_measurements::FanSpeedMode fan_speed_mode() const;
+
  private:
   gtsam::NonlinearFactorGraph MarginalFactors(const gtsam::NonlinearFactorGraph& old_factors,
                                               const gtsam::KeyVector& old_keys,

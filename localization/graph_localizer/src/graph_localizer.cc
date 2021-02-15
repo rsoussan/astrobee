@@ -1067,6 +1067,8 @@ void GraphLocalizer::SetFanSpeedMode(const lm::FanSpeedMode fan_speed_mode) {
   latest_imu_integrator_.SetFanSpeedMode(fan_speed_mode);
 }
 
+const lm::FanSpeedMode GraphLocalizer::fan_speed_mode() const { return latest_imu_integrator_.fan_speed_mode(); }
+
 const GraphLocalizerParams& GraphLocalizer::params() const { return params_; }
 
 int GraphLocalizer::NumFeatures() const { return graph_values_->NumFeatures(); }
