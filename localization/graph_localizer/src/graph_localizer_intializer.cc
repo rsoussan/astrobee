@@ -163,7 +163,7 @@ void GraphLocalizerInitializer::EstimateAndSetImuBiases(
 
   gtsam::imuBias::ConstantBias biases(accelerometer_bias, gyro_bias);
   SetBiases(biases, false, true);
-  imu_bias_filter_.reset(new imu_integration::DynamicImuFilter(params_.graph_initializer.filter));
+  imu_bias_filter_.reset(new imu_integration::DynamicImuFilter(params_.graph_initializer.filter, fan_speed_mode));
   imu_bias_measurements_.clear();
 }
 

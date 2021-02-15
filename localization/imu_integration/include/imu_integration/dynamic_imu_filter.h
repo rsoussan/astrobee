@@ -32,13 +32,15 @@
 namespace imu_integration {
 class DynamicImuFilter {
  public:
-  explicit DynamicImuFilter(const ImuFilterParams& params);
+  DynamicImuFilter(const ImuFilterParams& params, const localization_measurements::FanSpeedMode initial_fan_speed_mode =
+                                                    localization_measurements::FanSpeedMode::kNominal);
   // Returns filtered measurement if one is available
   boost::optional<localization_measurements::ImuMeasurement> AddMeasurement(
     const localization_measurements::ImuMeasurement& imu_measurement);
 
   // Notch filter depends on fan speed, change filter as fan speed changes
-  void SetFanSpeedMode(const localization_measurements::FanSpeedMode fan_speed_mode);
+  void SetFanSpeedMode(const localization_measurements::FanSpeedMode fan_speed_mode,
+                       const bool ignore_saved_fan_speed_mode = false);
 
  private:
   // Acceleration Filters

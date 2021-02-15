@@ -144,6 +144,9 @@ void GraphLocalizerWrapper::VLVisualLandmarksCallback(const ff_msgs::VisualLandm
     // Set or update initial pose if a new one is available before the localizer
     // has started running.
     graph_localizer_initializer_.SetStartPose(sparse_mapping_pose_->first, sparse_mapping_pose_->second);
+    // Set fan speed mode as well in case this hasn't been set yet
+    // TODO(rsoussan): Do this in a cleaner way
+    graph_localizer_initializer_.SetFanSpeedMode(fan_speed_mode_);
   }
 }
 

@@ -23,15 +23,9 @@
 
 namespace imu_integration {
 namespace lm = localization_measurements;
-DynamicImuFilter::DynamicImuFilter(const ImuFilterParams& params)
-    : params_(params), fan_speed_mode_(lm::FanSpeedMode::kNominal) {
-  // Default to nominal filters
-  acceleration_x_filter_ = LoadFilter(params_.nominal_accel);
-  acceleration_y_filter_ = LoadFilter(params_.nominal_accel);
-  acceleration_z_filter_ = LoadFilter(params_.nominal_accel);
-  angular_velocity_x_filter_ = LoadFilter(params_.nominal_ang_vel);
-  angular_velocity_y_filter_ = LoadFilter(params_.nominal_ang_vel);
-  angular_velocity_z_filter_ = LoadFilter(params_.nominal_ang_vel);
+DynamicImuFilter::DynamicImuFilter(const ImuFilterParams& params, const lm::FanSpeedMode initial_fan_speed_mode)
+    : params_(params), fan_speed_mode_(initial_fan_speed_mode) {
+  SetFanSpeedMode(fan_speed_mode_, true);
 }
 
 boost::optional<lm::ImuMeasurement> DynamicImuFilter::AddMeasurement(const lm::ImuMeasurement& imu_measurement) {
@@ -51,8 +45,8 @@ boost::optional<lm::ImuMeasurement> DynamicImuFilter::AddMeasurement(const lm::I
   return filtered_imu_measurement;
 }
 
-void DynamicImuFilter::SetFanSpeedMode(const lm::FanSpeedMode fan_speed_mode) {
-  if (fan_speed_mode != fan_speed_mode_) {
+void DynamicImuFilter::SetFanSpeedMode(const lm::FanSpeedMode fan_speed_mode, const bool ignore_saved_fan_speed_mode) {
+  if (fan_speed_mode != fan_speed_mode_ || ignore_saved_fan_speed_mode) {
     switch (fan_speed_mode) {
       case lm::FanSpeedMode::kOff: {
         acceleration_x_filter_ = LoadFilter("none");
@@ -93,8 +87,8 @@ void DynamicImuFilter::SetFanSpeedMode(const lm::FanSpeedMode fan_speed_mode) {
       default: {
         break;  // Shouldn't get here
       }
-        fan_speed_mode_ = fan_speed_mode;
     }
+    fan_speed_mode_ = fan_speed_mode;
   }
 }
 }  // namespace imu_integration
