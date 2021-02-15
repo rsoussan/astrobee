@@ -84,9 +84,9 @@ void GraphLocalizerWrapper::Update() {
 }
 
 void GraphLocalizerWrapper::OpticalFlowCallback(const ff_msgs::Feature2dArray& feature_array_msg) {
+  feature_counts_.of = feature_array_msg.feature_array.size();
   if (graph_localizer_) {
     if (graph_localizer_->AddOpticalFlowMeasurement(lm::MakeFeaturePointsMeasurement(feature_array_msg))) {
-      feature_counts_.of = graph_localizer_->NumOFFactors();
     }
   }
 }
@@ -123,9 +123,9 @@ void GraphLocalizerWrapper::ResetBiasesFromFileAndResetLocalizer() {
 
 void GraphLocalizerWrapper::VLVisualLandmarksCallback(const ff_msgs::VisualLandmarks& visual_landmarks_msg) {
   if (!ValidVLMsg(visual_landmarks_msg, sparse_mapping_min_num_landmarks_)) return;
+  feature_counts_.vl = visual_landmarks_msg.landmarks.size();
   if (graph_localizer_) {
     graph_localizer_->AddSparseMappingMeasurement(lm::MakeMatchedProjectionsMeasurement(visual_landmarks_msg));
-    feature_counts_.vl = visual_landmarks_msg.landmarks.size();
   }
 
   const gtsam::Pose3 sparse_mapping_global_T_body =
@@ -182,6 +182,8 @@ bool GraphLocalizerWrapper::CheckCovarianceSanity() const {
 
 void GraphLocalizerWrapper::ARVisualLandmarksCallback(const ff_msgs::VisualLandmarks& visual_landmarks_msg) {
   if (!ValidVLMsg(visual_landmarks_msg, ar_min_num_landmarks_)) return;
+  // TODO(rsoussan): Make seperate ar count, update GraphState and EkfState
+  feature_counts_.vl = visual_landmarks_msg.landmarks.size();
   if (graph_localizer_) {
     if (reset_world_T_dock_) {
       ResetWorldTDockUsingLoc(visual_landmarks_msg);
@@ -193,8 +195,6 @@ void GraphLocalizerWrapper::ARVisualLandmarksCallback(const ff_msgs::VisualLandm
     ar_tag_pose_ = std::make_pair(frame_changed_ar_measurements.global_T_cam *
                                     graph_localizer_initializer_.params().calibration.body_T_dock_cam.inverse(),
                                   frame_changed_ar_measurements.timestamp);
-    // TODO(rsoussan): Make seperate ar count, update GraphState and EkfState
-    feature_counts_.vl = visual_landmarks_msg.landmarks.size();
   }
 }
 
@@ -296,9 +296,9 @@ boost::optional<ff_msgs::GraphState> GraphLocalizerWrapper::LatestLocalizationSt
   }
   const auto graph_state_msg =
     GraphStateMsg(combined_nav_state_and_covariances->first, combined_nav_state_and_covariances->second,
-                  feature_counts_.of, feature_counts_.vl, graph_localizer_initializer_.EstimateBiases(),
-                  position_cov_log_det_lost_threshold_, orientation_cov_log_det_lost_threshold_,
-                  graph_localizer_->standstill(), graph_localizer_->graph_stats(), graph_localizer_->fan_speed_mode());
+                  feature_counts_, graph_localizer_initializer_.EstimateBiases(), position_cov_log_det_lost_threshold_,
+                  orientation_cov_log_det_lost_threshold_, graph_localizer_->standstill(),
+                  graph_localizer_->graph_stats(), graph_localizer_->fan_speed_mode());
   feature_counts_.Reset();
   return graph_state_msg;
 }
