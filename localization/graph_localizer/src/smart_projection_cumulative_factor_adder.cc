@@ -66,25 +66,45 @@ std::vector<FactorsToAdd> SmartProjectionCumulativeFactorAdder::AddFactors() {
 void SmartProjectionCumulativeFactorAdder::AddSmartFactor(const FeatureTrack& feature_track,
                                                           FactorsToAdd& smart_factors_to_add) const {
   SharedRobustSmartFactor smart_factor;
-  const int num_feature_track_points = feature_track.points.size();
+  int num_smart_factor_points =
+    params().spacing_between_included_measurements == 0
+      ? static_cast<int>(feature_track.points.size())
+      : 1 + (feature_track.points.size() - 1) / params().spacing_between_included_measurements;
+
+  num_smart_factor_points = std::min(num_smart_factor_points, params().max_num_points_per_factor);
+  if (num_smart_factor_points <= 0) {
+    LogError("AddSmartFactor: Too few measurement points for smart factor.");
+    return;
+  }
   const auto noise = params().scale_noise_with_num_points
                        ? gtsam::noiseModel::Isotropic::Sigma(
-                           2, params().noise_scale * num_feature_track_points * params().cam_noise->sigma())
+                           2, params().noise_scale * num_smart_factor_points * params().cam_noise->sigma())
                        : params().cam_noise;
   smart_factor =
     boost::make_shared<RobustSmartFactor>(noise, params().cam_intrinsics, params().body_T_cam, smart_projection_params_,
                                           params().rotation_only_fallback, params().robust, params().huber_k);
 
   KeyInfos key_infos;
-  key_infos.reserve(feature_track.points.size());
+  key_infos.reserve(num_smart_factor_points);
   // Gtsam requires unique key indices for each key, even though these will be replaced later
   int uninitialized_key_index = 0;
-  for (int i = 0; i < feature_track.points.size(); ++i) {
-    const auto& feature_point = feature_track.points[i];
-    if (i >= params().max_num_points_per_factor) break;
+  int num_added_measurements = 0;
+  int measurement_index = 0;
+  int last_added_measurement_index = 0;
+  // Add in reverse order since most recent measurements are added to the end of the vector
+  for (auto point_it = feature_track.points.rbegin(); point_it != feature_track.points.rend(); ++point_it) {
+    if (num_added_measurements >= params().max_num_points_per_factor) break;
+    // Always add first measurement, only add every nth measurement after that
+    if (measurement_index != 0 &&
+        measurement_index - last_added_measurement_index != params().spacing_between_included_measurements + 1)
+      continue;
+    const auto& feature_point = *point_it;
     const KeyInfo key_info(&sym::P, feature_point.timestamp);
     key_infos.emplace_back(key_info);
     smart_factor->add(Camera::Measurement(feature_point.image_point), key_info.MakeKey(uninitialized_key_index++));
+    ++num_added_measurements;
+    last_added_measurement_index = measurement_index;
+    ++measurement_index;
   }
   smart_factors_to_add.push_back({key_infos, smart_factor});
 }
