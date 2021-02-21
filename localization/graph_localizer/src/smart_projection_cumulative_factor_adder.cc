@@ -44,10 +44,15 @@ std::vector<FactorsToAdd> SmartProjectionCumulativeFactorAdder::AddFactors() {
   int num_added_smart_factors = 0;
   for (const auto& feature_track : feature_tracker_->feature_tracks()) {
     const double average_distance_from_mean = AverageDistanceFromMean(feature_track.second.points);
-    if (ValidPointSet(feature_track.second.points, average_distance_from_mean, params().min_avg_distance_from_mean,
-                      params().min_num_points) &&
+    int num_points_to_add =
+      params().spacing_between_included_measurements == 0
+        ? static_cast<int>(feature_track.second.points.size())
+        : 1 + (feature_track.second.points.size() - 1) / (params().spacing_between_included_measurements + 1);
+    num_points_to_add = std::min(num_points_to_add, params().max_num_points_per_factor);
+    if (ValidPointSet(feature_track.second.points, average_distance_from_mean, num_points_to_add,
+                      params().min_avg_distance_from_mean, params().min_num_points) &&
         num_added_smart_factors < params().max_num_factors) {
-      AddSmartFactor(feature_track.second, smart_factors_to_add);
+      AddSmartFactor(feature_track.second, num_points_to_add, smart_factors_to_add);
       ++num_added_smart_factors;
     }
   }
@@ -64,28 +69,19 @@ std::vector<FactorsToAdd> SmartProjectionCumulativeFactorAdder::AddFactors() {
 }
 
 void SmartProjectionCumulativeFactorAdder::AddSmartFactor(const FeatureTrack& feature_track,
+                                                          const int num_points_to_add,
                                                           FactorsToAdd& smart_factors_to_add) const {
   SharedRobustSmartFactor smart_factor;
-  int num_smart_factor_points =
-    params().spacing_between_included_measurements == 0
-      ? static_cast<int>(feature_track.points.size())
-      : 1 + (feature_track.points.size() - 1) / (params().spacing_between_included_measurements + 1);
-
-  num_smart_factor_points = std::min(num_smart_factor_points, params().max_num_points_per_factor);
-  if (num_smart_factor_points <= 1) {
-    LogError("AddSmartFactor: Too few measurement points for smart factor.");
-    return;
-  }
-  const auto noise = params().scale_noise_with_num_points
-                       ? gtsam::noiseModel::Isotropic::Sigma(
-                           2, params().noise_scale * num_smart_factor_points * params().cam_noise->sigma())
-                       : params().cam_noise;
+  const auto noise =
+    params().scale_noise_with_num_points
+      ? gtsam::noiseModel::Isotropic::Sigma(2, params().noise_scale * num_points_to_add * params().cam_noise->sigma())
+      : params().cam_noise;
   smart_factor =
     boost::make_shared<RobustSmartFactor>(noise, params().cam_intrinsics, params().body_T_cam, smart_projection_params_,
                                           params().rotation_only_fallback, params().robust, params().huber_k);
 
   KeyInfos key_infos;
-  key_infos.reserve(num_smart_factor_points);
+  key_infos.reserve(num_points_to_add);
   // Gtsam requires unique key indices for each key, even though these will be replaced later
   int uninitialized_key_index = 0;
   int num_added_measurements = 0;

@@ -48,8 +48,8 @@
 
 namespace graph_localizer {
 bool ValidPointSet(const std::deque<localization_measurements::FeaturePoint>& points,
-                   const double average_distance_from_mean, const double min_avg_distance_from_mean,
-                   const int min_num_points);
+                   const double average_distance_from_mean, const int num_points_to_add,
+                   const double min_avg_distance_from_mean, const int min_num_points);
 
 double AverageDistanceFromMean(const std::deque<localization_measurements::FeaturePoint>& points);
 
