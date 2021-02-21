@@ -69,10 +69,10 @@ void SmartProjectionCumulativeFactorAdder::AddSmartFactor(const FeatureTrack& fe
   int num_smart_factor_points =
     params().spacing_between_included_measurements == 0
       ? static_cast<int>(feature_track.points.size())
-      : 1 + (feature_track.points.size() - 1) / params().spacing_between_included_measurements;
+      : 1 + (feature_track.points.size() - 1) / (params().spacing_between_included_measurements + 1);
 
   num_smart_factor_points = std::min(num_smart_factor_points, params().max_num_points_per_factor);
-  if (num_smart_factor_points <= 0) {
+  if (num_smart_factor_points <= 1) {
     LogError("AddSmartFactor: Too few measurement points for smart factor.");
     return;
   }
@@ -96,8 +96,10 @@ void SmartProjectionCumulativeFactorAdder::AddSmartFactor(const FeatureTrack& fe
     if (num_added_measurements >= params().max_num_points_per_factor) break;
     // Always add first measurement, only add every nth measurement after that
     if (measurement_index != 0 &&
-        measurement_index - last_added_measurement_index != params().spacing_between_included_measurements + 1)
+        measurement_index - last_added_measurement_index != params().spacing_between_included_measurements + 1) {
+      ++measurement_index;
       continue;
+    }
     const auto& feature_point = *point_it;
     const KeyInfo key_info(&sym::P, feature_point.timestamp);
     key_infos.emplace_back(key_info);
