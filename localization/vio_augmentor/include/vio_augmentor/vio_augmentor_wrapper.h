@@ -28,14 +28,6 @@
 #include <Eigen/Geometry>
 #include <config_reader/config_reader.h>
 
-#include <ros/node_handle.h>
-#include <ros/publisher.h>
-#include <ros/subscriber.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/Quaternion.h>
-#include <geometry_msgs/TwistStamped.h>
-
 #include <sensor_msgs/Imu.h>
 #include <ff_msgs/CameraRegistration.h>
 #include <ff_msgs/EkfState.h>
@@ -75,7 +67,6 @@ class VIOAugmentorWrapper {
    */
   void Step();
 
- protected:
   void ReadParams();
   /**
    * Initialize services and topics besides IMU.
@@ -89,24 +80,25 @@ class VIOAugmentorWrapper {
   /**
    * Resets the EKF.
    **/
-  bool ResetService(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);  // NOLINT
+  bool ResetService(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
 
   /**
    * Callback functions. These all record the information
    * and then pass it on to the EKF the next time the Step function
    * is called.
    **/
-  void ImuCallBack(sensor_msgs::Imu::ConstPtr const& imu);
-  void OpticalFlowCallBack(ff_msgs::Feature2dArray::ConstPtr const& of);
-  void RegisterOpticalFlowCamera(ff_msgs::CameraRegistration::ConstPtr const& cr);
-  void FlightModeCallback(ff_msgs::FlightMode::ConstPtr const& mode);
-  void LocalizationStateCallback(const ff_msgs::GraphState::ConstPtr& loc_msg);
+  void ImuCallBack(const sensor_msgs::Imu& imu);
+  void OpticalFlowCallBack(const ff_msgs::Feature2dArray& of);
+  void RegisterOpticalFlowCamera(const ff_msgs::CameraRegistration& cr);
+  void FlightModeCallback(const ff_msgs::FlightMode& mode);
+  void LocalizationStateCallback(const ff_msgs::GraphState& loc_msg);
 
   /**
    * Callback when the EKF resets
    **/
   void ResetCallback();
 
+ private:
   /** Variables **/
   // the actual EKF
   VIOEkf ekf_;
@@ -131,18 +123,6 @@ class VIOAugmentorWrapper {
   config_reader::ConfigReader config_;
   ff_util::PerfTimer pt_ekf_;
   ros::Timer config_timer_;
-
-  ros::NodeHandle* nh_;
-  // topic subscribers
-  ros::Subscriber imu_sub_, of_sub_, state_sub_;
-  ros::Subscriber of_reg_sub_;
-  ros::Subscriber flight_mode_sub_;
-
-  // publisher
-  ros::Publisher state_pub_;
-  ros::Publisher pose_pub_, twist_pub_;
-  ros::Publisher reset_pub_;
-  ros::ServiceServer reset_srv_;
 
   /** Threading **/
 

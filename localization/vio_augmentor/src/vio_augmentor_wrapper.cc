@@ -33,45 +33,23 @@ namespace vio_augmentor {
 namespace lc = localization_common;
 
 VIOAugmentorWrapper::VIOAugmentorWrapper(ros::NodeHandle* nh)
-    : ekf_initialized_(false), imus_dropped_(0), have_imu_(false), nh_(nh), killed_(false) {
+    : ekf_initialized_(false), imus_dropped_(0), have_imu_(false), killed_(false) {
   config_.AddFile("gnc.config");
   config_.AddFile("cameras.config");
   config_.AddFile("geometry.config");
   ReadParams();
+  // TODO(rsoussan): Does this still need to be here?
   config_timer_ = nh->createTimer(
     ros::Duration(1),
     [this](ros::TimerEvent e) { config_.CheckFilesUpdated(std::bind(&VIOAugmentorWrapper::ReadParams, this)); }, false,
     true);
   pt_ekf_.Initialize("ekf");
-
-  // Register to receive a callback when the EKF resets
-  ekf_.SetResetCallback(std::bind(&VIOAugmentorWrapper::ResetCallback, this));
-  // subscribe to IMU first, then rest once IMU is ready
-  // this is so localization manager doesn't timeout
-  imu_sub_ =
-    nh_->subscribe(TOPIC_HARDWARE_IMU, 5, &VIOAugmentorWrapper::ImuCallBack, this, ros::TransportHints().tcpNoDelay());
-  flight_mode_sub_ = nh_->subscribe(TOPIC_MOBILITY_FLIGHT_MODE, 1, &VIOAugmentorWrapper::FlightModeCallback, this);
 }
 
 VIOAugmentorWrapper::~VIOAugmentorWrapper() { killed_ = true; }
 
 // wait to start up until the IMU is ready
-void VIOAugmentorWrapper::InitializeEkf() {
-  state_pub_ = nh_->advertise<ff_msgs::EkfState>(TOPIC_GNC_EKF, 1);
-  pose_pub_ = nh_->advertise<geometry_msgs::PoseStamped>(TOPIC_LOCALIZATION_POSE, 1);
-  twist_pub_ = nh_->advertise<geometry_msgs::TwistStamped>(TOPIC_LOCALIZATION_TWIST, 1);
-  reset_pub_ = nh_->advertise<std_msgs::Empty>(TOPIC_GNC_EKF_RESET, 1);
-
-  of_sub_ = nh_->subscribe(TOPIC_LOCALIZATION_OF_FEATURES, 1, &VIOAugmentorWrapper::OpticalFlowCallBack, this,
-                           ros::TransportHints().tcpNoDelay());
-  of_reg_sub_ = nh_->subscribe(TOPIC_LOCALIZATION_OF_REGISTRATION, 1, &VIOAugmentorWrapper::RegisterOpticalFlowCamera,
-                               this, ros::TransportHints().tcpNoDelay());
-  state_sub_ = nh_->subscribe(TOPIC_GRAPH_LOC_STATE, 1, &VIOAugmentorWrapper::LocalizationStateCallback, this,
-                              ros::TransportHints().tcpNoDelay());
-  reset_srv_ = nh_->advertiseService(SERVICE_GNC_EKF_RESET, &VIOAugmentorWrapper::ResetService, this);
-
-  ekf_initialized_ = true;
-}
+void VIOAugmentorWrapper::InitializeEkf() { ekf_initialized_ = true; }
 
 void VIOAugmentorWrapper::ReadParams() {
   if (!config_.ReadFiles()) {
@@ -81,43 +59,36 @@ void VIOAugmentorWrapper::ReadParams() {
   ekf_.ReadParams(&config_);
 }
 
-void VIOAugmentorWrapper::ResetCallback() {
-  static std_msgs::Empty msg;
-  reset_pub_.publish(msg);
-}
-
-void VIOAugmentorWrapper::LocalizationStateCallback(const ff_msgs::GraphState::ConstPtr& loc_msg) {
+void VIOAugmentorWrapper::LocalizationStateCallback(const ff_msgs::GraphState& loc_msg) {
   std::lock_guard<std::mutex> lock(mutex_loc_msg_);
-  latest_combined_nav_state_ = lc::CombinedNavStateFromMsg(*loc_msg);
-  latest_covariances_ = lc::CombinedNavStateCovariancesFromMsg(*loc_msg);
-  latest_loc_msg_ = *loc_msg;
+  latest_combined_nav_state_ = lc::CombinedNavStateFromMsg(loc_msg);
+  latest_covariances_ = lc::CombinedNavStateCovariancesFromMsg(loc_msg);
+  latest_loc_msg_ = loc_msg;
 }
 
-void VIOAugmentorWrapper::ImuCallBack(sensor_msgs::Imu::ConstPtr const& imu) {
+void VIOAugmentorWrapper::ImuCallBack(const sensor_msgs::Imu& imu) {
   // concurrency protection
   std::unique_lock<std::mutex> lock(mutex_imu_msg_);
   while (have_imu_ && !killed_) cv_imu_.wait_for(lock, std::chrono::milliseconds(8));
   // copy IMU data
-  imu_ = *imu;
+  imu_ = imu;
   have_imu_ = true;
   // now notify the condition variable waiting for IMU that we have it
   lock.unlock();
   cv_imu_.notify_all();
 }
 
-void VIOAugmentorWrapper::OpticalFlowCallBack(ff_msgs::Feature2dArray::ConstPtr const& of) {
+void VIOAugmentorWrapper::OpticalFlowCallBack(const ff_msgs::Feature2dArray& of) {
   std::lock_guard<std::mutex> lock(mutex_of_msg_);
-  ekf_.OpticalFlowUpdate(*of.get());
+  ekf_.OpticalFlowUpdate(of);
 }
 
-void VIOAugmentorWrapper::RegisterOpticalFlowCamera(ff_msgs::CameraRegistration::ConstPtr const& cr) {
+void VIOAugmentorWrapper::RegisterOpticalFlowCamera(const ff_msgs::CameraRegistration& cr) {
   std::lock_guard<std::mutex> lock(mutex_of_msg_);
-  ekf_.OpticalFlowRegister(*cr.get());
+  ekf_.OpticalFlowRegister(cr);
 }
 
-void VIOAugmentorWrapper::FlightModeCallback(ff_msgs::FlightMode::ConstPtr const& mode) {
-  ekf_.SetSpeedGain(mode->speed);
-}
+void VIOAugmentorWrapper::FlightModeCallback(const ff_msgs::FlightMode& mode) { ekf_.SetSpeedGain(mode.speed); }
 
 void VIOAugmentorWrapper::Run(std::atomic<bool> const& killed) {
   // Kill the step thread
@@ -172,7 +143,7 @@ void VIOAugmentorWrapper::PublishState() {
   // TODO(rsoussan): publish stuff
 }
 
-bool VIOAugmentorWrapper::ResetService(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {  // NOLINT
+bool VIOAugmentorWrapper::ResetService(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
   ekf_.Reset();
   return true;
 }

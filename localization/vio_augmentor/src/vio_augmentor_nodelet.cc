@@ -16,7 +16,7 @@
  * under the License.
  */
 
-#include <vio_augmentor/vio_augmentor_wrapper.h>
+#include <vio_augmentor/vio_augmentor_nodelet.h>
 
 #include <ff_common/init.h>
 #include <ff_util/ff_nodelet.h>
@@ -32,29 +32,63 @@
 
 namespace vio_augmentor {
 
-class VIOAugmentorNodelet : public ff_util::FreeFlyerNodelet {
- public:
-  VIOAugmentorNodelet() : ff_util::FreeFlyerNodelet(NODE_VIO_AUG, true), killed_(false) {}
-  ~VIOAugmentorNodelet() {
-    killed_ = true;
-    thread_->join();
-  }
-  // This is called when the nodelet is loaded into the nodelet manager
-  void Initialize(ros::NodeHandle* nh) {
-    // Bootstrap our environment
-    ff_common::InitFreeFlyerApplication(getMyArgv());
-    gnc_autocode::InitializeAutocode(this);
-    vio_augmentor_.reset(new vio_augmentor::VIOAugmentorWrapper(this->GetPlatformHandle(true)));
-    thread_.reset(new std::thread(&vio_augmentor::VIOAugmentorWrapper::Run, vio_augmentor_.get(), std::ref(killed_)));
-  }
+VIOAugmentorNodelet::VIOAugmentorNodelet()
+    : ff_util::FreeFlyerNodelet(NODE_VIO_AUG, true),
+      vio_augmentor_wrapper_(this->GetPlatformHandle(true)),
+      killed_(false),
+      nh_(this->GetPlatformHandle(true)) {}
+VIOAugmentorNodelet::~VIOAugmentorNodelet() {
+  killed_ = true;
+  thread_->join();
+}
+// This is called when the nodelet is loaded into the nodelet manager
+void VIOAugmentorNodelet::Initialize(ros::NodeHandle* nh) {
+  // Bootstrap our environment
+  ff_common::InitFreeFlyerApplication(getMyArgv());
+  gnc_autocode::InitializeAutocode(this);
+  imu_sub_ =
+    nh_->subscribe(TOPIC_HARDWARE_IMU, 5, &VIOAugmentorNodelet::ImuCallBack, this, ros::TransportHints().tcpNoDelay());
+  flight_mode_sub_ = nh_->subscribe(TOPIC_MOBILITY_FLIGHT_MODE, 1, &VIOAugmentorNodelet::FlightModeCallback, this);
+  state_pub_ = nh_->advertise<ff_msgs::EkfState>(TOPIC_GNC_EKF, 1);
+  pose_pub_ = nh_->advertise<geometry_msgs::PoseStamped>(TOPIC_LOCALIZATION_POSE, 1);
+  twist_pub_ = nh_->advertise<geometry_msgs::TwistStamped>(TOPIC_LOCALIZATION_TWIST, 1);
+  reset_pub_ = nh_->advertise<std_msgs::Empty>(TOPIC_GNC_EKF_RESET, 1);
 
- private:
-  std::shared_ptr<vio_augmentor::VIOAugmentorWrapper> vio_augmentor_;
-  std::shared_ptr<std::thread> thread_;
-  std::atomic<bool> killed_;
-};
+  of_sub_ = nh_->subscribe(TOPIC_LOCALIZATION_OF_FEATURES, 1, &VIOAugmentorNodelet::OpticalFlowCallBack, this,
+                           ros::TransportHints().tcpNoDelay());
+  of_reg_sub_ = nh_->subscribe(TOPIC_LOCALIZATION_OF_REGISTRATION, 1, &VIOAugmentorNodelet::RegisterOpticalFlowCamera,
+                               this, ros::TransportHints().tcpNoDelay());
+  state_sub_ = nh_->subscribe(TOPIC_GRAPH_LOC_STATE, 1, &VIOAugmentorNodelet::LocalizationStateCallback, this,
+                              ros::TransportHints().tcpNoDelay());
+  reset_srv_ = nh_->advertiseService(SERVICE_GNC_EKF_RESET, &VIOAugmentorNodelet::ResetService, this);
 
-}  // end namespace vio_augmentor
+  thread_.reset(new std::thread(&vio_augmentor::VIOAugmentorWrapper::Run, &vio_augmentor_wrapper_, std::ref(killed_)));
+}
 
-// Declare the plugin
+bool VIOAugmentorNodelet::ResetService(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
+  return vio_augmentor_wrapper_.ResetService(req, res);
+}
+
+void VIOAugmentorNodelet::LocalizationStateCallback(const ff_msgs::GraphState::ConstPtr& loc_msg) {
+  vio_augmentor_wrapper_.LocalizationStateCallback(*loc_msg);
+}
+
+void VIOAugmentorNodelet::ImuCallBack(const sensor_msgs::Imu::ConstPtr& imu) {
+  vio_augmentor_wrapper_.ImuCallBack(*imu);
+}
+
+void VIOAugmentorNodelet::OpticalFlowCallBack(const ff_msgs::Feature2dArray::ConstPtr& of) {
+  vio_augmentor_wrapper_.OpticalFlowCallBack(*of);
+}
+
+void VIOAugmentorNodelet::RegisterOpticalFlowCamera(const ff_msgs::CameraRegistration::ConstPtr& cr) {
+  vio_augmentor_wrapper_.RegisterOpticalFlowCamera(*cr);
+}
+
+void VIOAugmentorNodelet::FlightModeCallback(const ff_msgs::FlightMode::ConstPtr& mode) {
+  vio_augmentor_wrapper_.FlightModeCallback(*mode);
+}
+
+}  // namespace vio_augmentor
+
 PLUGINLIB_EXPORT_CLASS(vio_augmentor::VIOAugmentorNodelet, nodelet::Nodelet);
