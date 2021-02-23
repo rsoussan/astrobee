@@ -104,7 +104,7 @@ class VIOAugmentorWrapper {
 
   /** Variables **/
   // the actual EKF
-  vio_augmentor vio_augmentor_;
+  VIOAugmentor vio_augmentor_;
   ff_msgs::EkfState state_;
 
   bool ekf_initialized_;
