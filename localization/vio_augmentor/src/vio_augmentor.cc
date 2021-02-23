@@ -71,7 +71,9 @@ void VIOAugmentor::RemoveOldPoses(const localization_common::Time oldest_desired
     timestamp_pose_map_.clear();
     return;
   }
-  timestamp_pose_map_.erase(timestamp_pose_map_.begin(), lower_bound_it);
+  if (lower_bound_it == timestamp_pose_map_.begin()) return;
+  // Erase up to previous pose so that first two poses can be used for interpolation if necessary
+  timestamp_pose_map_.erase(timestamp_pose_map_.begin(), std::prev(lower_bound_it));
 }
 
 boost::optional<std::pair<localization_common::Time, Eigen::Isometry3d>> VIOAugmentor::ExtrapolatePose(
