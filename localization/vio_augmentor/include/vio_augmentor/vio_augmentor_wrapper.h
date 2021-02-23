@@ -22,6 +22,7 @@
 #include <ff_msgs/GraphState.h>
 #include <localization_common/combined_nav_state.h>
 #include <localization_common/combined_nav_state_covariances.h>
+#include <vio_augmentor/vio_augmentor.h>
 #include <vio_augmentor/vio_ekf.h>
 
 #include <Eigen/Geometry>
@@ -159,6 +160,7 @@ class VIOAugmentorWrapper {
   boost::optional<localization_common::CombinedNavState> latest_combined_nav_state_;
   boost::optional<localization_common::CombinedNavStateCovariances> latest_covariances_;
   boost::optional<ff_msgs::GraphState> latest_loc_msg_;
+  VIOAugmentor vio_augmentor_;
 };
 
 }  // end namespace vio_augmentor

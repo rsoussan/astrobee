@@ -158,12 +158,18 @@ void VIOAugmentorWrapper::Step() {
 
   // All other pipelines get stepped forward normally
   pt_ekf_.Tick();
-  ekf_.Step();
+  vio_augmentor_.AddState(ekf_.Step());
   pt_ekf_.Tock();
   PublishState();
 }
 
-void VIOAugmentorWrapper::PublishState() {  // state_pub_.publish<ff_msgs::EkfState>(state);
+void VIOAugmentorWrapper::PublishState() {
+  std::lock_guard<std::mutex> lock(mutex_loc_msg_);
+  if (!latest_combined_nav_state_ || !latest_loc_msg_) return;
+  vio_augmentor_.RemoveOldPoses(latest_combined_nav_state_->timestamp());
+  const auto extrapolated_pose = vio_augmentor_.ExtrapolatePose(latest_combined_nav_state_->timestamp(),
+                                                                lc::EigenPose(latest_combined_nav_state_->pose()));
+  // TODO(rsoussan): publish stuff
 }
 
 bool VIOAugmentorWrapper::ResetService(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {  // NOLINT
