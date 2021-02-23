@@ -30,6 +30,7 @@
 namespace vio_augmentor {
 class VIOAugmentor {
  public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   void AddState(const localization_common::Time time, const Eigen::Isometry3d& pose, const Eigen::Vector3d& velocity);
   boost::optional<std::pair<localization_common::Time, Eigen::Isometry3d>> LatestRelativePose(
     const localization_common::Time start_time);

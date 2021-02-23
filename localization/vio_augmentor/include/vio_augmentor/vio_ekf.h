@@ -20,6 +20,7 @@
 #define VIO_AUGMENTOR_VIO_EKF_H_
 
 #include <gnc_autocode/ekf.h>
+#include <vio_augmentor/vio_nav_state.h>
 
 #include <Eigen/Geometry>
 #include <config_reader/config_reader.h>
@@ -69,7 +70,7 @@ class VIOEkf {
   void SetBias(Eigen::Vector3f gyro_bias, Eigen::Vector3f accel_bias);
 
   void PrepareStep(const sensor_msgs::Imu& imu, const geometry_msgs::Quaternion& quat);
-  void Step();
+  VIONavState Step();
 
   void OpticalFlowUpdate(const ff_msgs::Feature2dArray& of);
 

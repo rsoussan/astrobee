@@ -17,6 +17,7 @@
  */
 
 #include <camera/camera_params.h>
+#include <localization_common/time.h>
 #include <vio_augmentor/vio_ekf.h>
 
 #include <Eigen/Geometry>
@@ -30,6 +31,8 @@
 #include <ros/package.h>
 
 namespace vio_augmentor {
+namespace lc = localization_common;
+
 VIOEkf::VIOEkf()
     : reset_ekf_(true),
       reset_ready_(false),
@@ -305,16 +308,17 @@ void VIOEkf::PrepareStep(const sensor_msgs::Imu& imu, const geometry_msgs::Quate
   ApplyReset();
 }
 
-void VIOEkf::Step() {
+VIONavState VIOEkf::Step() {
   gnc_.Step();
-  // if (gnc_.kfl_.confidence == 2) reset_ekf_ = true;
-
-  /*  state->header.stamp.sec  = imu_.imu_timestamp_sec;
-    state->header.stamp.nsec = imu_.imu_timestamp_nsec;
-    state->pose.position    = msg_conversions::array_to_ros_point(gnc_.kfl_.P_B_ISS_ISS);
-    state->velocity         = msg_conversions::array_to_ros_vector(gnc_.kfl_.V_B_ISS_ISS);
-    state->pose.orientation = msg_conversions::array_to_ros_quat(gnc_.kfl_.quat_ISS2B);
-  */
+  VIONavState latest_state;
+  latest_state.timestamp = lc::GetTime(imu_.imu_timestamp_sec, imu_.imu_timestamp_nsec);
+  latest_state.pose.translation() =
+    Eigen::Vector3d(gnc_.kfl_.P_B_ISS_ISS[0], gnc_.kfl_.P_B_ISS_ISS[1], gnc_.kfl_.P_B_ISS_ISS[2]);
+  latest_state.pose.linear() = Eigen::Quaterniond(gnc_.kfl_.quat_ISS2B[3], gnc_.kfl_.quat_ISS2B[0],
+                                                  gnc_.kfl_.quat_ISS2B[1], gnc_.kfl_.quat_ISS2B[2])
+                                 .toRotationMatrix();
+  latest_state.velocity = Eigen::Vector3d(gnc_.kfl_.V_B_ISS_ISS[0], gnc_.kfl_.V_B_ISS_ISS[1], gnc_.kfl_.V_B_ISS_ISS[2]);
+  return latest_state;
 }
 
 void VIOEkf::Reset() { reset_ekf_ = true; }

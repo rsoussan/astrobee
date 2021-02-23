@@ -87,6 +87,7 @@ void VIOAugmentorWrapper::ResetCallback() {
 }
 
 void VIOAugmentorWrapper::LocalizationStateCallback(const ff_msgs::GraphState::ConstPtr& loc_msg) {
+  std::lock_guard<std::mutex> lock(mutex_loc_msg_);
   latest_combined_nav_state_ = lc::CombinedNavStateFromMsg(*loc_msg);
   latest_covariances_ = lc::CombinedNavStateCovariancesFromMsg(*loc_msg);
   latest_loc_msg_ = *loc_msg;

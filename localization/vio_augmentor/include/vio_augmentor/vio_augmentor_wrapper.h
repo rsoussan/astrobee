@@ -148,6 +148,7 @@ class VIOAugmentorWrapper {
   // mutex for msgs, concurrency protection
   std::mutex mutex_imu_msg_;
   std::mutex mutex_of_msg_;
+  std::mutex mutex_loc_msg_;
 
   // cv to wait for an imu reading
   std::condition_variable cv_imu_;
