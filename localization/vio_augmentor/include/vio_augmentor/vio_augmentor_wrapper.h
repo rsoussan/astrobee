@@ -73,11 +73,11 @@ class VIOAugmentorWrapper {
   int Step();
 
  protected:
-  void ReadParams(void);
+  void ReadParams();
   /**
    * Initialize services and topics besides IMU.
    **/
-  void InitializeEkf(void);
+  void InitializeEkf();
   /**
    * Publishes a ROS message containing the state of the EKF.
    **/

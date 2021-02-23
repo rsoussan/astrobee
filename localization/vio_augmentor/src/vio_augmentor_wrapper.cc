@@ -54,7 +54,7 @@ VIOAugmentorWrapper::VIOAugmentorWrapper(ros::NodeHandle* nh)
 VIOAugmentorWrapper::~VIOAugmentorWrapper() { killed_ = true; }
 
 // wait to start up until the IMU is ready
-void VIOAugmentorWrapper::InitializeEkf(void) {
+void VIOAugmentorWrapper::InitializeEkf() {
   state_pub_ = nh_->advertise<ff_msgs::EkfState>(TOPIC_GNC_EKF, 1);
   pose_pub_ = nh_->advertise<geometry_msgs::PoseStamped>(TOPIC_LOCALIZATION_POSE, 1);
   twist_pub_ = nh_->advertise<geometry_msgs::TwistStamped>(TOPIC_LOCALIZATION_TWIST, 1);
@@ -69,7 +69,7 @@ void VIOAugmentorWrapper::InitializeEkf(void) {
   ekf_initialized_ = true;
 }
 
-void VIOAugmentorWrapper::ReadParams(void) {
+void VIOAugmentorWrapper::ReadParams() {
   if (!config_.ReadFiles()) {
     ROS_ERROR("Failed to read config files.");
     return;
@@ -86,10 +86,8 @@ void VIOAugmentorWrapper::ImuCallBack(sensor_msgs::Imu::ConstPtr const& imu) {
   // concurrency protection
   std::unique_lock<std::mutex> lock(mutex_imu_msg_);
   while (have_imu_ && !killed_) cv_imu_.wait_for(lock, std::chrono::milliseconds(8));
-
   // copy IMU data
   imu_ = *imu;
-
   have_imu_ = true;
   // now notify the condition variable waiting for IMU that we have it
   lock.unlock();

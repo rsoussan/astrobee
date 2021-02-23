@@ -30,8 +30,7 @@
 #include <ros/package.h>
 
 namespace vio_augmentor {
-
-VIOAugmentor::VIOAugmentor(void)
+VIOAugmentor::VIOAugmentor()
     : reset_ekf_(true),
       reset_ready_(false),
       reset_callback_(nullptr),
@@ -44,13 +43,12 @@ VIOAugmentor::VIOAugmentor(void)
   memset(&reg_, 0, sizeof(cvs_registration_pulse));
   memset(&of_, 0, sizeof(cvs_optical_flow_msg));
   memset(&imu_, 0, sizeof(imu_msg));
+  ResetPose();
 }
 
 void VIOAugmentor::ReadParams(config_reader::ConfigReader* config) {
   gnc_.ReadParams(config);
-
   if (!config->GetInt("min_of_observations", &min_of_observations_)) ROS_FATAL("Unspecified min_of_observations.");
-
   // get camera transform
   Eigen::Vector3d trans;
   Eigen::Quaterniond rot;
@@ -316,11 +314,12 @@ int VIOAugmentor::Step(ff_msgs::EkfState* state) {
 
 void VIOAugmentor::UpdateState(ff_msgs::EkfState* state) {}
 
-void VIOAugmentor::Reset(void) { reset_ekf_ = true; }
+void VIOAugmentor::Reset() { reset_ekf_ = true; }
 
-void VIOAugmentor::ResetPose(const Eigen::Affine3d& camera_to_body, geometry_msgs::Pose const& pose) {
-  reset_camera_to_body_ = camera_to_body;
-  reset_pose_ = pose;
+void VIOAugmentor::ResetPose() {
+  reset_camera_to_body_ = nav_cam_to_body_;
+  // Initial frame is identity frame
+  reset_pose_ = Eigen::Isometry3d::Identity();
   reset_ready_ = true;
 }
 
@@ -329,10 +328,9 @@ void VIOAugmentor::ApplyReset() {
   if (!reset_ready_) return;
 
   // set the robot's position based on the pose
-  Eigen::Quaterniond world_q_body(reset_pose_.orientation.w, reset_pose_.orientation.x, reset_pose_.orientation.y,
-                                  reset_pose_.orientation.z);
+  Eigen::Quaterniond world_q_body(reset_pose_.linear());
   Eigen::Quaterniond camera_to_body_rotation(reset_camera_to_body_.linear());
-  Eigen::Vector3d world_r_body(reset_pose_.position.x, reset_pose_.position.y, reset_pose_.position.z);
+  Eigen::Vector3d world_r_body(reset_pose_.translation());
   world_q_body = world_q_body * camera_to_body_rotation.conjugate();
   Eigen::Quaterniond q1(0, reset_camera_to_body_.translation().x(), reset_camera_to_body_.translation().y(),
                         reset_camera_to_body_.translation().z());

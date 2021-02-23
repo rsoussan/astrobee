@@ -59,11 +59,11 @@ typedef struct {
 class VIOAugmentor {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  VIOAugmentor(void);
+  VIOAugmentor();
 
   void Reset();
 
-  kfl_msg* GetOutput(void) { return &gnc_.kfl_; }
+  kfl_msg* GetOutput() { return &gnc_.kfl_; }
 
   void ReadParams(config_reader::ConfigReader* config);
   void SetBias(Eigen::Vector3f gyro_bias, Eigen::Vector3f accel_bias);
@@ -79,7 +79,7 @@ class VIOAugmentor {
 
   void SetResetCallback(std::function<void()> callback);
 
-  Eigen::Affine3d GetNavCamToBody(void) const { return nav_cam_to_body_; }
+  Eigen::Affine3d GetNavCamToBody() const { return nav_cam_to_body_; }
 
   bool HasPoseEstimate() const { return has_pose_estimate_; }
 
@@ -89,8 +89,8 @@ class VIOAugmentor {
    * If we're totally lose, this function reinitializes
    * the EKF with a pose gained from visual landmarks.
    **/
-  void ResetPose(const Eigen::Affine3d& camera_to_body, geometry_msgs::Pose const& pose);
-  void ApplyReset(void);
+  void ResetPose();
+  void ApplyReset();
 
   void UpdateState(ff_msgs::EkfState* state);
 
@@ -110,7 +110,7 @@ class VIOAugmentor {
   bool reset_ekf_;
   // remember pose to reset to do in step function to avoid race conditions
   Eigen::Affine3d reset_camera_to_body_;
-  geometry_msgs::Pose reset_pose_;
+  Eigen::Isometry3d reset_pose_;
   bool reset_ready_;
 
   // optional: called when a reset occurs
