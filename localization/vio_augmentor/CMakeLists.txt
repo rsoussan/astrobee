@@ -24,7 +24,7 @@ catkin_package(
 )
 
 create_library(TARGET vio_augmentor
-  LIBS ${catkin_LIBRARIES} ${EIGEN_LIBRARIES} gnc_autocode msg_conversions camera ff_common config_reader ff_nodelet ff_flight
+  LIBS ${catkin_LIBRARIES} ${EIGEN_LIBRARIES} gnc_autocode localization_common msg_conversions camera ff_common config_reader ff_nodelet ff_flight
   INC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS}
   DEPS ff_msgs ff_hw_msgs)
 

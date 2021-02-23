@@ -16,9 +16,10 @@
  * under the License.
  */
 
-#include <vio_augmentor/vio_augmentor_wrapper.h>
 #include <camera/camera_params.h>
 #include <camera/camera_model.h>
+#include <localization_common/utilities.h>
+#include <vio_augmentor/vio_augmentor_wrapper.h>
 
 #include <Eigen/Geometry>
 #include <Eigen/Dense>
@@ -29,6 +30,7 @@
 #include <ff_util/ff_names.h>
 
 namespace vio_augmentor {
+namespace lc = localization_common;
 
 VIOAugmentorWrapper::VIOAugmentorWrapper(ros::NodeHandle* nh)
     : ekf_initialized_(false), imus_dropped_(0), have_imu_(false), nh_(nh), killed_(false) {
@@ -43,7 +45,7 @@ VIOAugmentorWrapper::VIOAugmentorWrapper(ros::NodeHandle* nh)
   pt_ekf_.Initialize("ekf");
 
   // Register to receive a callback when the EKF resets
-  vio_augmentor_.SetResetCallback(std::bind(&VIOAugmentorWrapper::ResetCallback, this));
+  ekf_.SetResetCallback(std::bind(&VIOAugmentorWrapper::ResetCallback, this));
   // subscribe to IMU first, then rest once IMU is ready
   // this is so localization manager doesn't timeout
   imu_sub_ =
@@ -64,6 +66,8 @@ void VIOAugmentorWrapper::InitializeEkf() {
                            ros::TransportHints().tcpNoDelay());
   of_reg_sub_ = nh_->subscribe(TOPIC_LOCALIZATION_OF_REGISTRATION, 1, &VIOAugmentorWrapper::RegisterOpticalFlowCamera,
                                this, ros::TransportHints().tcpNoDelay());
+  state_sub_ = nh_->subscribe(TOPIC_GRAPH_LOC_STATE, 1, &VIOAugmentorWrapper::LocalizationStateCallback, this,
+                              ros::TransportHints().tcpNoDelay());
   reset_srv_ = nh_->advertiseService(SERVICE_GNC_EKF_RESET, &VIOAugmentorWrapper::ResetService, this);
 
   ekf_initialized_ = true;
@@ -74,12 +78,18 @@ void VIOAugmentorWrapper::ReadParams() {
     ROS_ERROR("Failed to read config files.");
     return;
   }
-  vio_augmentor_.ReadParams(&config_);
+  ekf_.ReadParams(&config_);
 }
 
 void VIOAugmentorWrapper::ResetCallback() {
   static std_msgs::Empty msg;
   reset_pub_.publish(msg);
+}
+
+void VIOAugmentorWrapper::LocalizationStateCallback(const ff_msgs::GraphState::ConstPtr& loc_msg) {
+  latest_combined_nav_state_ = lc::CombinedNavStateFromMsg(*loc_msg);
+  latest_covariances_ = lc::CombinedNavStateCovariancesFromMsg(*loc_msg);
+  latest_loc_msg_ = *loc_msg;
 }
 
 void VIOAugmentorWrapper::ImuCallBack(sensor_msgs::Imu::ConstPtr const& imu) {
@@ -96,16 +106,16 @@ void VIOAugmentorWrapper::ImuCallBack(sensor_msgs::Imu::ConstPtr const& imu) {
 
 void VIOAugmentorWrapper::OpticalFlowCallBack(ff_msgs::Feature2dArray::ConstPtr const& of) {
   std::lock_guard<std::mutex> lock(mutex_of_msg_);
-  vio_augmentor_.OpticalFlowUpdate(*of.get());
+  ekf_.OpticalFlowUpdate(*of.get());
 }
 
 void VIOAugmentorWrapper::RegisterOpticalFlowCamera(ff_msgs::CameraRegistration::ConstPtr const& cr) {
   std::lock_guard<std::mutex> lock(mutex_of_msg_);
-  vio_augmentor_.OpticalFlowRegister(*cr.get());
+  ekf_.OpticalFlowRegister(*cr.get());
 }
 
 void VIOAugmentorWrapper::FlightModeCallback(ff_msgs::FlightMode::ConstPtr const& mode) {
-  vio_augmentor_.SetSpeedGain(mode->speed);
+  ekf_.SetSpeedGain(mode->speed);
 }
 
 void VIOAugmentorWrapper::Run(std::atomic<bool> const& killed) {
@@ -118,7 +128,7 @@ void VIOAugmentorWrapper::Run(std::atomic<bool> const& killed) {
   killed_ = true;
 }
 
-int VIOAugmentorWrapper::Step() {
+void VIOAugmentorWrapper::Step() {
   // don't modify anything while we're copying the data
   {
     // wait until we get an imu reading with the condition variable
@@ -127,9 +137,9 @@ int VIOAugmentorWrapper::Step() {
       cv_imu_.wait_for(lk, std::chrono::milliseconds(8));
       imus_dropped_++;
       if (imus_dropped_ > 10 && ekf_initialized_) {
-        vio_augmentor_.Reset();
+        ekf_.Reset();
       }
-      return 0;  // Changed by Andrew due to 250Hz ctl messages when sim blocks (!)
+      return;  // Changed by Andrew due to 250Hz ctl messages when sim blocks (!)
     }
     imus_dropped_ = 0;
     if (!ekf_initialized_) InitializeEkf();
@@ -139,7 +149,7 @@ int VIOAugmentorWrapper::Step() {
     // step while current step processes. We pass the ground truth quaternion
     // representing the latest ISS2BODY rotation, which is used in certain
     // testing contexts to remove the effect of Earth's gravity.
-    vio_augmentor_.PrepareStep(imu_, quat_);
+    ekf_.PrepareStep(imu_, quat_);
     // don't reuse imu reading
     have_imu_ = false;
   }
@@ -147,17 +157,16 @@ int VIOAugmentorWrapper::Step() {
 
   // All other pipelines get stepped forward normally
   pt_ekf_.Tick();
-  const int ret = vio_augmentor_.Step(&state_);
+  ekf_.Step();
   pt_ekf_.Tock();
-  // Only send the state if the Step() function was successful
-  if (ret) PublishState(state_);
-  return ret;
-}  // namespace vio_augmentor
+  PublishState();
+}
 
-void VIOAugmentorWrapper::PublishState(const ff_msgs::EkfState& state) { state_pub_.publish<ff_msgs::EkfState>(state); }
+void VIOAugmentorWrapper::PublishState() {  // state_pub_.publish<ff_msgs::EkfState>(state);
+}
 
 bool VIOAugmentorWrapper::ResetService(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {  // NOLINT
-  vio_augmentor_.Reset();
+  ekf_.Reset();
   return true;
 }
 }  // end namespace vio_augmentor

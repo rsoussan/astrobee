@@ -19,7 +19,10 @@
 #ifndef VIO_AUGMENTOR_VIO_AUGMENTOR_WRAPPER_H_
 #define VIO_AUGMENTOR_VIO_AUGMENTOR_WRAPPER_H_
 
-#include <vio_augmentor/vio_augmentor.h>
+#include <ff_msgs/GraphState.h>
+#include <localization_common/combined_nav_state.h>
+#include <localization_common/combined_nav_state_covariances.h>
+#include <vio_augmentor/vio_ekf.h>
 
 #include <Eigen/Geometry>
 #include <config_reader/config_reader.h>
@@ -68,9 +71,8 @@ class VIOAugmentorWrapper {
    * This moves the EKF forward one time step
    * and publishes the EKF pose.
    *
-   * Returns zero if EKF was not run, non-zero if it was.
    */
-  int Step();
+  void Step();
 
  protected:
   void ReadParams();
@@ -81,7 +83,7 @@ class VIOAugmentorWrapper {
   /**
    * Publishes a ROS message containing the state of the EKF.
    **/
-  void PublishState(const ff_msgs::EkfState& state);
+  void PublishState();
 
   /**
    * Resets the EKF.
@@ -97,6 +99,7 @@ class VIOAugmentorWrapper {
   void OpticalFlowCallBack(ff_msgs::Feature2dArray::ConstPtr const& of);
   void RegisterOpticalFlowCamera(ff_msgs::CameraRegistration::ConstPtr const& cr);
   void FlightModeCallback(ff_msgs::FlightMode::ConstPtr const& mode);
+  void LocalizationStateCallback(const ff_msgs::GraphState::ConstPtr& loc_msg);
 
   /**
    * Callback when the EKF resets
@@ -105,7 +108,7 @@ class VIOAugmentorWrapper {
 
   /** Variables **/
   // the actual EKF
-  VIOAugmentor vio_augmentor_;
+  VIOEkf ekf_;
   ff_msgs::EkfState state_;
 
   bool ekf_initialized_;
@@ -130,7 +133,7 @@ class VIOAugmentorWrapper {
 
   ros::NodeHandle* nh_;
   // topic subscribers
-  ros::Subscriber imu_sub_, of_sub_;
+  ros::Subscriber imu_sub_, of_sub_, state_sub_;
   ros::Subscriber of_reg_sub_;
   ros::Subscriber flight_mode_sub_;
 
@@ -151,6 +154,10 @@ class VIOAugmentorWrapper {
 
   // Prevents needing to call ros::ok() from a thread
   std::atomic<bool> killed_;
+
+  boost::optional<localization_common::CombinedNavState> latest_combined_nav_state_;
+  boost::optional<localization_common::CombinedNavStateCovariances> latest_covariances_;
+  boost::optional<ff_msgs::GraphState> latest_loc_msg_;
 };
 
 }  // end namespace vio_augmentor
