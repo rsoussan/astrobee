@@ -103,7 +103,9 @@ class VIOEkf {
   cvs_registration_pulse reg_;
   cvs_optical_flow_msg of_;
   imu_msg imu_;
-  int cmc_mode_;
+  // TODO(rsoussan): Remove these?
+  cvs_landmark_msg vis_;
+  cvs_handrail_msg hand_;
 
   // EKF wrapper needs to capture the first landmark message to do PnP before
   // it can initialize the EKF autocode and let it run. This variable holds

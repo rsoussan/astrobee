@@ -79,16 +79,21 @@ void VIOAugmentorWrapper::ImuCallBack(const sensor_msgs::Imu& imu) {
 }
 
 void VIOAugmentorWrapper::OpticalFlowCallBack(const ff_msgs::Feature2dArray& of) {
+  if (!ekf_initialized_) return;
   std::lock_guard<std::mutex> lock(mutex_of_msg_);
   ekf_.OpticalFlowUpdate(of);
 }
 
 void VIOAugmentorWrapper::RegisterOpticalFlowCamera(const ff_msgs::CameraRegistration& cr) {
+  if (!ekf_initialized_) return;
   std::lock_guard<std::mutex> lock(mutex_of_msg_);
   ekf_.OpticalFlowRegister(cr);
 }
 
-void VIOAugmentorWrapper::FlightModeCallback(const ff_msgs::FlightMode& mode) { ekf_.SetSpeedGain(mode.speed); }
+void VIOAugmentorWrapper::FlightModeCallback(const ff_msgs::FlightMode& mode) {
+  if (!ekf_initialized_) return;
+  ekf_.SetSpeedGain(mode.speed);
+}
 
 void VIOAugmentorWrapper::Run(std::atomic<bool> const& killed) {
   // Kill the step thread

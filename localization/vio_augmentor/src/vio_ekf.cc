@@ -43,8 +43,11 @@ VIOEkf::VIOEkf()
   gnc_.cmc_.speed_gain_cmd = 1;  // prevent from being invalid when running bags
   of_history_size_ = ASE_OF_NUM_AUG;
   of_max_features_ = ASE_OF_NUM_FEATURES;
+  // TODO(rsoussan): Do the non imu/vo features still need to be set when running in VIO mode?
+  memset(&vis_, 0, sizeof(cvs_landmark_msg));
   memset(&reg_, 0, sizeof(cvs_registration_pulse));
   memset(&of_, 0, sizeof(cvs_optical_flow_msg));
+  memset(&hand_, 0, sizeof(cvs_handrail_msg));
   memset(&imu_, 0, sizeof(imu_msg));
   ResetPose();
 }
@@ -290,10 +293,12 @@ void VIOEkf::PrepareStep(const sensor_msgs::Imu& imu, const geometry_msgs::Quate
   gnc_.quat_[3] = quat.w;
 
   // then copy all other values in preparation for step
+  memcpy(&gnc_.vis_, &vis_, sizeof(cvs_landmark_msg));
   memcpy(&gnc_.reg_, &reg_, sizeof(cvs_registration_pulse));
   memcpy(&gnc_.of_, &of_, sizeof(cvs_optical_flow_msg));
+  memcpy(&gnc_.hand_, &hand_, sizeof(cvs_handrail_msg));
   memcpy(&gnc_.imu_, &imu_, sizeof(imu_msg));
-  gnc_.cmc_.localization_mode_cmd = cmc_mode_;
+  gnc_.cmc_.localization_mode_cmd = ff_msgs::SetEkfInputRequest::MODE_MAP_LANDMARKS;
 
   // prevent double registrations
   reg_.cvs_optical_flow_pulse = false;
@@ -321,7 +326,10 @@ VIONavState VIOEkf::Step() {
   return latest_state;
 }
 
-void VIOEkf::Reset() { reset_ekf_ = true; }
+void VIOEkf::Reset() {
+  reset_ekf_ = true;
+  ResetPose();
+}
 
 void VIOEkf::ResetPose() {
   reset_camera_to_body_ = nav_cam_to_body_;
