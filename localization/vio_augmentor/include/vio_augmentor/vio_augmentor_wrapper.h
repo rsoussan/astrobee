@@ -96,6 +96,7 @@ class VIOAugmentorWrapper {
   void ImuCallBack(sensor_msgs::Imu::ConstPtr const& imu);
   void OpticalFlowCallBack(ff_msgs::Feature2dArray::ConstPtr const& of);
   void RegisterOpticalFlowCamera(ff_msgs::CameraRegistration::ConstPtr const& cr);
+  void FlightModeCallback(ff_msgs::FlightMode::ConstPtr const& mode);
 
   /**
    * Callback when the EKF resets
@@ -131,6 +132,7 @@ class VIOAugmentorWrapper {
   // topic subscribers
   ros::Subscriber imu_sub_, of_sub_;
   ros::Subscriber of_reg_sub_;
+  ros::Subscriber flight_mode_sub_;
 
   // publisher
   ros::Publisher state_pub_;

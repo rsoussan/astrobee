@@ -50,6 +50,7 @@ VIOAugmentorWrapper::VIOAugmentorWrapper(ros::NodeHandle* nh, std::string const&
   // this is so localization manager doesn't timeout
   imu_sub_ =
     nh_->subscribe(TOPIC_HARDWARE_IMU, 5, &VIOAugmentorWrapper::ImuCallBack, this, ros::TransportHints().tcpNoDelay());
+  flight_mode_sub_ = nh_->subscribe(TOPIC_MOBILITY_FLIGHT_MODE, 1, &VIOAugmentorWrapper::FlightModeCallback, this);
 }
 
 VIOAugmentorWrapper::~VIOAugmentorWrapper() { killed_ = true; }
@@ -105,6 +106,10 @@ void VIOAugmentorWrapper::OpticalFlowCallBack(ff_msgs::Feature2dArray::ConstPtr 
 void VIOAugmentorWrapper::RegisterOpticalFlowCamera(ff_msgs::CameraRegistration::ConstPtr const& cr) {
   std::lock_guard<std::mutex> lock(mutex_of_msg_);
   vio_augmentor_.OpticalFlowRegister(*cr.get());
+}
+
+void VIOAugmentorWrapper::FlightModeCallback(ff_msgs::FlightMode::ConstPtr const& mode) {
+  vio_augmentor_.SetSpeedGain(mode->speed);
 }
 
 void VIOAugmentorWrapper::Run(std::atomic<bool> const& killed) {
