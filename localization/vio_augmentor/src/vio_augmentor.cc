@@ -21,6 +21,8 @@
 
 namespace vio_augmentor {
 namespace lc = localization_common;
+void VIOAugmentor::AddState(const VIONavState& state) { AddState(state.timestamp, state.pose, state.velocity); }
+
 void VIOAugmentor::AddState(const localization_common::Time time, const Eigen::Isometry3d& pose,
                             const Eigen::Vector3d& velocity) {
   latest_velocity_ = velocity;
