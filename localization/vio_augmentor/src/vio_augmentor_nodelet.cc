@@ -34,7 +34,7 @@ namespace vio_augmentor {
 
 class VIOAugmentorNodelet : public ff_util::FreeFlyerNodelet {
  public:
-  VIOAugmentorNodelet() : ff_util::FreeFlyerNodelet(NODE_EKF, true), killed_(false) {}
+  VIOAugmentorNodelet() : ff_util::FreeFlyerNodelet(NODE_VIO_AUG, true), killed_(false) {}
   ~VIOAugmentorNodelet() {
     killed_ = true;
     thread_->join();
@@ -44,7 +44,7 @@ class VIOAugmentorNodelet : public ff_util::FreeFlyerNodelet {
     // Bootstrap our environment
     ff_common::InitFreeFlyerApplication(getMyArgv());
     gnc_autocode::InitializeAutocode(this);
-    vio_augmentor_.reset(new vio_augmentor::VIOAugmentorWrapper(this->GetPlatformHandle(true), GetPlatform()));
+    vio_augmentor_.reset(new vio_augmentor::VIOAugmentorWrapper(this->GetPlatformHandle(true)));
     thread_.reset(new std::thread(&vio_augmentor::VIOAugmentorWrapper::Run, vio_augmentor_.get(), std::ref(killed_)));
   }
 

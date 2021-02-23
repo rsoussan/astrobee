@@ -30,10 +30,8 @@
 
 namespace vio_augmentor {
 
-VIOAugmentorWrapper::VIOAugmentorWrapper(ros::NodeHandle* nh, std::string const& platform_name)
+VIOAugmentorWrapper::VIOAugmentorWrapper(ros::NodeHandle* nh)
     : ekf_initialized_(false), imus_dropped_(0), have_imu_(false), nh_(nh), killed_(false) {
-  platform_name_ = (platform_name.empty() ? "" : platform_name + "/");
-
   config_.AddFile("gnc.config");
   config_.AddFile("cameras.config");
   config_.AddFile("geometry.config");

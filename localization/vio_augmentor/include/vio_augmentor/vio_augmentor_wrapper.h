@@ -59,7 +59,7 @@ namespace vio_augmentor {
 class VIOAugmentorWrapper {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  explicit VIOAugmentorWrapper(ros::NodeHandle* nh, std::string const& name);
+  explicit VIOAugmentorWrapper(ros::NodeHandle* nh);
   ~VIOAugmentorWrapper();
 
   void Run(std::atomic<bool> const& killed);
@@ -149,7 +149,6 @@ class VIOAugmentorWrapper {
   // cv to wait for an imu reading
   std::condition_variable cv_imu_;
 
-  std::string platform_name_;
   // Prevents needing to call ros::ok() from a thread
   std::atomic<bool> killed_;
 };

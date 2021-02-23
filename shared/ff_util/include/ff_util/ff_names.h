@@ -115,6 +115,7 @@
 #define NODE_EKF                                    "ekf"
 #define NODE_GRAPH_LOC                              "graph_loc"
 #define NODE_IMU_AUG                                "imu_aug"
+#define NODE_VIO_AUG                                "vio_aug"
 #define NODE_IMU_BIAS_TESTER                        "imu_bias_tester"
 #define NODE_SIM_LOC                                "sim_loc"
 #define NODE_FAM                                    "fam"
