@@ -15,6 +15,5 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 #
-std_msgs/Header header
 geometry_msgs/Vector3 gyro_bias # estimated gyro bias
 geometry_msgs/Vector3 accel_bias # estimated accel bias

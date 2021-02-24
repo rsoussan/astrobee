@@ -95,7 +95,7 @@ class GraphLocalizerWrapper {
 
   bool save_localization_graph_dot_file() const;
 
-  boost::optional<std::pair<gtsam::imuBias::ConstantBias, localization_common::Time>> SendBiasesIfNecessary();
+  boost::optional<gtsam::imuBias::ConstantBias> SendBiasesIfNecessary();
 
  private:
   void InitializeGraph();

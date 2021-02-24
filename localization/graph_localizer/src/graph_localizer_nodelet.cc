@@ -261,9 +261,8 @@ void GraphLocalizerNodelet::PublishBiases() {
   const auto biases = graph_localizer_wrapper_.SendBiasesIfNecessary();
   if (!biases) return;
   ff_msgs::InitialIMUBiases bias_msg;
-  msg_conversions::VectorToMsg(biases->first.accelerometer(), bias_msg.accel_bias);
-  msg_conversions::VectorToMsg(biases->first.gyroscope(), bias_msg.gyro_bias);
-  lc::TimeToHeader(biases->second, bias_msg.header);
+  msg_conversions::VectorToMsg(biases->accelerometer(), bias_msg.accel_bias);
+  msg_conversions::VectorToMsg(biases->gyroscope(), bias_msg.gyro_bias);
   biases_pub_.publish(bias_msg);
 }
 
