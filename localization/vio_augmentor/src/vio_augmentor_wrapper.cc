@@ -93,6 +93,13 @@ void VIOAugmentorWrapper::RegisterOpticalFlowCamera(const ff_msgs::CameraRegistr
 
 void VIOAugmentorWrapper::FlightModeCallback(const ff_msgs::FlightMode& mode) { speed_gain_ = mode.speed; }
 
+void VIOAugmentorWrapper::InitialIMUBiasesCallback(const ff_msgs::InitialIMUBiases& biases) {
+  const Eigen::Vector3d gyro_bias = msg_conversions::ros_to_eigen_vector(biases.gyro_bias);
+  const Eigen::Vector3d accel_bias = msg_conversions::ros_to_eigen_vector(biases.accel_bias);
+  ekf_.SetBias(gyro_bias.cast<float>(), accel_bias.cast<float>());
+  ekf_.Reset();
+}
+
 void VIOAugmentorWrapper::Run(std::atomic<bool> const& killed) {
   // Kill the step thread
   while (!killed) {

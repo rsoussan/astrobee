@@ -37,6 +37,7 @@
 #include <ff_msgs/Feature2dArray.h>
 #include <ff_msgs/FlightMode.h>
 #include <ff_msgs/GraphState.h>
+#include <ff_msgs/InitialIMUBiases.h>
 #include <ff_util/perf_timer.h>
 #include <std_srvs/Empty.h>
 #include <std_msgs/Empty.h>
@@ -56,6 +57,7 @@ class VIOAugmentorNodelet : public ff_util::FreeFlyerNodelet {
   void RegisterOpticalFlowCamera(ff_msgs::CameraRegistration::ConstPtr const& cr);
   void FlightModeCallback(ff_msgs::FlightMode::ConstPtr const& mode);
   void LocalizationStateCallback(const ff_msgs::GraphState::ConstPtr& loc_msg);
+  void InitialIMUBiasesCallback(const ff_msgs::InitialIMUBiases::ConstPtr& biases);
   bool ResetService(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
   void PublishState();
   void PublishStateHelper(const ff_msgs::EkfState& latest_vio_augmented_loc_msg);
@@ -65,7 +67,7 @@ class VIOAugmentorNodelet : public ff_util::FreeFlyerNodelet {
   std::atomic<bool> killed_;
 
   ros::NodeHandle* nh_;
-  ros::Subscriber imu_sub_, of_sub_, state_sub_, of_reg_sub_, flight_mode_sub_;
+  ros::Subscriber imu_sub_, of_sub_, state_sub_, of_reg_sub_, flight_mode_sub_, biases_sub_;
   ros::Publisher state_pub_, pose_pub_, twist_pub_, reset_pub_;
   ros::ServiceServer reset_srv_;
   tf2_ros::TransformBroadcaster transform_pub_;

@@ -33,6 +33,7 @@
 #include <ff_msgs/EkfState.h>
 #include <ff_msgs/Feature2dArray.h>
 #include <ff_msgs/FlightMode.h>
+#include <ff_msgs/InitialIMUBiases.h>
 #include <ff_util/perf_timer.h>
 #include <std_srvs/Empty.h>
 #include <std_msgs/Empty.h>
@@ -88,6 +89,7 @@ class VIOAugmentorWrapper {
   void RegisterOpticalFlowCamera(const ff_msgs::CameraRegistration& cr);
   void FlightModeCallback(const ff_msgs::FlightMode& mode);
   void LocalizationStateCallback(const ff_msgs::GraphState& loc_msg);
+  void InitialIMUBiasesCallback(const ff_msgs::InitialIMUBiases& biases);
 
   /**
    * Callback when the EKF resets

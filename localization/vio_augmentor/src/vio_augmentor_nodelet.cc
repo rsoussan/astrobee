@@ -63,6 +63,8 @@ void VIOAugmentorNodelet::Initialize(ros::NodeHandle* nh) {
                                this, ros::TransportHints().tcpNoDelay());
   state_sub_ = nh_->subscribe(TOPIC_GRAPH_LOC_STATE, 1, &VIOAugmentorNodelet::LocalizationStateCallback, this,
                               ros::TransportHints().tcpNoDelay());
+  biases_sub_ = nh_->subscribe(TOPIC_INITIAL_IMU_BIASES, 1, &VIOAugmentorNodelet::InitialIMUBiasesCallback, this,
+                               ros::TransportHints().tcpNoDelay());
   reset_srv_ = nh_->advertiseService(SERVICE_GNC_EKF_RESET, &VIOAugmentorNodelet::ResetService, this);
 
   thread_.reset(new std::thread(&vio_augmentor::VIOAugmentorWrapper::Run, &vio_augmentor_wrapper_, std::ref(killed_)));
@@ -91,6 +93,10 @@ void VIOAugmentorNodelet::RegisterOpticalFlowCamera(const ff_msgs::CameraRegistr
 
 void VIOAugmentorNodelet::FlightModeCallback(const ff_msgs::FlightMode::ConstPtr& mode) {
   vio_augmentor_wrapper_.FlightModeCallback(*mode);
+}
+
+void VIOAugmentorNodelet::InitialIMUBiasesCallback(const ff_msgs::InitialIMUBiases::ConstPtr& biases) {
+  vio_augmentor_wrapper_.InitialIMUBiasesCallback(*biases);
 }
 
 void VIOAugmentorNodelet::PublishState() {
