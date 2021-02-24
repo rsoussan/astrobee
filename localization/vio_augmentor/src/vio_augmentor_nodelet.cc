@@ -33,7 +33,8 @@
 namespace vio_augmentor {
 
 VIOAugmentorNodelet::VIOAugmentorNodelet()
-    : ff_util::FreeFlyerNodelet(NODE_VIO_AUG, true),
+    // TODO(rsoussan): change this back to NODE_VIO_AUG when monitor updated
+    : ff_util::FreeFlyerNodelet(NODE_IMU_AUG, true),
       vio_augmentor_wrapper_(this->GetPlatformHandle(true)),
       killed_(false),
       nh_(this->GetPlatformHandle(true)),
