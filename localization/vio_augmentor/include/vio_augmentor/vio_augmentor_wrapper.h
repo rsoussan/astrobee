@@ -97,6 +97,7 @@ class VIOAugmentorWrapper {
 
  private:
   void SaveState();
+  void Reset();
   /** Variables **/
   // the actual EKF
   VIOEkf ekf_;
@@ -129,6 +130,7 @@ class VIOAugmentorWrapper {
   std::mutex mutex_of_msg_;
   std::mutex mutex_loc_msg_;
   std::mutex mutex_latest_vio_augmented_loc_msg_;
+  std::mutex mutex_vio_augmentor_;
 
   // cv to wait for an imu reading
   std::condition_variable cv_imu_;

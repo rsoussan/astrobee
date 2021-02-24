@@ -88,4 +88,9 @@ boost::optional<std::pair<localization_common::Time, Eigen::Isometry3d>> VIOAugm
 }
 
 boost::optional<Eigen::Vector3d> VIOAugmentor::latest_velocity() { return latest_velocity_; }
+
+void VIOAugmentor::Reset() {
+  latest_velocity_ = boost::none;
+  timestamp_pose_map_.clear();
+}
 }  // end namespace vio_augmentor

@@ -113,7 +113,7 @@ void VIOAugmentorWrapper::Step() {
       cv_imu_.wait_for(lk, std::chrono::milliseconds(8));
       imus_dropped_++;
       if (imus_dropped_ > 10 && ekf_initialized_) {
-        ekf_.Reset();
+        Reset();
       }
       return;  // Changed by Andrew due to 250Hz ctl messages when sim blocks (!)
     }
@@ -133,7 +133,10 @@ void VIOAugmentorWrapper::Step() {
 
   // All other pipelines get stepped forward normally
   pt_ekf_.Tick();
-  vio_augmentor_.AddState(ekf_.Step());
+  {
+    std::lock_guard<std::mutex> lock(mutex_vio_augmentor_);
+    vio_augmentor_.AddState(ekf_.Step());
+  }
   pt_ekf_.Tock();
   SaveState();
 }
@@ -183,7 +186,13 @@ void VIOAugmentorWrapper::LatestVIOAugmentedLocMsgVisitor(const std::function<vo
 }
 
 bool VIOAugmentorWrapper::ResetService(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
-  ekf_.Reset();
+  Reset();
   return true;
+}
+
+void VIOAugmentorWrapper::Reset() {
+  ekf_.Reset();
+  std::lock_guard<std::mutex> lock(mutex_vio_augmentor_);
+  vio_augmentor_.Reset();
 }
 }  // end namespace vio_augmentor

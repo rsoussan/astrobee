@@ -43,6 +43,7 @@ class VIOAugmentor {
   boost::optional<std::pair<localization_common::Time, Eigen::Isometry3d>> ExtrapolatePose(
     const localization_common::Time timestamp, const Eigen::Isometry3d& pose);
   boost::optional<Eigen::Vector3d> latest_velocity();
+  void Reset();
 
  private:
   boost::optional<Eigen::Vector3d> latest_velocity_;
