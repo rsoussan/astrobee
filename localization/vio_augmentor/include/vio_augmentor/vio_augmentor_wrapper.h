@@ -136,6 +136,8 @@ class VIOAugmentorWrapper {
   // Prevents needing to call ros::ok() from a thread
   std::atomic<bool> killed_;
 
+  std::atomic<uint8_t> speed_gain_;
+
   boost::optional<localization_common::CombinedNavState> latest_combined_nav_state_;
   boost::optional<localization_common::CombinedNavStateCovariances> latest_covariances_;
   boost::optional<ff_msgs::GraphState> latest_loc_msg_;

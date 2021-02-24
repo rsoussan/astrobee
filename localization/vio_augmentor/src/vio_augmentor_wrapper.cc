@@ -91,10 +91,7 @@ void VIOAugmentorWrapper::RegisterOpticalFlowCamera(const ff_msgs::CameraRegistr
   ekf_.OpticalFlowRegister(cr);
 }
 
-void VIOAugmentorWrapper::FlightModeCallback(const ff_msgs::FlightMode& mode) {
-  if (!ekf_initialized_) return;
-  ekf_.SetSpeedGain(mode.speed);
-}
+void VIOAugmentorWrapper::FlightModeCallback(const ff_msgs::FlightMode& mode) { speed_gain_ = mode.speed; }
 
 void VIOAugmentorWrapper::Run(std::atomic<bool> const& killed) {
   // Kill the step thread
@@ -109,6 +106,7 @@ void VIOAugmentorWrapper::Run(std::atomic<bool> const& killed) {
 void VIOAugmentorWrapper::Step() {
   // don't modify anything while we're copying the data
   {
+    ekf_.SetSpeedGain(speed_gain_);
     // wait until we get an imu reading with the condition variable
     std::unique_lock<std::mutex> lk(mutex_imu_msg_);
     if (!have_imu_) {
