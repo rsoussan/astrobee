@@ -49,7 +49,6 @@ VIOEkf::VIOEkf()
   memset(&of_, 0, sizeof(cvs_optical_flow_msg));
   memset(&hand_, 0, sizeof(cvs_handrail_msg));
   memset(&imu_, 0, sizeof(imu_msg));
-  ResetPose();
 }
 
 void VIOEkf::ReadParams(config_reader::ConfigReader* config) {
@@ -64,6 +63,7 @@ void VIOEkf::ReadParams(config_reader::ConfigReader* config) {
   if (!msg_conversions::config_read_transform(config, "imu_transform", &trans, &rot))
     ROS_FATAL("Unspecified imu_transform.");
   imu_to_body_ = Eigen::Affine3d(Eigen::Translation3d(trans.x(), trans.y(), trans.z())) * Eigen::Affine3d(rot);
+  ResetPose();
 }
 
 void VIOEkf::SetBias(Eigen::Vector3f gyro_bias, Eigen::Vector3f accel_bias) {
