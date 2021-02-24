@@ -36,7 +36,8 @@ VIOAugmentorNodelet::VIOAugmentorNodelet()
     : ff_util::FreeFlyerNodelet(NODE_VIO_AUG, true),
       vio_augmentor_wrapper_(this->GetPlatformHandle(true)),
       killed_(false),
-      nh_(this->GetPlatformHandle(true)) {}
+      nh_(this->GetPlatformHandle(true)),
+      platform_name_(GetPlatform()) {}
 
 VIOAugmentorNodelet::~VIOAugmentorNodelet() {
   killed_ = true;
@@ -100,6 +101,28 @@ void VIOAugmentorNodelet::PublishState() {
 
 void VIOAugmentorNodelet::PublishStateHelper(const ff_msgs::EkfState& latest_vio_augmented_loc_msg) {
   state_pub_.publish(latest_vio_augmented_loc_msg);
+  // Publish pose
+  geometry_msgs::PoseStamped pose_msg;
+  pose_msg.header = latest_vio_augmented_loc_msg.header;
+  pose_msg.pose = latest_vio_augmented_loc_msg.pose;
+  pose_pub_.publish(pose_msg);
+
+  // Publish twist
+  geometry_msgs::TwistStamped twist_msg;
+  twist_msg.header = latest_vio_augmented_loc_msg.header;
+  twist_msg.twist.linear = latest_vio_augmented_loc_msg.velocity;
+  twist_msg.twist.angular = latest_vio_augmented_loc_msg.omega;
+  twist_pub_.publish(twist_msg);
+
+  // Publish TF
+  geometry_msgs::TransformStamped transform_msg;
+  transform_msg.header = latest_vio_augmented_loc_msg.header;
+  transform_msg.child_frame_id = platform_name_ + "body";
+  transform_msg.transform.translation.x = latest_vio_augmented_loc_msg.pose.position.x;
+  transform_msg.transform.translation.y = latest_vio_augmented_loc_msg.pose.position.y;
+  transform_msg.transform.translation.z = latest_vio_augmented_loc_msg.pose.position.z;
+  transform_msg.transform.rotation = latest_vio_augmented_loc_msg.pose.orientation;
+  transform_pub_.sendTransform(transform_msg);
 }
 }  // namespace vio_augmentor
 

@@ -41,6 +41,8 @@
 #include <std_srvs/Empty.h>
 #include <std_msgs/Empty.h>
 
+#include <string>
+
 namespace vio_augmentor {
 class VIOAugmentorNodelet : public ff_util::FreeFlyerNodelet {
  public:
@@ -66,6 +68,8 @@ class VIOAugmentorNodelet : public ff_util::FreeFlyerNodelet {
   ros::Subscriber imu_sub_, of_sub_, state_sub_, of_reg_sub_, flight_mode_sub_;
   ros::Publisher state_pub_, pose_pub_, twist_pub_, reset_pub_;
   ros::ServiceServer reset_srv_;
+  tf2_ros::TransformBroadcaster transform_pub_;
+  std::string platform_name_;
 };
 
 }  // namespace vio_augmentor
