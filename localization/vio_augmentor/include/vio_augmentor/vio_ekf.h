@@ -80,8 +80,6 @@ class VIOEkf {
 
   void SetResetCallback(std::function<void()> callback);
 
-  Eigen::Affine3d GetNavCamToBody() const { return nav_cam_to_body_; }
-
   bool HasPoseEstimate() const { return has_pose_estimate_; }
   void AddIMUMeasurements(ff_msgs::EkfState& loc_msg);
 
@@ -112,10 +110,7 @@ class VIOEkf {
   // it can initialize the EKF autocode and let it run. This variable holds
   // that state and is atomic so that it doesn't require a mutex.
   bool reset_ekf_;
-  // remember pose to reset to do in step function to avoid race conditions
-  Eigen::Affine3d reset_camera_to_body_;
-  Eigen::Isometry3d reset_pose_;
-  bool reset_ready_;
+  bool apply_reset_;
 
   // optional: called when a reset occurs
   std::function<void()> reset_callback_;
@@ -137,7 +132,9 @@ class VIOEkf {
   /** Configuration Constants **/
 
   // transform from camera frame to body frame
-  Eigen::Affine3d camera_to_body_, nav_cam_to_body_, imu_to_body_;
+  Eigen::Isometry3d body_T_nav_cam_;
+  Eigen::Isometry3d body_T_imu_;
+  Eigen::Isometry3d world_T_body_start_;
   float nav_cam_focal_length_;
   int min_of_observations_;
   unsigned int of_history_size_, of_max_features_;

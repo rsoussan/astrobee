@@ -17,7 +17,9 @@
  */
 
 #include <camera/camera_params.h>
+#include <localization_common/logger.h>
 #include <localization_common/time.h>
+#include <localization_common/utilities.h>
 #include <vio_augmentor/vio_ekf.h>
 
 #include <Eigen/Geometry>
@@ -35,7 +37,7 @@ namespace lc = localization_common;
 
 VIOEkf::VIOEkf()
     : reset_ekf_(true),
-      reset_ready_(false),
+      apply_reset_(false),
       reset_callback_(nullptr),
       processing_of_reg_(false),
       of_inputs_delayed_(false),
@@ -54,15 +56,8 @@ VIOEkf::VIOEkf()
 void VIOEkf::ReadParams(config_reader::ConfigReader* config) {
   gnc_.ReadParams(config);
   if (!config->GetInt("min_of_observations", &min_of_observations_)) ROS_FATAL("Unspecified min_of_observations.");
-  // get camera transform
-  Eigen::Vector3d trans;
-  Eigen::Quaterniond rot;
-  if (!msg_conversions::config_read_transform(config, "nav_cam_transform", &trans, &rot))
-    ROS_FATAL("Unspecified nav_cam_transform.");
-  nav_cam_to_body_ = Eigen::Affine3d(Eigen::Translation3d(trans.x(), trans.y(), trans.z())) * Eigen::Affine3d(rot);
-  if (!msg_conversions::config_read_transform(config, "imu_transform", &trans, &rot))
-    ROS_FATAL("Unspecified imu_transform.");
-  imu_to_body_ = Eigen::Affine3d(Eigen::Translation3d(trans.x(), trans.y(), trans.z())) * Eigen::Affine3d(rot);
+  body_T_nav_cam_ = lc::EigenPose(lc::LoadTransform(*config, "nav_cam_transform"));
+  body_T_imu_ = lc::EigenPose(lc::LoadTransform(*config, "imu_transform"));
   ResetPose();
 }
 
@@ -337,40 +332,32 @@ void VIOEkf::Reset() {
 }
 
 void VIOEkf::ResetPose() {
-  reset_camera_to_body_ = nav_cam_to_body_;
   // Initial frame is identity frame
-  reset_pose_ = Eigen::Isometry3d::Identity();
-  reset_ready_ = true;
+  world_T_body_start_ = Eigen::Isometry3d::Identity();
+  apply_reset_ = true;
 }
 
 // reset ekf, during step function to prevent race conditions
 void VIOEkf::ApplyReset() {
-  if (!reset_ready_) return;
+  if (!apply_reset_) return;
 
-  // set the robot's position based on the pose
-  Eigen::Quaterniond world_q_body(reset_pose_.linear());
-  Eigen::Quaterniond camera_to_body_rotation(reset_camera_to_body_.linear());
-  Eigen::Vector3d world_r_body(reset_pose_.translation());
-  world_q_body = world_q_body * camera_to_body_rotation.conjugate();
-  Eigen::Quaterniond q1(0, reset_camera_to_body_.translation().x(), reset_camera_to_body_.translation().y(),
-                        reset_camera_to_body_.translation().z());
-  Eigen::Quaterniond temp = world_q_body * q1 * world_q_body.conjugate();
-  world_r_body = world_r_body - Eigen::Vector3d(temp.x(), temp.y(), temp.z());
-  Eigen::Vector3d world_r_imu = world_r_body + world_q_body * imu_to_body_.translation();
+  const Eigen::Quaterniond world_Q_body_start(world_T_body_start_.linear());
+  const Eigen::Isometry3d world_T_imu_start = world_T_body_start_ * body_T_imu_;
   auto& quat_ISS2B = gnc_.est_->defaultParam->tun_ase_state_ic_quat_ISS2B;
   auto& P_B_ISS_ISS = gnc_.est_->defaultParam->tun_ase_state_ic_P_B_ISS_ISS;
   auto& P_EST_ISS_ISS = gnc_.est_->defaultParam->tun_ase_state_ic_P_EST_ISS_ISS;
   auto& V_B_ISS_ISS = gnc_.est_->defaultParam->tun_ase_state_ic_V_B_ISS_ISS;
-  quat_ISS2B[0] = world_q_body.x();
-  quat_ISS2B[1] = world_q_body.y();
-  quat_ISS2B[2] = world_q_body.z();
-  quat_ISS2B[3] = world_q_body.w();
-  P_B_ISS_ISS[0] = world_r_body[0];
-  P_B_ISS_ISS[1] = world_r_body[1];
-  P_B_ISS_ISS[2] = world_r_body[2];
-  P_EST_ISS_ISS[0] = world_r_imu[0];
-  P_EST_ISS_ISS[1] = world_r_imu[1];
-  P_EST_ISS_ISS[2] = world_r_imu[2];
+  quat_ISS2B[0] = world_Q_body_start.x();
+  quat_ISS2B[1] = world_Q_body_start.y();
+  quat_ISS2B[2] = world_Q_body_start.z();
+  quat_ISS2B[3] = world_Q_body_start.w();
+  P_B_ISS_ISS[0] = world_T_body_start_.translation().x();
+  P_B_ISS_ISS[1] = world_T_body_start_.translation().y();
+  P_B_ISS_ISS[2] = world_T_body_start_.translation().z();
+  P_EST_ISS_ISS[0] = world_T_imu_start.translation().x();
+  P_EST_ISS_ISS[1] = world_T_imu_start.translation().y();
+  P_EST_ISS_ISS[2] = world_T_imu_start.translation().z();
+  // Initial Velocity is 0
   V_B_ISS_ISS[0] = 0.0;
   V_B_ISS_ISS[1] = 0.0;
   V_B_ISS_ISS[2] = 0.0;
@@ -388,7 +375,7 @@ void VIOEkf::ApplyReset() {
   processing_of_reg_ = false;
   of_inputs_delayed_ = false;
 
-  reset_ready_ = false;
+  apply_reset_ = false;
   reset_ekf_ = false;
 
   // If we have set the reset callback, call it now.
