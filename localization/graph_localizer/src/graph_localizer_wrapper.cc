@@ -310,6 +310,13 @@ boost::optional<ff_msgs::LocalizationGraph> GraphLocalizerWrapper::LatestLocaliz
   return GraphMsg(*graph_localizer_);
 }
 
+boost::optional<std::pair<gtsam::imuBias::ConstantBias, localization_common::Time>>
+GraphLocalizerWrapper::SendBiasesIfNecessary() {
+  if (!graph_localizer_initializer_.SendBiases()) return boost::none;
+  graph_localizer_initializer_.SentBiases();
+  return latest_biases_;
+}
+
 void GraphLocalizerWrapper::SaveLocalizationGraphDotFile() const {
   if (graph_localizer_) graph_localizer_->SaveGraphDotFile();
 }

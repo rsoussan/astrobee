@@ -49,6 +49,8 @@ class GraphLocalizerInitializer {
   void ResetBiasesFromFile();
   void StartBiasEstimation();
   bool HasBiases() const;
+  bool SendBiases() const;
+  void SentBiases();
   bool HasStartPose() const;
   bool HasParams() const;
   bool HasFanSpeedMode() const;
@@ -64,6 +66,7 @@ class GraphLocalizerInitializer {
                              const gtsam::Pose3& global_T_body, gtsam::imuBias::ConstantBias& imu_bias);
 
   bool has_biases_;
+  bool send_biases_;
   bool has_start_pose_;
   bool has_params_;
   bool has_fan_speed_mode_;

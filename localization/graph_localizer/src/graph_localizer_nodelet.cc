@@ -17,6 +17,7 @@
  */
 
 #include <ff_msgs/GraphState.h>
+#include <ff_msgs/InitialIMUBiases.h>
 #include <ff_msgs/LocalizationGraph.h>
 #include <ff_util/ff_names.h>
 #include <graph_localizer/graph_localizer_nodelet.h>
@@ -59,6 +60,7 @@ void GraphLocalizerNodelet::SubscribeAndAdvertise(ros::NodeHandle* nh) {
   graph_pub_ = nh->advertise<ff_msgs::LocalizationGraph>(TOPIC_GRAPH_LOC, 10);
   reset_pub_ = nh->advertise<std_msgs::Empty>(TOPIC_GNC_EKF_RESET, 10);
   heartbeat_pub_ = nh->advertise<ff_msgs::Heartbeat>(TOPIC_HEARTBEAT, 5, true);
+  biases_pub_ = nh->advertise<ff_msgs::InitialIMUBiases>(TOPIC_INITIAL_IMU_BIASES, 1, true);
 
   imu_sub_ = private_nh_.subscribe(TOPIC_HARDWARE_IMU, params_.max_imu_buffer_size, &GraphLocalizerNodelet::ImuCallback,
                                    this, ros::TransportHints().tcpNoDelay());
@@ -255,6 +257,16 @@ void GraphLocalizerNodelet::PublishGraphMessages() {
     graph_localizer_wrapper_.SaveLocalizationGraphDotFile();
 }
 
+void GraphLocalizerNodelet::PublishBiases() {
+  const auto biases = graph_localizer_wrapper_.SendBiasesIfNecessary();
+  if (!biases) return;
+  ff_msgs::InitialIMUBiases bias_msg;
+  msg_conversions::VectorToMsg(biases->first.accelerometer(), bias_msg.accel_bias);
+  msg_conversions::VectorToMsg(biases->first.gyroscope(), bias_msg.gyro_bias);
+  lc::TimeToHeader(biases->second, bias_msg.header);
+  biases_pub_.publish(bias_msg);
+}
+
 void GraphLocalizerNodelet::Run() {
   ros::Rate rate(100);
   // Load Biases from file by default
@@ -268,6 +280,7 @@ void GraphLocalizerNodelet::Run() {
     graph_localizer_wrapper_.Update();
     nodelet_runtime_timer_.Stop();
     PublishGraphMessages();
+    PublishBiases();
     PublishHeartbeat();
     rate.sleep();
   }

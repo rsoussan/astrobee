@@ -29,6 +29,7 @@ namespace lc = localization_common;
 namespace lm = localization_measurements;
 GraphLocalizerInitializer::GraphLocalizerInitializer()
     : has_biases_(false),
+      send_biases_(false),
       has_start_pose_(false),
       has_params_(false),
       has_fan_speed_mode_(false),
@@ -38,6 +39,7 @@ void GraphLocalizerInitializer::SetBiases(const gtsam::imuBias::ConstantBias& im
                                           const bool loaded_from_previous_estimate, const bool save_to_file) {
   params_.graph_initializer.initial_imu_bias = imu_bias;
   has_biases_ = true;
+  send_biases_ = true;
   estimate_biases_ = false;
   // Assumes previous bias is already gravity compensated if neccessary
   if (!loaded_from_previous_estimate) RemoveGravityFromBiasIfPossibleAndNecessary();
@@ -187,6 +189,8 @@ bool GraphLocalizerInitializer::ReadyToInitialize() const {
 void GraphLocalizerInitializer::StartBiasEstimation() { estimate_biases_ = true; }
 
 bool GraphLocalizerInitializer::HasBiases() const { return has_biases_; }
+bool GraphLocalizerInitializer::SendBiases() const { return send_biases_; }
+void GraphLocalizerInitializer::SentBiases() { send_biases_ = false; }
 bool GraphLocalizerInitializer::HasStartPose() const { return has_start_pose_; }
 bool GraphLocalizerInitializer::HasParams() const { return has_params_; }
 bool GraphLocalizerInitializer::HasFanSpeedMode() const { return has_fan_speed_mode_; }
