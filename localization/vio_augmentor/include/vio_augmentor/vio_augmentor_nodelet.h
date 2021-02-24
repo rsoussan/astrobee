@@ -68,7 +68,7 @@ class VIOAugmentorNodelet : public ff_util::FreeFlyerNodelet {
 
   ros::NodeHandle* nh_;
   ros::Subscriber imu_sub_, of_sub_, state_sub_, of_reg_sub_, flight_mode_sub_, biases_sub_;
-  ros::Publisher state_pub_, pose_pub_, twist_pub_, reset_pub_;
+  ros::Publisher state_pub_, pose_pub_, twist_pub_;
   ros::ServiceServer reset_srv_;
   tf2_ros::TransformBroadcaster transform_pub_;
   std::string platform_name_;

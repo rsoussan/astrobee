@@ -97,7 +97,7 @@ void VIOAugmentorWrapper::InitialIMUBiasesCallback(const ff_msgs::InitialIMUBias
   const Eigen::Vector3d gyro_bias = msg_conversions::ros_to_eigen_vector(biases.gyro_bias);
   const Eigen::Vector3d accel_bias = msg_conversions::ros_to_eigen_vector(biases.accel_bias);
   ekf_.SetBias(gyro_bias.cast<float>(), accel_bias.cast<float>());
-  ekf_.Reset();
+  Reset();
 }
 
 void VIOAugmentorWrapper::Run(std::atomic<bool> const& killed) {
