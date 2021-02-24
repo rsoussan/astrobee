@@ -1,9 +1,9 @@
-<library path="lib/libekf">
-  <class name="ekf/ekf"
-	 type="ekf::EkfNodelet"
+<library path="lib/libvio_augmentor">
+  <class name="vio_augmentor/VIOAugmentorNodelet"
+	 type="vio_augmentor::VIOAugmentorNodelet"
 	 base_class_type="nodelet::Nodelet">
     <description>
-      This nodelet wraps GNC's implementations of the EKF module.
+      This nodelet wraps the vio augmentor.
     </description>
   </class>
 </library>

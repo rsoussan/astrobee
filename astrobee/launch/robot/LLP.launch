@@ -25,13 +25,14 @@
   <arg name="debug" default=""/>              <!-- Debug a node set          -->
   <arg name="output" default="log"/>          <!-- Where to log              -->
   <arg name="ground_truth_localizer" default="false"/>    <!-- Runs ground_truth_localizer -->
+  <arg name="imu_augmentor" default="false"/> <!-- Runs imu_augmentor, otherwise runs vio_augmentor -->
 
   <!-- Launch all nodelet managers -->
   <group if="$(eval optenv('ASTROBEE_NODEGRAPH','')=='')">
     <node pkg="nodelet" type="nodelet" args="manager"
           name="llp_gnc" output="$(arg output)"/>
     <node pkg="nodelet" type="nodelet" args="manager"
-          name="llp_imu_aug" output="$(arg output)"/>
+          name="llp_odom_aug" output="$(arg output)"/>
     <node pkg="nodelet" type="nodelet" args="manager"
         name="llp_monitors" output="$(arg output)"/>
     <node pkg="nodelet" type="nodelet" args="manager"
@@ -48,16 +49,30 @@
 
   <!-- Launch GNC nodes -->
   <group unless="$(arg ground_truth_localizer)">
-    <include file="$(find ff_util)/launch/ff_nodelet.launch">
-      <arg name="class" value="imu_augmentor/ImuAugmentorNodelet" />
-      <arg name="name" value="imu_augmentor_nodelet" />
-      <arg name="manager" value="llp_imu_aug" />
-      <arg name="spurn" value="$(arg spurn)" />
-      <arg name="nodes" value="$(arg nodes)" />
-      <arg name="extra" value="$(arg extra)" />
-      <arg name="debug" value="$(arg debug)" />
-      <arg name="default" value="true" />
-    </include>
+    <group unless="$(arg imu_augmentor)">
+      <include file="$(find ff_util)/launch/ff_nodelet.launch">
+        <arg name="class" value="vio_augmentor/VIOAugmentorNodelet" />
+        <arg name="name" value="vio_augmentor_nodelet" />
+        <arg name="manager" value="llp_odom_aug" />
+        <arg name="spurn" value="$(arg spurn)" />
+        <arg name="nodes" value="$(arg nodes)" />
+        <arg name="extra" value="$(arg extra)" />
+        <arg name="debug" value="$(arg debug)" />
+        <arg name="default" value="true" />
+      </include>
+    </group>
+    <group if="$(arg imu_augmentor)">
+      <include file="$(find ff_util)/launch/ff_nodelet.launch">
+        <arg name="class" value="imu_augmentor/ImuAugmentorNodelet" />
+        <arg name="name" value="imu_augmentor_nodelet" />
+        <arg name="manager" value="llp_odom_aug" />
+        <arg name="spurn" value="$(arg spurn)" />
+        <arg name="nodes" value="$(arg nodes)" />
+        <arg name="extra" value="$(arg extra)" />
+        <arg name="debug" value="$(arg debug)" />
+        <arg name="default" value="true" />
+      </include>
+    </group>
   </group>
   <include file="$(find ff_util)/launch/ff_nodelet.launch">
     <arg name="class" value="ctl/ctl" />

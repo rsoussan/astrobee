@@ -34,6 +34,7 @@
   <arg name="rec" default="" />                 <!-- Record local data       -->
   <arg name="dds" default="true" />             <!-- Enable DDS              -->
   <arg name="ground_truth_localizer" default="false" />  <!-- Use Ground Truth Localizer      -->
+  <arg name="imu_augmentor" default="false"/> <!-- Runs imu_augmentor, otherwise runs vio_augmentor -->
 
   <!-- General options -->
   <arg name="gviz" default="false" />           <!-- Start GNC visualizer    -->
@@ -158,6 +159,7 @@
       <arg name="mlp" value="$(arg mlp)" />          <!-- MLP IP address     -->
       <arg name="dds" value="$(arg dds)" />          <!-- Enable DDS         -->
       <arg name="ground_truth_localizer" value="$(arg ground_truth_localizer)" /> <!-- Use Ground Truth Localizer    -->
+      <arg name="imu_augmentor" value="$(arg imu_augmentor)" />
     </include>
   </group>
 
