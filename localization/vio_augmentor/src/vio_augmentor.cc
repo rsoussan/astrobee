@@ -86,4 +86,6 @@ boost::optional<std::pair<localization_common::Time, Eigen::Isometry3d>> VIOAugm
   const Eigen::Isometry3d extrapolated_pose = pose * (latest_relative_pose->second);
   return std::make_pair(latest_relative_pose->first, extrapolated_pose);
 }
+
+boost::optional<Eigen::Vector3d> VIOAugmentor::latest_velocity() { return latest_velocity_; }
 }  // end namespace vio_augmentor

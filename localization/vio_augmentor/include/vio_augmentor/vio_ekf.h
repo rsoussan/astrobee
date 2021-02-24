@@ -83,6 +83,7 @@ class VIOEkf {
   Eigen::Affine3d GetNavCamToBody() const { return nav_cam_to_body_; }
 
   bool HasPoseEstimate() const { return has_pose_estimate_; }
+  void AddIMUMeasurements(ff_msgs::EkfState& loc_msg);
 
  protected:
   /** Functions **/

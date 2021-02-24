@@ -72,10 +72,6 @@ class VIOAugmentorWrapper {
    * Initialize services and topics besides IMU.
    **/
   void InitializeEkf();
-  /**
-   * Publishes a ROS message containing the state of the EKF.
-   **/
-  void PublishState();
 
   /**
    * Resets the EKF.
@@ -97,8 +93,10 @@ class VIOAugmentorWrapper {
    * Callback when the EKF resets
    **/
   void ResetCallback();
+  void LatestVIOAugmentedLocMsgVisitor(const std::function<void(const ff_msgs::EkfState&)>& func);
 
  private:
+  void SaveState();
   /** Variables **/
   // the actual EKF
   VIOEkf ekf_;
@@ -130,6 +128,7 @@ class VIOAugmentorWrapper {
   std::mutex mutex_imu_msg_;
   std::mutex mutex_of_msg_;
   std::mutex mutex_loc_msg_;
+  std::mutex mutex_latest_vio_augmented_loc_msg_;
 
   // cv to wait for an imu reading
   std::condition_variable cv_imu_;
@@ -140,6 +139,7 @@ class VIOAugmentorWrapper {
   boost::optional<localization_common::CombinedNavState> latest_combined_nav_state_;
   boost::optional<localization_common::CombinedNavStateCovariances> latest_covariances_;
   boost::optional<ff_msgs::GraphState> latest_loc_msg_;
+  boost::optional<ff_msgs::EkfState> latest_vio_augmented_loc_msg_;
   VIOAugmentor vio_augmentor_;
 };
 

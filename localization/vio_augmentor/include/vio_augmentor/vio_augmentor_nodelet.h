@@ -55,6 +55,8 @@ class VIOAugmentorNodelet : public ff_util::FreeFlyerNodelet {
   void FlightModeCallback(ff_msgs::FlightMode::ConstPtr const& mode);
   void LocalizationStateCallback(const ff_msgs::GraphState::ConstPtr& loc_msg);
   bool ResetService(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
+  void PublishState();
+  void PublishStateHelper(const ff_msgs::EkfState& latest_vio_augmented_loc_msg);
 
   vio_augmentor::VIOAugmentorWrapper vio_augmentor_wrapper_;
   std::shared_ptr<std::thread> thread_;

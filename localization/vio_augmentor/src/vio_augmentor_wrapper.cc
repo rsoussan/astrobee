@@ -18,6 +18,7 @@
 
 #include <camera/camera_params.h>
 #include <camera/camera_model.h>
+#include <localization_common/logger.h>
 #include <localization_common/utilities.h>
 #include <vio_augmentor/vio_augmentor_wrapper.h>
 
@@ -136,16 +137,51 @@ void VIOAugmentorWrapper::Step() {
   pt_ekf_.Tick();
   vio_augmentor_.AddState(ekf_.Step());
   pt_ekf_.Tock();
-  PublishState();
+  SaveState();
 }
 
-void VIOAugmentorWrapper::PublishState() {
-  std::lock_guard<std::mutex> lock(mutex_loc_msg_);
-  if (!latest_combined_nav_state_ || !latest_loc_msg_) return;
+void VIOAugmentorWrapper::SaveState() {
+  std::lock_guard<std::mutex> lock_loc_msg(mutex_loc_msg_);
+  std::lock_guard<std::mutex> lock_vio_augmented_msg(mutex_latest_vio_augmented_loc_msg_);
+  if (!latest_combined_nav_state_ || !latest_loc_msg_ || !latest_covariances_) return;
   vio_augmentor_.RemoveOldPoses(latest_combined_nav_state_->timestamp());
   const auto extrapolated_pose = vio_augmentor_.ExtrapolatePose(latest_combined_nav_state_->timestamp(),
                                                                 lc::EigenPose(latest_combined_nav_state_->pose()));
-  // TODO(rsoussan): publish stuff
+  if (!extrapolated_pose) {
+    LogError("SaveState: Failed to extrapolate pose.");
+    return;
+  }
+  if (!vio_augmentor_.latest_velocity()) {
+    LogError("SaveState: Failed to get latest velocity.");
+    return;
+  }
+
+  // Get feature counts and other info from latest_loc_msg
+  latest_vio_augmented_loc_msg_ = ff_msgs::EkfState();
+  latest_vio_augmented_loc_msg_->header = latest_loc_msg_->header;
+  latest_vio_augmented_loc_msg_->child_frame_id = latest_loc_msg_->child_frame_id;
+  latest_vio_augmented_loc_msg_->confidence = latest_loc_msg_->confidence;
+  // Prevent overflow of uin8_t
+  latest_vio_augmented_loc_msg_->of_count =
+    latest_loc_msg_->num_of_factors <= 255 ? latest_loc_msg_->num_of_factors : 255;
+  latest_vio_augmented_loc_msg_->ml_count =
+    latest_loc_msg_->num_ml_projection_factors <= 255 ? latest_loc_msg_->num_ml_projection_factors : 255;
+  latest_vio_augmented_loc_msg_->estimating_bias = latest_loc_msg_->estimating_bias;
+
+  // Update nav state and covariances with latest vio extrapolated values
+  // TODO(rsoussan): Use velocity from graph or ekf?
+  const lc::CombinedNavState latest_vio_augmented_combined_nav_state(
+    lc::GtPose(extrapolated_pose->second), *(vio_augmentor_.latest_velocity()), latest_combined_nav_state_->bias(),
+    extrapolated_pose->first);
+  lc::CombinedNavStateToMsg(latest_vio_augmented_combined_nav_state, *latest_vio_augmented_loc_msg_);
+  lc::CombinedNavStateCovariancesToMsg(*latest_covariances_, *latest_vio_augmented_loc_msg_);
+  ekf_.AddIMUMeasurements(*latest_vio_augmented_loc_msg_);
+}
+
+void VIOAugmentorWrapper::LatestVIOAugmentedLocMsgVisitor(const std::function<void(const ff_msgs::EkfState&)>& func) {
+  std::lock_guard<std::mutex> lock_vio_augmented_msg(mutex_latest_vio_augmented_loc_msg_);
+  if (!latest_vio_augmented_loc_msg_) return;
+  func(*latest_vio_augmented_loc_msg_);
 }
 
 bool VIOAugmentorWrapper::ResetService(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {

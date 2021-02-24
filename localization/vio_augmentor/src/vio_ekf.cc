@@ -326,6 +326,11 @@ VIONavState VIOEkf::Step() {
   return latest_state;
 }
 
+void VIOEkf::AddIMUMeasurements(ff_msgs::EkfState& loc_msg) {
+  loc_msg.accel = msg_conversions::array_to_ros_vector(gnc_.kfl_.A_B_ISS_ISS);
+  loc_msg.omega = msg_conversions::array_to_ros_vector(gnc_.kfl_.omega_B_ISS_B);
+}
+
 void VIOEkf::Reset() {
   reset_ekf_ = true;
   ResetPose();

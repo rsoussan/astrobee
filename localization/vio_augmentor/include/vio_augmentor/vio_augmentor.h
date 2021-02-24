@@ -42,9 +42,10 @@ class VIOAugmentor {
   void RemoveOldPoses(const localization_common::Time oldest_desired_time);
   boost::optional<std::pair<localization_common::Time, Eigen::Isometry3d>> ExtrapolatePose(
     const localization_common::Time timestamp, const Eigen::Isometry3d& pose);
+  boost::optional<Eigen::Vector3d> latest_velocity();
 
  private:
-  Eigen::Vector3d latest_velocity_;
+  boost::optional<Eigen::Vector3d> latest_velocity_;
   std::map<localization_common::Time, Eigen::Isometry3d> timestamp_pose_map_;
 };
 }  // end namespace vio_augmentor

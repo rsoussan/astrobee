@@ -37,10 +37,12 @@ VIOAugmentorNodelet::VIOAugmentorNodelet()
       vio_augmentor_wrapper_(this->GetPlatformHandle(true)),
       killed_(false),
       nh_(this->GetPlatformHandle(true)) {}
+
 VIOAugmentorNodelet::~VIOAugmentorNodelet() {
   killed_ = true;
   thread_->join();
 }
+
 // This is called when the nodelet is loaded into the nodelet manager
 void VIOAugmentorNodelet::Initialize(ros::NodeHandle* nh) {
   // Bootstrap our environment
@@ -75,6 +77,7 @@ void VIOAugmentorNodelet::LocalizationStateCallback(const ff_msgs::GraphState::C
 
 void VIOAugmentorNodelet::ImuCallBack(const sensor_msgs::Imu::ConstPtr& imu) {
   vio_augmentor_wrapper_.ImuCallBack(*imu);
+  PublishState();
 }
 
 void VIOAugmentorNodelet::OpticalFlowCallBack(const ff_msgs::Feature2dArray::ConstPtr& of) {
@@ -89,6 +92,15 @@ void VIOAugmentorNodelet::FlightModeCallback(const ff_msgs::FlightMode::ConstPtr
   vio_augmentor_wrapper_.FlightModeCallback(*mode);
 }
 
+void VIOAugmentorNodelet::PublishState() {
+  std::function<void(const ff_msgs::EkfState&)> f =
+    std::bind(&VIOAugmentorNodelet::PublishStateHelper, this, std::placeholders::_1);
+  vio_augmentor_wrapper_.LatestVIOAugmentedLocMsgVisitor(f);
+}
+
+void VIOAugmentorNodelet::PublishStateHelper(const ff_msgs::EkfState& latest_vio_augmented_loc_msg) {
+  state_pub_.publish(latest_vio_augmented_loc_msg);
+}
 }  // namespace vio_augmentor
 
 PLUGINLIB_EXPORT_CLASS(vio_augmentor::VIOAugmentorNodelet, nodelet::Nodelet);
