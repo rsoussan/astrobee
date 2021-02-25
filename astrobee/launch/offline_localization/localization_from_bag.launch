@@ -25,6 +25,7 @@
   <arg name="bagfile"/>             
   <arg name="record" default="false" />
   <arg name="imu_augmentor" default="false" />
+  <arg name="vio_augmentor" default="false" />
   <arg name="robot" default="bumble" />
   <arg name="world" default="iss" />
   <arg name="localization_manager" default="false" />
@@ -53,6 +54,13 @@
   <!-- Run imu augmentor if required -->
   <group if="$(arg imu_augmentor)">
     <include file="$(find imu_augmentor)/launch/imu_augmentor.launch">
+      <arg name="terminal" value="terminator -x"/>
+    </include>
+  </group>
+
+  <!-- Run vio augmentor if required -->
+  <group if="$(arg vio_augmentor)">
+    <include file="$(find vio_augmentor)/launch/vio_augmentor.launch">
       <arg name="terminal" value="terminator -x"/>
     </include>
   </group>

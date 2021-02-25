@@ -17,11 +17,11 @@
 <launch>
   <arg name="name" default="vio_augmentor" />
   <arg name="manager" default="" />
-  <arg name="save_inputs_file" default="false" />
+  <arg name="terminal" default="" />
   <include file="$(find ff_util)/launch/ff_nodelet.launch">
     <arg name="name" value="$(arg name)" />
     <arg name="manager" value="$(arg manager)" />
-    <arg name="class" value="vio_augmentor/vio_augmentor" />
-    <arg name="arguments" value="--save_inputs_file=$(arg save_inputs_file)" />
+    <arg name="terminal" value="$(arg terminal)" />
+    <arg name="class" value="vio_augmentor/VIOAugmentorNodelet" />
   </include>
 </launch>
