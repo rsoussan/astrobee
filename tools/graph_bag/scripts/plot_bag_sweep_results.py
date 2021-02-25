@@ -59,6 +59,7 @@ def create_plot(output_file, csv_file, label_1='', csv_file_2=None, label_2=''):
   dataframe.sort_values(by=['Bag'], inplace=True)
   rmses = dataframe['rmse']
   integrated_rmses = dataframe['integrated_rmse']
+  orientation_rmses = dataframe['orientation_rmse']
   bag_names = dataframe['Bag'].tolist()
   max_name_length = 45
   shortened_bag_names = [
@@ -67,11 +68,13 @@ def create_plot(output_file, csv_file, label_1='', csv_file_2=None, label_2=''):
   x_axis_vals = range(len(shortened_bag_names))
   rmses_2 = None
   integrated_rmses_2 = None
+  orientation_rmses_2 = None
   if (csv_file_2):
     dataframe_2 = pd.read_csv(csv_file_2)
     dataframe_2.sort_values(by=['Bag'], inplace=True)
     rmses_2 = dataframe_2['rmse']
     integrated_rmses_2 = dataframe_2['integrated_rmse']
+    orientation_rmses_2 = dataframe_2['orientation_rmse']
     bag_names_2 = dataframe_2['Bag'].tolist()
     if bag_names != bag_names_2:
       print('Bag names for first and second csv file are not the same')
@@ -92,6 +95,36 @@ def create_plot(output_file, csv_file, label_1='', csv_file_2=None, label_2=''):
     plt.xticks(x_axis_vals, shortened_bag_names, fontsize=7, rotation=20)
     plt.ylabel('RMSE')
     plt.title('RMSE vs. Bag')
+    x_range = x_axis_vals[len(x_axis_vals) - 1] - x_axis_vals[0]
+    x_buffer = x_range * 0.1
+    # Extend x axis on either side to make data more visible
+    plt.xlim([x_axis_vals[0] - x_buffer, x_axis_vals[len(x_axis_vals) - 1] + x_buffer])
+    plt.tight_layout()
+    pdf.savefig()
+    plt.close()
+
+    plt.figure()
+    plt.plot(x_axis_vals,
+             orientation_rmses,
+             'b',
+             label=label_1,
+             linestyle='None',
+             marker='o',
+             markeredgewidth=0.1,
+             markersize=10.5)
+    if (csv_file_2):
+      plt.plot(x_axis_vals,
+               orientation_rmses_2,
+               'r',
+               label=label_2,
+               linestyle='None',
+               marker='o',
+               markeredgewidth=0.1,
+               markersize=10.5)
+      plt.legend(prop={'size': 8}, bbox_to_anchor=(1.05, 1))
+    plt.xticks(x_axis_vals, shortened_bag_names, fontsize=7, rotation=20)
+    plt.ylabel('Orientation RMSE')
+    plt.title('Orientation RMSE vs. Bag')
     x_range = x_axis_vals[len(x_axis_vals) - 1] - x_axis_vals[0]
     x_buffer = x_range * 0.1
     # Extend x axis on either side to make data more visible
@@ -135,30 +168,42 @@ def create_plot(output_file, csv_file, label_1='', csv_file_2=None, label_2=''):
       rmses, '', rmses_2, label_1, label_2)
     mean_integrated_rmses, labels, relative_integrated_rmses, relative_change_in_integrated_rmses = save_rmse_results_to_csv(
       integrated_rmses, 'integrated_', integrated_rmses_2, label_1, label_2)
+    mean_orientation_rmses, labels, relative_orientation_rmses, relative_change_in_orientation_rmses = save_rmse_results_to_csv(
+      orientation_rmses, 'orientation_', orientation_rmses_2, label_1, label_2)
+
     mean_rmses_1_string = 'rmse: ' + str(mean_rmses[0])
     mean_integrated_rmses_1_string = 'integrated rmse: ' + str(mean_integrated_rmses[0])
+    mean_orientation_rmses_1_string = 'orientation rmse: ' + str(mean_orientation_rmses[0])
     if labels:
       mean_rmses_1_string += ', label: ' + labels[0]
     plt.figure()
     plt.axis('off')
-    plt.text(0.0, 0.9, mean_rmses_1_string)
-    plt.text(0.0, 0.8, mean_integrated_rmses_1_string)
+    plt.text(0.0, 1.0, mean_rmses_1_string)
+    plt.text(0.0, 0.95, mean_orientation_rmses_1_string)
+    plt.text(0.0, 0.9, mean_integrated_rmses_1_string)
     if len(mean_rmses) > 1:
       mean_rmses_2_string = 'rmse: ' + str(mean_rmses[1])
       mean_integrated_rmses_2_string = 'integrated rmse: ' + str(mean_integrated_rmses[1])
+      mean_orientation_rmses_2_string = 'orientation rmse: ' + str(mean_orientation_rmses[1])
       if labels:
         mean_rmses_2_string += ', label: ' + labels[1]
-        plt.text(0.0, 0.7, mean_rmses_2_string)
-        plt.text(0.0, 0.6, mean_integrated_rmses_2_string)
+        plt.text(0.0, 0.85, mean_rmses_2_string)
+        plt.text(0.0, 0.8, mean_orientation_rmses_2_string)
+        plt.text(0.0, 0.75, mean_integrated_rmses_2_string)
       relative_rmses_string = 'rel rmse %: ' + str(relative_rmses[0])
       relative_integrated_rmses_string = 'rel integrated rmse %: ' + str(relative_integrated_rmses[0])
-      plt.text(0.0, 0.5, relative_rmses_string)
-      plt.text(0.0, 0.4, relative_integrated_rmses_string)
+      relative_orientation_rmses_string = 'rel orientation rmse %: ' + str(relative_orientation_rmses[0])
+      plt.text(0.0, 0.7, relative_rmses_string)
+      plt.text(0.0, 0.65, relative_orientation_rmses_string)
+      plt.text(0.0, 0.6, relative_integrated_rmses_string)
       relative_rmses_change_string = 'rel change in rmse %: ' + str(relative_change_in_rmses[0])
+      relative_orientation_rmses_change_string = 'rel change in orientation rmse %: ' + str(
+        relative_change_in_orientation_rmses[0])
       relative_integrated_rmses_change_string = 'rel change in integrated rmse %: ' + str(
         relative_change_in_integrated_rmses[0])
-      plt.text(0.0, 0.3, relative_rmses_change_string)
-      plt.text(0.0, 0.2, relative_integrated_rmses_change_string)
+      plt.text(0.0, 0.55, relative_rmses_change_string)
+      plt.text(0.0, 0.5, relative_orientation_rmses_change_string)
+      plt.text(0.0, 0.4, relative_integrated_rmses_change_string)
     pdf.savefig()
 
 
