@@ -206,7 +206,9 @@ def add_feature_count_plots(pdf, graph_localization_states):
   plt.close()
 
 
-def add_other_vector3d_plots(pdf, imu_augmented_graph_localization_states):
+def add_other_vector3d_plots(pdf, imu_augmented_graph_localization_states, sparse_mapping_poses, ar_tag_poses):
+  colors = ['r', 'b', 'g']
+
   # Acceleration
   plt.figure()
   plot_helpers.plot_vector3ds(imu_augmented_graph_localization_states.accelerations,
@@ -290,6 +292,26 @@ def add_other_vector3d_plots(pdf, imu_augmented_graph_localization_states):
   plt.xlabel('Time (s)')
   plt.ylabel('Velocities')
   plt.title('IMU Augmented Graph Velocities')
+  plt.legend(prop={'size': 6})
+  pdf.savefig()
+  plt.close()
+
+  # Integrated Velocities
+  plt.figure()
+  plot_helpers.plot_positions(sparse_mapping_poses,
+                              colors,
+                              linestyle='None',
+                              marker='o',
+                              markeredgewidth=0.1,
+                              markersize=1.5)
+  if ar_tag_poses.times:
+    plot_helpers.plot_positions(ar_tag_poses, colors, linestyle='None', marker='x', markeredgewidth=0.1, markersize=1.5)
+  integrated_imu_augmented_graph_localization_states = utilities.integrate_velocities(
+    imu_augmented_graph_localization_states)
+  plot_helpers.plot_positions(integrated_imu_augmented_graph_localization_states, colors, linewidth=0.5)
+  plt.xlabel('Time (s)')
+  plt.ylabel('Position (m)')
+  plt.title('Integrated IMU Augmented Graph Velocities vs. Sparse Mapping Position')
   plt.legend(prop={'size': 6})
   pdf.savefig()
   plt.close()
@@ -426,9 +448,10 @@ def add_imu_bias_tester_velocities(pdf, imu_bias_tester_velocities):
   plt.close()
 
 
-def add_other_loc_plots(pdf, graph_localization_states, imu_augmented_graph_localization_states):
+def add_other_loc_plots(pdf, graph_localization_states, imu_augmented_graph_localization_states, sparse_mapping_poses,
+                        ar_tag_poses):
   add_feature_count_plots(pdf, graph_localization_states)
-  add_other_vector3d_plots(pdf, imu_augmented_graph_localization_states)
+  add_other_vector3d_plots(pdf, imu_augmented_graph_localization_states, sparse_mapping_poses, ar_tag_poses)
 
 
 def load_pose_msgs(vec_of_poses, bag, bag_start_time):
@@ -489,7 +512,8 @@ def create_plots(bagfile, output_pdf_file, output_csv_file='results.csv'):
       add_imu_bias_tester_poses(pdf, imu_bias_tester_poses, sparse_mapping_poses)
       add_imu_bias_tester_velocities(pdf, imu_bias_tester_velocities)
     if has_imu_augmented_graph_localization_state:
-      add_other_loc_plots(pdf, graph_localization_states, imu_augmented_graph_localization_states)
+      add_other_loc_plots(pdf, graph_localization_states, imu_augmented_graph_localization_states, sparse_mapping_poses,
+                          ar_tag_poses)
     else:
       add_other_loc_plots(pdf, graph_localization_states, graph_localization_states)
     plot_stats(pdf, graph_localization_states, sparse_mapping_poses, output_csv_file)
