@@ -28,7 +28,7 @@ import os
 import sys
 
 
-def save_rmse_results_to_csv(rmses, rmses_2=None, label_1=None, label_2=None):
+def save_rmse_results_to_csv(rmses, prefix='', rmses_2=None, label_1=None, label_2=None):
   mean_rmses_dataframe = pd.DataFrame()
   labels = []
   if label_1 and label_2:
@@ -46,11 +46,11 @@ def save_rmse_results_to_csv(rmses, rmses_2=None, label_1=None, label_2=None):
     relative_rmses.append(mean_rmses_list[1] / mean_rmses_list[0])
     relative_change_in_rmses.append(mean_rmses_list[0] / mean_rmses_list[1] - 1.0)
     relative_change_in_rmses.append(mean_rmses_list[1] / mean_rmses_list[0] - 1.0)
-    mean_rmses_dataframe['rel_rmse_%'] = relative_rmses
-    mean_rmses_dataframe['rel_rmse_delta_%'] = relative_change_in_rmses
-  mean_rmses_dataframe['mean_rmse'] = mean_rmses_list
+    mean_rmses_dataframe['rel_' + prefix + 'rmse_%'] = relative_rmses
+    mean_rmses_dataframe['rel_' + prefix + 'rmse_delta_%'] = relative_change_in_rmses
+  mean_rmses_dataframe['mean_' + prefix + 'rmse'] = mean_rmses_list
   mean_rmses_csv_file = 'mean_rmses.csv'
-  mean_rmses_dataframe.to_csv(mean_rmses_csv_file, index=False)
+  mean_rmses_dataframe.to_csv(mean_rmses_csv_file, index=False, mode='a')
   return mean_rmses_list, labels, relative_rmses, relative_change_in_rmses
 
 
@@ -58,6 +58,7 @@ def create_plot(output_file, csv_file, label_1='', csv_file_2=None, label_2=''):
   dataframe = pd.read_csv(csv_file)
   dataframe.sort_values(by=['Bag'], inplace=True)
   rmses = dataframe['rmse']
+  integrated_rmses = dataframe['integrated_rmse']
   bag_names = dataframe['Bag'].tolist()
   max_name_length = 45
   shortened_bag_names = [
@@ -65,10 +66,12 @@ def create_plot(output_file, csv_file, label_1='', csv_file_2=None, label_2=''):
   ]
   x_axis_vals = range(len(shortened_bag_names))
   rmses_2 = None
+  integrated_rmses_2 = None
   if (csv_file_2):
     dataframe_2 = pd.read_csv(csv_file_2)
     dataframe_2.sort_values(by=['Bag'], inplace=True)
     rmses_2 = dataframe_2['rmse']
+    integrated_rmses_2 = dataframe_2['integrated_rmse']
     bag_names_2 = dataframe_2['Bag'].tolist()
     if bag_names != bag_names_2:
       print('Bag names for first and second csv file are not the same')
@@ -97,24 +100,65 @@ def create_plot(output_file, csv_file, label_1='', csv_file_2=None, label_2=''):
     pdf.savefig()
     plt.close()
 
+    plt.figure()
+    plt.plot(x_axis_vals,
+             integrated_rmses,
+             'b',
+             label=label_1,
+             linestyle='None',
+             marker='o',
+             markeredgewidth=0.1,
+             markersize=10.5)
+    if (csv_file_2):
+      plt.plot(x_axis_vals,
+               integrated_rmses_2,
+               'r',
+               label=label_2,
+               linestyle='None',
+               marker='o',
+               markeredgewidth=0.1,
+               markersize=10.5)
+      plt.legend(prop={'size': 8}, bbox_to_anchor=(1.05, 1))
+    plt.xticks(x_axis_vals, shortened_bag_names, fontsize=7, rotation=20)
+    plt.ylabel('Integrated RMSE')
+    plt.title('Integrated RMSE vs. Bag')
+    x_range = x_axis_vals[len(x_axis_vals) - 1] - x_axis_vals[0]
+    x_buffer = x_range * 0.1
+    # Extend x axis on either side to make data more visible
+    plt.xlim([x_axis_vals[0] - x_buffer, x_axis_vals[len(x_axis_vals) - 1] + x_buffer])
+    plt.tight_layout()
+    pdf.savefig()
+    plt.close()
+
     # Plot mean rmses
     mean_rmses, labels, relative_rmses, relative_change_in_rmses = save_rmse_results_to_csv(
-      rmses, rmses_2, label_1, label_2)
+      rmses, '', rmses_2, label_1, label_2)
+    mean_integrated_rmses, labels, relative_integrated_rmses, relative_change_in_integrated_rmses = save_rmse_results_to_csv(
+      integrated_rmses, 'integrated_', integrated_rmses_2, label_1, label_2)
     mean_rmses_1_string = 'rmse: ' + str(mean_rmses[0])
+    mean_integrated_rmses_1_string = 'integrated rmse: ' + str(mean_integrated_rmses[0])
     if labels:
       mean_rmses_1_string += ', label: ' + labels[0]
     plt.figure()
     plt.axis('off')
-    plt.text(0.0, 0.5, mean_rmses_1_string)
+    plt.text(0.0, 0.9, mean_rmses_1_string)
+    plt.text(0.0, 0.8, mean_integrated_rmses_1_string)
     if len(mean_rmses) > 1:
       mean_rmses_2_string = 'rmse: ' + str(mean_rmses[1])
+      mean_integrated_rmses_2_string = 'integrated rmse: ' + str(mean_integrated_rmses[1])
       if labels:
         mean_rmses_2_string += ', label: ' + labels[1]
-        plt.text(0.0, 0.4, mean_rmses_2_string)
+        plt.text(0.0, 0.7, mean_rmses_2_string)
+        plt.text(0.0, 0.6, mean_integrated_rmses_2_string)
       relative_rmses_string = 'rel rmse %: ' + str(relative_rmses[0])
-      plt.text(0.0, 0.3, relative_rmses_string)
+      relative_integrated_rmses_string = 'rel integrated rmse %: ' + str(relative_integrated_rmses[0])
+      plt.text(0.0, 0.5, relative_rmses_string)
+      plt.text(0.0, 0.4, relative_integrated_rmses_string)
       relative_rmses_change_string = 'rel change in rmse %: ' + str(relative_change_in_rmses[0])
-      plt.text(0.0, 0.2, relative_rmses_change_string)
+      relative_integrated_rmses_change_string = 'rel change in integrated rmse %: ' + str(
+        relative_change_in_integrated_rmses[0])
+      plt.text(0.0, 0.3, relative_rmses_change_string)
+      plt.text(0.0, 0.2, relative_integrated_rmses_change_string)
     pdf.savefig()
 
 
