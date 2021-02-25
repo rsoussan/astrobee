@@ -368,10 +368,13 @@ def add_other_vector3d_plots(pdf, imu_augmented_graph_localization_states):
 def plot_stats(pdf, graph_localization_states, sparse_mapping_poses, output_csv_file):
   stats = ''
   rmse = rmse_utilities.rmse_timestamped_poses(graph_localization_states, sparse_mapping_poses)
-  stats += 'rmse: ' + str(rmse)
+  integrated_graph_localization_states = utilities.integrate_velocities(graph_localization_states)
+  integrated_rmse = rmse_utilities.rmse_timestamped_poses(integrated_graph_localization_states, sparse_mapping_poses)
+  stats += 'rmse: ' + str(rmse) + ', integrated rmse: ' + str(integrated_rmse)
   with open(output_csv_file, 'a') as output_csv:
     csv_writer = csv.writer(output_csv, lineterminator='\n')
     csv_writer.writerow(['rmse', str(rmse)])
+    csv_writer.writerow(['integrated_rmse', str(integrated_rmse)])
   plt.figure()
   plt.axis('off')
   plt.text(0.0, 0.5, stats)
