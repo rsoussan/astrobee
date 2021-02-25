@@ -362,7 +362,7 @@ class EkfLog(object):
     stats.append(rmse_pos_vs_single_image_sparse_mapping)
     stat_names.append('rmse_pos_vs_single_image_sparse_mapping')
     stats.append(rmse_angle_vs_single_image_sparse_mapping)
-    stat_names.append('rmse_orientation_vs_single_image_sparse_mapping')
+    stat_names.append('orientation_rmse')
     return stats, stat_names
 
   def write_results_to_csv(self, job_id, results_csv_output_file, bagfile):
