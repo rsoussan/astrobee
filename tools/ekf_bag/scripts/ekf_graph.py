@@ -32,6 +32,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 import numpy as np
 from numpy.linalg import norm
+import scipy.spatial.transform
 
 
 def run_ekf(astrobee_map,
@@ -81,6 +82,23 @@ def prune_missing_timestamps(a_xs, a_ys, a_zs, a_times, b_times):
       print('Failed to find a time close to b time.')
     pruned_a_matrix[b_index] = np.array([a_xs[a_index], a_ys[a_index], a_zs[a_index]])
   return pruned_a_matrix
+
+def orientation_rmse(a_xs, a_ys, a_zs, b_xs, b_ys, b_zs, a_times, b_times):
+  a_index = 0
+  mean_squared_orientation_error = 0
+  for b_index, b_time in enumerate(b_times):
+    while not np.isclose(a_times[a_index], b_time, rtol=0) and a_times[a_index] < b_time and a_index < len(a_times):
+      a_index += 1
+    if not np.isclose(a_times[a_index], b_time, rtol=0, atol=0.02):
+      print('Failed to find a time close to b time.')
+    a_rot = scipy.spatial.transform.Rotation.from_euler('ZYX', [a_xs[a_index], a_ys[a_index], a_zs[a_index]], degrees=False)
+    b_rot = scipy.spatial.transform.Rotation.from_euler('ZYX', [b_xs[b_index], b_ys[b_index], b_zs[b_index]], degrees=False)
+    rot_diff = a_rot.inv()*b_rot
+    rot_squared_error = np.inner(rot_diff.as_rotvec(), rot_diff.as_rotvec())
+    mean_squared_orientation_error += (rot_squared_error - mean_squared_orientation_error) / (b_index + 1)
+  return math.sqrt(mean_squared_orientation_error) 
+
+
 
 
 # RMSE between two sequences of timestamped positions. Prunes timestamped positions in sequence a
@@ -293,8 +311,8 @@ class EkfLog(object):
     int_z = integrated_velocities(self.ekf['z'][0], self.ekf['vz'], self.ekf['t'])
     rmse_int_v = rmse_timestamped_sequences(int_x, int_y, int_z, self.ekf['t'], self.vl['x'], self.vl['y'],
                                             self.vl['z'], self.vl['t'])
-    rmse_angle = rmse_timestamped_sequences(self.ekf['angle1'], self.ekf['angle2'], self.ekf['angle3'], self.ekf['t'],
-                                            self.vl['angle1'], self.vl['angle2'], self.vl['angle3'], self.vl['t'])
+    rmse_angle = orientation_rmse(self.ekf['angle1'], self.ekf['angle2'], self.ekf['angle3'], 
+                                            self.vl['angle1'], self.vl['angle2'], self.vl['angle3'], self.ekf['t'], self.vl['t'])
     return rmse_pos, rmse_angle, rmse_int_v
 
 
