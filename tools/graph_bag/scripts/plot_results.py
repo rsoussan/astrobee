@@ -391,12 +391,15 @@ def plot_stats(pdf, graph_localization_states, sparse_mapping_poses, output_csv_
   stats = ''
   rmse = rmse_utilities.rmse_timestamped_poses(graph_localization_states, sparse_mapping_poses)
   integrated_graph_localization_states = utilities.integrate_velocities(graph_localization_states)
-  integrated_rmse = rmse_utilities.rmse_timestamped_poses(integrated_graph_localization_states, sparse_mapping_poses)
-  stats += 'rmse: ' + str(rmse) + ', integrated rmse: ' + str(integrated_rmse)
+  integrated_rmse = rmse_utilities.rmse_timestamped_poses(integrated_graph_localization_states, sparse_mapping_poses,
+                                                          False)
+  stats += 'pos rmse: ' + str(rmse[0]) + '\n' + 'orientation rmse: ' + str(rmse[1]) + '\n' + 'integrated rmse: ' + str(
+    integrated_rmse[0])
   with open(output_csv_file, 'a') as output_csv:
     csv_writer = csv.writer(output_csv, lineterminator='\n')
-    csv_writer.writerow(['rmse', str(rmse)])
-    csv_writer.writerow(['integrated_rmse', str(integrated_rmse)])
+    csv_writer.writerow(['rmse', str(rmse[0])])
+    csv_writer.writerow(['orientation_rmse', str(rmse[1])])
+    csv_writer.writerow(['integrated_rmse', str(integrated_rmse[0])])
   plt.figure()
   plt.axis('off')
   plt.text(0.0, 0.5, stats)
