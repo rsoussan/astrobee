@@ -388,47 +388,41 @@ class EkfLog(object):
     with PdfPages(filename) as pdf:
       # positions
       plt.figure()
-      max_y = 10
-
-      def clip_list(array):
-        return [max(-max_y, min(max_y, a)) for a in array]
-
-      plt.plot(ekf['t'], clip_list(ekf['x']), colors[0], linewidth=0.5, label='EKF Pos. (X)')
-      plt.plot(ekf['t'], clip_list(ekf['y']), colors[1], linewidth=0.5, label='EKF Pos. (Y)')
-      plt.plot(ekf['t'], clip_list(ekf['z']), colors[2], linewidth=0.5, label='EKF Pos. (Z)')
+      plt.plot(ekf['t'], ekf['x'], colors[0], linewidth=0.5, label='EKF Pos. (X)')
+      plt.plot(ekf['t'], ekf['y'], colors[1], linewidth=0.5, label='EKF Pos. (Y)')
+      plt.plot(ekf['t'], ekf['z'], colors[2], linewidth=0.5, label='EKF Pos. (Z)')
       plt.fill_between(ekf['t'],
-                       clip_list(ekf['x']) - ekf['cov_13'],
-                       clip_list(ekf['x']) + ekf['cov_13'],
+                       ekf['x'] - ekf['cov_13'],
+                       ekf['x'] + ekf['cov_13'],
                        facecolor=colors[0],
                        alpha=0.5)
       plt.fill_between(ekf['t'],
-                       clip_list(ekf['y']) - ekf['cov_14'],
-                       clip_list(ekf['y']) + ekf['cov_14'],
+                       ekf['y'] - ekf['cov_14'],
+                       ekf['y'] + ekf['cov_14'],
                        facecolor=colors[1],
                        alpha=0.5)
       plt.fill_between(ekf['t'],
-                       clip_list(ekf['z']) - ekf['cov_15'],
-                       clip_list(ekf['z']) + ekf['cov_15'],
+                       ekf['z'] - ekf['cov_15'],
+                       ekf['z'] + ekf['cov_15'],
                        facecolor=colors[2],
                        alpha=0.5)
       plt.autoscale(False)
-      plt.plot(gt['t'], clip_list(gt['x']), color=colors[0], linewidth=0.5, dashes=(1, 1), label='Ground Truth (X)')
-      plt.plot(gt['t'], clip_list(gt['y']), color=colors[1], linewidth=0.5, dashes=(1, 1))
-      plt.plot(gt['t'], clip_list(gt['z']), color=colors[2], linewidth=0.5, dashes=(1, 1))
+      plt.plot(gt['t'], gt['x'], color=colors[0], linewidth=0.5, dashes=(1, 1), label='Ground Truth (X)')
+      plt.plot(gt['t'], gt['y'], color=colors[1], linewidth=0.5, dashes=(1, 1))
+      plt.plot(gt['t'], gt['z'], color=colors[2], linewidth=0.5, dashes=(1, 1))
       plt.plot(vl['t'],
-               clip_list(vl['x']),
+               vl['x'],
                color=colors[0],
                linestyle='None',
                marker='o',
                markersize=2,
                label='Observation (X)')
-      plt.plot(vl['t'], clip_list(vl['y']), color=colors[1], linestyle='None', marker='o', markersize=2)
-      plt.plot(vl['t'], clip_list(vl['z']), color=colors[2], linestyle='None', marker='o', markersize=2)
+      plt.plot(vl['t'], vl['y'], color=colors[1], linestyle='None', marker='o', markersize=2)
+      plt.plot(vl['t'], vl['z'], color=colors[2], linestyle='None', marker='o', markersize=2)
       plt.xlabel('Time (s)')
       plt.ylabel('Position (m)')
       plt.title('Position')
       plt.legend(prop={'size': 6})
-      plt.ylim(-max_y + 0.2, max_y + 0.2)
       pdf.savefig()
 
       # angles
