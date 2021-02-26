@@ -38,9 +38,12 @@ def create_plot(pdf, csv_file, value_combos_file, prefix=''):
     value_combos_dataframe = pd.read_csv(value_combos_file)
     if (len(value_combos_dataframe.columns) > 1):
       print('Value combos include more than one parameter, cannot use for x axis of plot')
-      exit()
-    x_axis_label = value_combos_dataframe.columns[0]
-    x_axis_vals = value_combos_dataframe[x_axis_label]
+      job_count = dataframe.shape[0]
+      x_axis_vals = range(job_count)
+      x_axis_label = 'Job Id'
+    else:
+      x_axis_label = value_combos_dataframe.columns[0]
+      x_axis_vals = value_combos_dataframe[x_axis_label]
   else:
     job_count = dataframe.shape[0]
     x_axis_vals = range(job_count)
@@ -51,16 +54,16 @@ def create_plot(pdf, csv_file, value_combos_file, prefix=''):
   plt.ylabel(prefix + ' RMSE')
   plt.title(prefix + ' RMSE vs. ' + x_axis_label)
   x_range = x_axis_vals[len(x_axis_vals) - 1] - x_axis_vals[0]
+  first_x_val = x_axis_vals[0]
+  last_x_val = x_axis_vals[len(x_axis_vals) - 1]
   # Use log scale if min and max x vals are more than 3 orders of magnitude apart
-  if (abs(math.log10(x_axis_vals[len(x_axis_vals) - 1]) - math.log10(x_axis_vals[0])) > 3):
+  if (first_x_val != 0 and last_x_val != 0 and abs(math.log10(last_x_val) - math.log10(first_x_val)) > 3):
     plt.xscale('log', base=10)
     # Extend x axis on either side using a log scale to make data more visible
-    first_val = x_axis_vals[0]
-    last_val = x_axis_vals[len(x_axis_vals) - 1]
-    if (first_val < last_val):
-      plt.xlim([first_val * 0.1, last_val * 10.0])
+    if (first_x_val < last_x_val):
+      plt.xlim([first_x_val * 0.1, last_x_val * 10.0])
     else:
-      plt.xlim([last_val * 0.1, first_val * 10.0])
+      plt.xlim([last_x_val * 0.1, first_x_val * 10.0])
   else:
     # Extend x axis on either side to make data more visible
     x_buffer = x_range * 0.1
