@@ -387,19 +387,19 @@ def add_other_vector3d_plots(pdf, imu_augmented_graph_localization_states, spars
   plt.close()
 
 
-def plot_stats(pdf, graph_localization_states, sparse_mapping_poses, output_csv_file):
+def plot_stats(pdf, graph_localization_states, sparse_mapping_poses, output_csv_file, prefix='', atol=0):
   stats = ''
-  rmse = rmse_utilities.rmse_timestamped_poses(graph_localization_states, sparse_mapping_poses)
+  rmse = rmse_utilities.rmse_timestamped_poses(graph_localization_states, sparse_mapping_poses, True, atol)
   integrated_graph_localization_states = utilities.integrate_velocities(graph_localization_states)
   integrated_rmse = rmse_utilities.rmse_timestamped_poses(integrated_graph_localization_states, sparse_mapping_poses,
-                                                          False)
-  stats += 'pos rmse: ' + str(rmse[0]) + '\n' + 'orientation rmse: ' + str(rmse[1]) + '\n' + 'integrated rmse: ' + str(
-    integrated_rmse[0])
+                                                          False, atol)
+  stats += prefix + ' pos rmse: ' + str(rmse[0]) + '\n' + 'orientation rmse: ' + str(
+    rmse[1]) + '\n' + 'integrated rmse: ' + str(integrated_rmse[0])
   with open(output_csv_file, 'a') as output_csv:
     csv_writer = csv.writer(output_csv, lineterminator='\n')
-    csv_writer.writerow(['rmse', str(rmse[0])])
-    csv_writer.writerow(['orientation_rmse', str(rmse[1])])
-    csv_writer.writerow(['integrated_rmse', str(integrated_rmse[0])])
+    csv_writer.writerow([prefix + 'rmse', str(rmse[0])])
+    csv_writer.writerow([prefix + 'orientation_rmse', str(rmse[1])])
+    csv_writer.writerow([prefix + 'integrated_rmse', str(integrated_rmse[0])])
   plt.figure()
   plt.axis('off')
   plt.text(0.0, 0.5, stats)
@@ -520,3 +520,5 @@ def create_plots(bagfile, output_pdf_file, output_csv_file='results.csv'):
     else:
       add_other_loc_plots(pdf, graph_localization_states, graph_localization_states)
     plot_stats(pdf, graph_localization_states, sparse_mapping_poses, output_csv_file)
+    plot_stats(pdf, imu_augmented_graph_localization_states, sparse_mapping_poses, output_csv_file, 'imu_augmented_',
+               0.02)
