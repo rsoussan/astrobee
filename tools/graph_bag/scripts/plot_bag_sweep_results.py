@@ -68,7 +68,7 @@ def rmse_plots(pdf,
                label_2=''):
   plt.figure()
   plt.plot(x_axis_vals, rmses, 'b', label=label_1, linestyle='None', marker='o', markeredgewidth=0.1, markersize=10.5)
-  if (rmses_2):
+  if rmses_2 is not None:
     plt.plot(x_axis_vals,
              rmses_2,
              'r',
@@ -98,7 +98,7 @@ def rmse_plots(pdf,
            marker='o',
            markeredgewidth=0.1,
            markersize=10.5)
-  if (orientation_rmses_2):
+  if orientation_rmses_2 is not None:
     plt.plot(x_axis_vals,
              orientation_rmses_2,
              'r',
@@ -128,7 +128,7 @@ def rmse_plots(pdf,
            marker='o',
            markeredgewidth=0.1,
            markersize=10.5)
-  if (integrated_rmses_2):
+  if integrated_rmses_2 is not None:
     plt.plot(x_axis_vals,
              integrated_rmses_2,
              'r',
@@ -153,7 +153,7 @@ def rmse_plots(pdf,
   mean_rmses, labels, relative_rmses, relative_change_in_rmses = save_rmse_results_to_csv(
     rmses, prefix, rmses_2, label_1, label_2)
   if (prefix):
-    prefix += '_' 
+    prefix += '_'
   mean_integrated_rmses, labels, relative_integrated_rmses, relative_change_in_integrated_rmses = save_rmse_results_to_csv(
     integrated_rmses, prefix + 'integrated_', integrated_rmses_2, label_1, label_2)
   mean_orientation_rmses, labels, relative_orientation_rmses, relative_change_in_orientation_rmses = save_rmse_results_to_csv(
@@ -241,8 +241,8 @@ def create_plot(output_file, csv_file, label_1='', csv_file_2=None, label_2='', 
     rmse_plots(pdf, x_axis_vals, shortened_bag_names, rmses, integrated_rmses, orientation_rmses, '', label_1, rmses_2,
                integrated_rmses_2, orientation_rmses_2, label_2)
     rmse_plots(pdf, x_axis_vals, shortened_bag_names, imu_augmented_rmses, imu_augmented_integrated_rmses,
-               imu_augmented_orientation_rmses, 'imu_augmented', label_1, rmses_2, imu_augmented_integrated_rmses_2,
-               imu_augmented_orientation_rmses_2, label_2)
+               imu_augmented_orientation_rmses, 'imu_augmented', label_1, imu_augmented_rmses_2,
+               imu_augmented_integrated_rmses_2, imu_augmented_orientation_rmses_2, label_2)
 
 
 if __name__ == '__main__':

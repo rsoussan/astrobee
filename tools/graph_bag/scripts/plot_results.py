@@ -521,4 +521,4 @@ def create_plots(bagfile, output_pdf_file, output_csv_file='results.csv'):
       add_other_loc_plots(pdf, graph_localization_states, graph_localization_states)
     plot_stats(pdf, graph_localization_states, sparse_mapping_poses, output_csv_file)
     plot_stats(pdf, imu_augmented_graph_localization_states, sparse_mapping_poses, output_csv_file, 'imu_augmented_',
-               0.02)
+               0.01)
