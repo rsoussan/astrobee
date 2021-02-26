@@ -26,7 +26,7 @@ import math
 
 
 # Assumes poses_a and poses_b are sorted in time
-def get_same_timestamp_poses(poses_a, poses_b, add_orientations=True):
+def get_same_timestamp_poses(poses_a, poses_b, add_orientations=True, abs_tol=0):
   trimmed_poses_a = poses.Poses(poses_a.pose_type, poses_a.topic)
   trimmed_poses_b = poses.Poses(poses_b.pose_type, poses_b.topic)
   poses_a_size = len(poses_a.times)
@@ -38,7 +38,7 @@ def get_same_timestamp_poses(poses_a, poses_b, add_orientations=True):
     a_time = poses_a.times[a_index]
     b_time = poses_b.times[b_index]
 
-    if (a_time == b_time):
+    if (np.isclose(a_time, b_time, rtol=0, atol=abs_tol)):
       trimmed_poses_a.positions.add_vector3d(poses_a.positions.get_vector3d(a_index))
       trimmed_poses_a.times.append(poses_a.times[a_index])
       trimmed_poses_b.positions.add_vector3d(poses_b.positions.get_vector3d(b_index))
@@ -67,8 +67,8 @@ def orientation_squared_difference(world_R_a, world_R_b):
 
 
 # RMSE between two sequences of poses. Only uses poses with the same timestamp
-def rmse_timestamped_poses(poses_a, poses_b, add_orientation_rmse=True):
-  trimmed_poses_a, trimmed_poses_b = get_same_timestamp_poses(poses_a, poses_b, add_orientation_rmse)
+def rmse_timestamped_poses(poses_a, poses_b, add_orientation_rmse=True, abs_tol=0):
+  trimmed_poses_a, trimmed_poses_b = get_same_timestamp_poses(poses_a, poses_b, add_orientation_rmse, abs_tol)
   assert len(trimmed_poses_a.times) == len(trimmed_poses_b.times), 'Length mismatch of poses'
   num_poses = len(trimmed_poses_a.times)
   mean_squared_position_error = 0
