@@ -54,18 +54,7 @@ def save_rmse_results_to_csv(rmses, prefix='', rmses_2=None, label_1=None, label
   return mean_rmses_list, labels, relative_rmses, relative_change_in_rmses
 
 
-def rmse_plots(pdf,
-               x_axis_vals,
-               shortened_bag_names,
-               rmses,
-               integrated_rmses,
-               orientation_rmses,
-               prefix='',
-               label_1='',
-               rmses_2=None,
-               integrated_rmses_2=None,
-               orientation_rmses_2=None,
-               label_2=''):
+def rmse_plot(pdf, x_axis_vals, shortened_bag_names, rmses, prefix='', label_1='', rmses_2=None, label_2=''):
   plt.figure()
   plt.plot(x_axis_vals, rmses, 'b', label=label_1, linestyle='None', marker='o', markeredgewidth=0.1, markersize=10.5)
   if rmses_2 is not None:
@@ -89,65 +78,23 @@ def rmse_plots(pdf,
   pdf.savefig()
   plt.close()
 
-  plt.figure()
-  plt.plot(x_axis_vals,
-           orientation_rmses,
-           'b',
-           label=label_1,
-           linestyle='None',
-           marker='o',
-           markeredgewidth=0.1,
-           markersize=10.5)
-  if orientation_rmses_2 is not None:
-    plt.plot(x_axis_vals,
-             orientation_rmses_2,
-             'r',
-             label=label_2,
-             linestyle='None',
-             marker='o',
-             markeredgewidth=0.1,
-             markersize=10.5)
-    plt.legend(prop={'size': 8}, bbox_to_anchor=(1.05, 1))
-  plt.xticks(x_axis_vals, shortened_bag_names, fontsize=7, rotation=20)
-  plt.ylabel(prefix + ' Orientation RMSE')
-  plt.title(prefix + ' Orientation RMSE vs. Bag')
-  x_range = x_axis_vals[len(x_axis_vals) - 1] - x_axis_vals[0]
-  x_buffer = x_range * 0.1
-  # Extend x axis on either side to make data more visible
-  plt.xlim([x_axis_vals[0] - x_buffer, x_axis_vals[len(x_axis_vals) - 1] + x_buffer])
-  plt.tight_layout()
-  pdf.savefig()
-  plt.close()
 
-  plt.figure()
-  plt.plot(x_axis_vals,
-           integrated_rmses,
-           'b',
-           label=label_1,
-           linestyle='None',
-           marker='o',
-           markeredgewidth=0.1,
-           markersize=10.5)
-  if integrated_rmses_2 is not None:
-    plt.plot(x_axis_vals,
-             integrated_rmses_2,
-             'r',
-             label=label_2,
-             linestyle='None',
-             marker='o',
-             markeredgewidth=0.1,
-             markersize=10.5)
-    plt.legend(prop={'size': 8}, bbox_to_anchor=(1.05, 1))
-  plt.xticks(x_axis_vals, shortened_bag_names, fontsize=7, rotation=20)
-  plt.ylabel(prefix + ' Integrated RMSE')
-  plt.title(prefix + ' Integrated RMSE vs. Bag')
-  x_range = x_axis_vals[len(x_axis_vals) - 1] - x_axis_vals[0]
-  x_buffer = x_range * 0.1
-  # Extend x axis on either side to make data more visible
-  plt.xlim([x_axis_vals[0] - x_buffer, x_axis_vals[len(x_axis_vals) - 1] + x_buffer])
-  plt.tight_layout()
-  pdf.savefig()
-  plt.close()
+def rmse_plots(pdf,
+               x_axis_vals,
+               shortened_bag_names,
+               rmses,
+               integrated_rmses,
+               orientation_rmses,
+               prefix='',
+               label_1='',
+               rmses_2=None,
+               integrated_rmses_2=None,
+               orientation_rmses_2=None,
+               label_2=''):
+  rmse_plot(pdf, x_axis_vals, shortened_bag_names, rmses, prefix, label_1, rmses_2, label_2)
+  rmse_plot(pdf, x_axis_vals, shortened_bag_names, integrated_rmses, prefix + ' Integrated ', label_1, rmses_2, label_2)
+  rmse_plot(pdf, x_axis_vals, shortened_bag_names, orientation_rmses, prefix + ' Orientation', label_1, rmses_2,
+            label_2)
 
   # Plot mean rmses
   mean_rmses, labels, relative_rmses, relative_change_in_rmses = save_rmse_results_to_csv(
