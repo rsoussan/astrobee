@@ -31,7 +31,7 @@ import sys
 def save_rmse_results_to_csv(rmses, prefix='', rmses_2=None, label_1=None, label_2=None):
   mean_rmses_dataframe = pd.DataFrame()
   labels = []
-  if label_1 and label_2:
+  if label_1 and label_2 and rmses_2 is not None:
     labels.append(label_1)
     labels.append(label_2)
   if labels:
@@ -178,17 +178,17 @@ def rmse_plots(pdf,
       plt.text(0.0, 0.85, mean_rmses_2_string)
       plt.text(0.0, 0.8, mean_orientation_rmses_2_string)
       plt.text(0.0, 0.75, mean_integrated_rmses_2_string)
-    relative_rmses_string = prefix + 'rel rmse %: ' + str(relative_rmses[0])
-    relative_integrated_rmses_string = prefix + 'rel integrated rmse %: ' + str(relative_integrated_rmses[0])
-    relative_orientation_rmses_string = prefix + 'rel orientation rmse %: ' + str(relative_orientation_rmses[0])
+    relative_rmses_string = prefix + 'rel rmse %: ' + str(100 * relative_rmses[0])
+    relative_integrated_rmses_string = prefix + 'rel integrated rmse %: ' + str(100 * relative_integrated_rmses[0])
+    relative_orientation_rmses_string = prefix + 'rel orientation rmse %: ' + str(100 * relative_orientation_rmses[0])
     plt.text(0.0, 0.7, relative_rmses_string)
     plt.text(0.0, 0.65, relative_orientation_rmses_string)
     plt.text(0.0, 0.6, relative_integrated_rmses_string)
-    relative_rmses_change_string = prefix + 'rel change in rmse %: ' + str(relative_change_in_rmses[0])
+    relative_rmses_change_string = prefix + 'rel change in rmse %: ' + str(100 * relative_change_in_rmses[0])
     relative_orientation_rmses_change_string = prefix + 'rel change in orientation rmse %: ' + str(
-      relative_change_in_orientation_rmses[0])
+      100 * relative_change_in_orientation_rmses[0])
     relative_integrated_rmses_change_string = prefix + 'rel change in integrated rmse %: ' + str(
-      relative_change_in_integrated_rmses[0])
+      100 * relative_change_in_integrated_rmses[0])
     plt.text(0.0, 0.55, relative_rmses_change_string)
     plt.text(0.0, 0.5, relative_orientation_rmses_change_string)
     plt.text(0.0, 0.4, relative_integrated_rmses_change_string)
@@ -240,9 +240,14 @@ def create_plot(output_file, csv_file, label_1='', csv_file_2=None, label_2='', 
   with PdfPages(output_file) as pdf:
     rmse_plots(pdf, x_axis_vals, shortened_bag_names, rmses, integrated_rmses, orientation_rmses, '', label_1, rmses_2,
                integrated_rmses_2, orientation_rmses_2, label_2)
-    rmse_plots(pdf, x_axis_vals, shortened_bag_names, imu_augmented_rmses, imu_augmented_integrated_rmses,
-               imu_augmented_orientation_rmses, 'imu_augmented', label_1, imu_augmented_rmses_2,
-               imu_augmented_integrated_rmses_2, imu_augmented_orientation_rmses_2, label_2)
+    if imu_augmented_2:
+      rmse_plots(pdf, x_axis_vals, shortened_bag_names, imu_augmented_rmses, imu_augmented_integrated_rmses,
+                 imu_augmented_orientation_rmses, 'imu_augmented', label_1, imu_augmented_rmses_2,
+                 imu_augmented_integrated_rmses_2, imu_augmented_orientation_rmses_2, label_2)
+    else:
+      rmse_plots(pdf, x_axis_vals, shortened_bag_names, imu_augmented_rmses, imu_augmented_integrated_rmses,
+                 imu_augmented_orientation_rmses, 'imu_augmented', label_1, rmses_2, integrated_rmses_2,
+                 orientation_rmses_2, label_2 + ' no imu aug')
 
 
 if __name__ == '__main__':
@@ -253,6 +258,6 @@ if __name__ == '__main__':
   parser.add_argument('--csv-file2', help='Optional second csv file to plot')
   parser.add_argument('--label1', default='', help='Optional label for first csv file')
   parser.add_argument('--label2', default='', help='Optional label for second csv file')
-  parser.add_argument('--no-imu-augmented2', dest='imu_augmented2', action='store_false') 
+  parser.add_argument('--no-imu-augmented2', dest='imu_augmented2', action='store_false')
   args = parser.parse_args()
   create_plot(args.output_file, args.csv_file, args.label1, args.csv_file2, args.label2, args.imu_augmented2)
