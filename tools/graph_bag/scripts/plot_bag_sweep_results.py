@@ -79,6 +79,29 @@ def rmse_plot(pdf, x_axis_vals, shortened_bag_names, rmses, prefix='', label_1='
   plt.close()
 
 
+def save_rmse_stats_to_plot(pdf, rmses, prefix='', label_1='', rmses_2=None, label_2=''):
+  # Plot mean rmses
+  mean_rmses, labels, relative_rmses, relative_change_in_rmses = save_rmse_results_to_csv(
+    rmses, prefix, rmses_2, label_1, label_2)
+
+  mean_rmses_1_string = prefix + 'rmse: ' + str(mean_rmses[0])
+  if labels:
+    mean_rmses_1_string += ', label: ' + labels[0]
+  plt.figure()
+  plt.axis('off')
+  plt.text(0.0, 1.0, mean_rmses_1_string)
+  if len(mean_rmses) > 1:
+    mean_rmses_2_string = prefix + 'rmse: ' + str(mean_rmses[1])
+    if labels:
+      mean_rmses_2_string += ', label: ' + labels[1]
+      plt.text(0.0, 0.85, mean_rmses_2_string)
+    relative_rmses_string = prefix + 'rel rmse %: ' + str(100 * relative_rmses[0])
+    plt.text(0.0, 0.7, relative_rmses_string)
+    relative_rmses_change_string = prefix + 'rel change in rmse %: ' + str(100 * relative_change_in_rmses[0])
+    plt.text(0.0, 0.55, relative_rmses_change_string)
+  pdf.savefig()
+
+
 def rmse_plots(pdf,
                x_axis_vals,
                shortened_bag_names,
@@ -92,54 +115,13 @@ def rmse_plots(pdf,
                orientation_rmses_2=None,
                label_2=''):
   rmse_plot(pdf, x_axis_vals, shortened_bag_names, rmses, prefix, label_1, rmses_2, label_2)
-  rmse_plot(pdf, x_axis_vals, shortened_bag_names, integrated_rmses, prefix + ' Integrated ', label_1, rmses_2, label_2)
-  rmse_plot(pdf, x_axis_vals, shortened_bag_names, orientation_rmses, prefix + ' Orientation', label_1, rmses_2,
+  rmse_plot(pdf, x_axis_vals, shortened_bag_names, integrated_rmses, prefix + ' Integrated ', label_1, integrated_rmses_2, label_2)
+  rmse_plot(pdf, x_axis_vals, shortened_bag_names, orientation_rmses, prefix + ' Orientation ', label_1, orientation_rmses_2,
             label_2)
 
-  # Plot mean rmses
-  mean_rmses, labels, relative_rmses, relative_change_in_rmses = save_rmse_results_to_csv(
-    rmses, prefix, rmses_2, label_1, label_2)
-  if (prefix):
-    prefix += '_'
-  mean_integrated_rmses, labels, relative_integrated_rmses, relative_change_in_integrated_rmses = save_rmse_results_to_csv(
-    integrated_rmses, prefix + 'integrated_', integrated_rmses_2, label_1, label_2)
-  mean_orientation_rmses, labels, relative_orientation_rmses, relative_change_in_orientation_rmses = save_rmse_results_to_csv(
-    orientation_rmses, prefix + 'orientation_', orientation_rmses_2, label_1, label_2)
-
-  mean_rmses_1_string = prefix + 'rmse: ' + str(mean_rmses[0])
-  mean_integrated_rmses_1_string = prefix + 'integrated rmse: ' + str(mean_integrated_rmses[0])
-  mean_orientation_rmses_1_string = prefix + 'orientation rmse: ' + str(mean_orientation_rmses[0])
-  if labels:
-    mean_rmses_1_string += ', label: ' + labels[0]
-  plt.figure()
-  plt.axis('off')
-  plt.text(0.0, 1.0, mean_rmses_1_string)
-  plt.text(0.0, 0.95, mean_orientation_rmses_1_string)
-  plt.text(0.0, 0.9, mean_integrated_rmses_1_string)
-  if len(mean_rmses) > 1:
-    mean_rmses_2_string = prefix + 'rmse: ' + str(mean_rmses[1])
-    mean_integrated_rmses_2_string = prefix + 'integrated rmse: ' + str(mean_integrated_rmses[1])
-    mean_orientation_rmses_2_string = prefix + 'orientation rmse: ' + str(mean_orientation_rmses[1])
-    if labels:
-      mean_rmses_2_string += ', label: ' + labels[1]
-      plt.text(0.0, 0.85, mean_rmses_2_string)
-      plt.text(0.0, 0.8, mean_orientation_rmses_2_string)
-      plt.text(0.0, 0.75, mean_integrated_rmses_2_string)
-    relative_rmses_string = prefix + 'rel rmse %: ' + str(100 * relative_rmses[0])
-    relative_integrated_rmses_string = prefix + 'rel integrated rmse %: ' + str(100 * relative_integrated_rmses[0])
-    relative_orientation_rmses_string = prefix + 'rel orientation rmse %: ' + str(100 * relative_orientation_rmses[0])
-    plt.text(0.0, 0.7, relative_rmses_string)
-    plt.text(0.0, 0.65, relative_orientation_rmses_string)
-    plt.text(0.0, 0.6, relative_integrated_rmses_string)
-    relative_rmses_change_string = prefix + 'rel change in rmse %: ' + str(100 * relative_change_in_rmses[0])
-    relative_orientation_rmses_change_string = prefix + 'rel change in orientation rmse %: ' + str(
-      100 * relative_change_in_orientation_rmses[0])
-    relative_integrated_rmses_change_string = prefix + 'rel change in integrated rmse %: ' + str(
-      100 * relative_change_in_integrated_rmses[0])
-    plt.text(0.0, 0.55, relative_rmses_change_string)
-    plt.text(0.0, 0.5, relative_orientation_rmses_change_string)
-    plt.text(0.0, 0.4, relative_integrated_rmses_change_string)
-  pdf.savefig()
+  save_rmse_stats_to_plot(pdf, rmses, prefix, label_1, rmses_2, label_2)
+  save_rmse_stats_to_plot(pdf, integrated_rmses, prefix + ' Integrated ', label_1, integrated_rmses_2, label_2)
+  save_rmse_stats_to_plot(pdf, orientation_rmses, prefix + ' Orientation ', label_1, orientation_rmses_2, label_2)
 
 
 def create_plot(output_file, csv_file, label_1='', csv_file_2=None, label_2='', imu_augmented_2=True):
