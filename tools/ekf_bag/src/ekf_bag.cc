@@ -43,7 +43,8 @@ EkfBag::EkfBag(const char* bagfile, const char* mapfile, bool run_ekf, bool gen_
   std::vector<const rosbag::ConnectionInfo *> connection_infos = view.getConnections();
   gen_features_ = true;
   for (const auto info : connection_infos) {
-    if (info->topic == TOPIC_LOCALIZATION_OF_FEATURES) {
+    std::string of_features = "/" + std::string(TOPIC_LOCALIZATION_OF_FEATURES);
+    if (info->topic == of_features) {
       gen_features_ = false;
       break;
     }
