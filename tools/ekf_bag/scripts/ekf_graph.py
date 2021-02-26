@@ -74,14 +74,16 @@ def rmse_matrix(error_matrix):
 # not in b_times[i].  Assumes timestamp vectors are sorted
 def prune_missing_timestamps(a_xs, a_ys, a_zs, a_times, b_times):
   a_index = 0
+  missing_indices = []
   pruned_a_matrix = np.empty(shape=(len(b_times), 3))
   for b_index, b_time in enumerate(b_times):
     while not np.isclose(a_times[a_index], b_time, rtol=0) and a_times[a_index] < b_time and a_index < len(a_times):
       a_index += 1
     if not np.isclose(a_times[a_index], b_time, rtol=0, atol=0.02):
       print('Failed to find a time close to b time.')
+      missing_indices.append(b_index)
     pruned_a_matrix[b_index] = np.array([a_xs[a_index], a_ys[a_index], a_zs[a_index]])
-  return pruned_a_matrix
+  return pruned_a_matrix, missing_indices
 
 def orientation_rmse(a_xs, a_ys, a_zs, b_xs, b_ys, b_zs, a_times, b_times):
   a_index = 0
@@ -91,6 +93,7 @@ def orientation_rmse(a_xs, a_ys, a_zs, b_xs, b_ys, b_zs, a_times, b_times):
       a_index += 1
     if not np.isclose(a_times[a_index], b_time, rtol=0, atol=0.02):
       print('Failed to find a time close to b time.')
+      continue
     a_rot = scipy.spatial.transform.Rotation.from_euler('ZYX', [a_xs[a_index], a_ys[a_index], a_zs[a_index]], degrees=False)
     b_rot = scipy.spatial.transform.Rotation.from_euler('ZYX', [b_xs[b_index], b_ys[b_index], b_zs[b_index]], degrees=False)
     rot_diff = a_rot.inv()*b_rot
@@ -99,13 +102,14 @@ def orientation_rmse(a_xs, a_ys, a_zs, b_xs, b_ys, b_zs, a_times, b_times):
   return math.sqrt(mean_squared_orientation_error) 
 
 
-
-
 # RMSE between two sequences of timestamped positions. Prunes timestamped positions in sequence a
 # not present in sequence b.
 def rmse_timestamped_sequences(a_xs, a_ys, a_zs, a_times, b_xs, b_ys, b_zs, b_times):
-  a_positions = prune_missing_timestamps(a_xs, a_ys, a_zs, a_times, b_times)
+  a_positions, missing_indices = prune_missing_timestamps(a_xs, a_ys, a_zs, a_times, b_times)
   b_positions = np.column_stack((b_xs, b_ys, b_zs))
+  for i in missing_indices:
+    a_positions = np.delete(a_positions, i, 0)
+    b_positions = np.delete(b_positions, i, 0)
   return rmse_matrix(a_positions - b_positions)
 
 
