@@ -114,13 +114,16 @@ def rmse_plots(pdf,
                integrated_rmses_2=None,
                orientation_rmses_2=None,
                label_2=''):
-  rmse_plot(pdf, x_axis_vals, shortened_bag_names, rmses, prefix, label_1, rmses_2, label_2)
-  rmse_plot(pdf, x_axis_vals, shortened_bag_names, integrated_rmses, prefix + ' Integrated ', label_1, integrated_rmses_2, label_2)
-  rmse_plot(pdf, x_axis_vals, shortened_bag_names, orientation_rmses, prefix + ' Orientation ', label_1, orientation_rmses_2,
-            label_2)
+  rmse_plot(pdf, x_axis_vals, shortened_bag_names, rmses, prefix + ' ', label_1, rmses_2, label_2)
+  if integrated_rmses is not None:
+    rmse_plot(pdf, x_axis_vals, shortened_bag_names, integrated_rmses, prefix + ' Integrated ', label_1,
+              integrated_rmses_2, label_2)
+  rmse_plot(pdf, x_axis_vals, shortened_bag_names, orientation_rmses, prefix + ' Orientation ', label_1,
+            orientation_rmses_2, label_2)
 
-  save_rmse_stats_to_plot(pdf, rmses, prefix, label_1, rmses_2, label_2)
-  save_rmse_stats_to_plot(pdf, integrated_rmses, prefix + ' Integrated ', label_1, integrated_rmses_2, label_2)
+  save_rmse_stats_to_plot(pdf, rmses, prefix + ' ', label_1, rmses_2, label_2)
+  if integrated_rmses is not None:
+    save_rmse_stats_to_plot(pdf, integrated_rmses, prefix + ' Integrated ', label_1, integrated_rmses_2, label_2)
   save_rmse_stats_to_plot(pdf, orientation_rmses, prefix + ' Orientation ', label_1, orientation_rmses_2, label_2)
 
 
@@ -135,6 +138,9 @@ def create_plot(output_file, csv_file, label_1='', csv_file_2=None, label_2='', 
   imu_augmented_rmses = dataframe['imu_augmented_rmse']
   imu_augmented_integrated_rmses = dataframe['imu_augmented_integrated_rmse']
   imu_augmented_orientation_rmses = dataframe['imu_augmented_orientation_rmse']
+  # IMU bias tester rmses
+  imu_bias_tester_rmses = dataframe['imu_bias_tester_rmse']
+  imu_bias_tester_orientation_rmses = dataframe['imu_bias_tester_orientation_rmse']
 
   bag_names = dataframe['Bag'].tolist()
   max_name_length = 45
@@ -148,6 +154,8 @@ def create_plot(output_file, csv_file, label_1='', csv_file_2=None, label_2='', 
   imu_augmented_rmses_2 = None
   imu_augmented_integrated_rmses_2 = None
   imu_augmented_orientation_rmses_2 = None
+  imu_bias_tester_rmses_2 = None
+  imu_bias_tester_orientation_rmses_2 = None
 
   if (csv_file_2):
     dataframe_2 = pd.read_csv(csv_file_2)
@@ -161,6 +169,9 @@ def create_plot(output_file, csv_file, label_1='', csv_file_2=None, label_2='', 
       imu_augmented_rmses_2 = dataframe_2['imu_augmented_rmse']
       imu_augmented_integrated_rmses_2 = dataframe_2['imu_augmented_integrated_rmse']
       imu_augmented_orientation_rmses_2 = dataframe_2['imu_augmented_orientation_rmse']
+      # IMU bias tester rmses
+      imu_bias_tester_rmses_2 = dataframe_2['imu_bias_tester_rmse']
+      imu_bias_tester_orientation_rmses_2 = dataframe_2['imu_bias_tester_orientation_rmse']
 
     bag_names_2 = dataframe_2['Bag'].tolist()
     if bag_names != bag_names_2:
@@ -173,10 +184,16 @@ def create_plot(output_file, csv_file, label_1='', csv_file_2=None, label_2='', 
       rmse_plots(pdf, x_axis_vals, shortened_bag_names, imu_augmented_rmses, imu_augmented_integrated_rmses,
                  imu_augmented_orientation_rmses, 'imu_augmented', label_1, imu_augmented_rmses_2,
                  imu_augmented_integrated_rmses_2, imu_augmented_orientation_rmses_2, label_2)
+      rmse_plots(pdf, x_axis_vals, shortened_bag_names, imu_bias_tester_rmses, None, imu_bias_tester_orientation_rmses,
+                 'imu_bias_tester', label_1, imu_bias_tester_rmses_2, None, imu_bias_tester_orientation_rmses_2,
+                 label_2)
     else:
       rmse_plots(pdf, x_axis_vals, shortened_bag_names, imu_augmented_rmses, imu_augmented_integrated_rmses,
                  imu_augmented_orientation_rmses, 'imu_augmented', label_1, rmses_2, integrated_rmses_2,
                  orientation_rmses_2, label_2 + ' no imu aug')
+      rmse_plots(pdf, x_axis_vals, shortened_bag_names, imu_bias_tester_rmses, None, imu_bias_tester_orientation_rmses,
+                 'imu_bias_tester', label_1, imu_bias_tester_rmses_2, None, imu_bias_tester_orientation_rmses_2,
+                 label_2)
 
 
 if __name__ == '__main__':
