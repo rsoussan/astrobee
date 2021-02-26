@@ -154,8 +154,9 @@ if __name__ == '__main__':
   parser.add_argument('config_path', help='Full path to config path.')
   parser.add_argument('robot_config', help='Relative path to robot config.')
   parser.add_argument('world', help='World being used.')
-  parser.add_argument('use_image_features',
-                      type=bool,
+  parser.add_argument('--generate-image-features',
+                      dest='use_image_features',
+                      action='store_false',
                       help='Use image features msgs from bagfile or generate features from images.')
 
   parser.add_argument(
