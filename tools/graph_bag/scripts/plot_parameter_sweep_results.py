@@ -85,6 +85,9 @@ def create_plots(output_file, csv_file, value_combos_file):
     create_plot(pdf, csv_file, value_combos_file, 'imu_augmented_')
     create_plot(pdf, csv_file, value_combos_file, 'imu_augmented_orientation_')
     create_plot(pdf, csv_file, value_combos_file, 'imu_augmented_integrated_')
+    # IMU Bias Tester RMSEs
+    create_plot(pdf, csv_file, value_combos_file, 'imu_bias_tester_')
+    create_plot(pdf, csv_file, value_combos_file, 'imu_bias_tester_orientation_')
 
 
 if __name__ == '__main__':
