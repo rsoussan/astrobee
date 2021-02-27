@@ -47,6 +47,20 @@ class Vector3dPlotter():
                                      linewidth, marker, markeredgewidth, markersize)
     self.add_y_vals(position_plotter)
 
+  def add_pose_orientation(self,
+                           pose,
+                           colors=['r', 'b', 'g'],
+                           linestyle='-',
+                           linewidth=1,
+                           marker=None,
+                           markeredgewidth=None,
+                           markersize=1):
+    orientation_plotter = Vector3dYVals(pose.pose_type, pose.times, pose.orientations.yaws, pose.orientations.rolls,
+                                        pose.orientations.pitches,
+                                        ['Orientation (Yaw)', 'Orientation (Roll)', 'Orientation (Pitch)'], colors,
+                                        linestyle, linewidth, marker, markeredgewidth, markersize)
+    self.add_y_vals(orientation_plotter)
+
   def add_y_vals(self, y_vals):
     self.y_vals_vec.append(y_vals)
 

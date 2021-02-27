@@ -59,28 +59,23 @@ def add_graph_plots(pdf, sparse_mapping_poses, ar_tag_poses, graph_localization_
                                        markersize=1.5)
   position_plotter.add_pose_position(graph_localization_states)
   position_plotter.plot(pdf)
+
   # orientations
-  plt.figure()
-  plot_helpers.plot_orientations(sparse_mapping_poses,
-                                 colors,
-                                 linestyle='None',
-                                 marker='o',
-                                 markeredgewidth=0.1,
-                                 markersize=1.5)
+  orientation_plotter = vector3d_plotter.Vector3dPlotter('Time (s)', 'Orientation (deg)',
+                                                         'Graph vs. Sparse Mapping Orientation', True)
+  orientation_plotter.add_pose_orientation(sparse_mapping_poses,
+                                           linestyle='None',
+                                           marker='o',
+                                           markeredgewidth=0.1,
+                                           markersize=1.5)
   if ar_tag_poses.times:
-    plot_helpers.plot_orientations(ar_tag_poses,
-                                   colors,
-                                   linestyle='None',
-                                   marker='x',
-                                   markeredgewidth=0.1,
-                                   markersize=1.5)
-  plot_helpers.plot_orientations(graph_localization_states, colors, linewidth=0.5)
-  plt.xlabel('Time (s)')
-  plt.ylabel('Orienation (deg)')
-  plt.title('Graph vs. Sparse Mapping Orientation')
-  plt.legend(prop={'size': 6})
-  pdf.savefig()
-  plt.close()
+    orientation_plotter.add_pose_orientation(ar_tag_poses.pose_type,
+                                             linestyle='None',
+                                             marker='x',
+                                             markeredgewidth=0.1,
+                                             markersize=1.5)
+  orientation_plotter.add_pose_orientation(graph_localization_states)
+  orientation_plotter.plot(pdf)
 
   # Imu Augmented Loc vs. Loc
   plt.figure()
