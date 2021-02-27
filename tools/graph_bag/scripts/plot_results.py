@@ -52,7 +52,7 @@ def add_graph_plots(pdf, sparse_mapping_poses, ar_tag_poses, graph_localization_
                                      markeredgewidth=0.1,
                                      markersize=1.5)
   if ar_tag_poses.times:
-    position_plotter.add_pose_position(ar_tag_poses.pose_type,
+    position_plotter.add_pose_position(ar_tag_poses,
                                        linestyle='None',
                                        marker='x',
                                        markeredgewidth=0.1,
@@ -69,7 +69,7 @@ def add_graph_plots(pdf, sparse_mapping_poses, ar_tag_poses, graph_localization_
                                            markeredgewidth=0.1,
                                            markersize=1.5)
   if ar_tag_poses.times:
-    orientation_plotter.add_pose_orientation(ar_tag_poses.pose_type,
+    orientation_plotter.add_pose_orientation(ar_tag_poses,
                                              linestyle='None',
                                              marker='x',
                                              markeredgewidth=0.1,
@@ -115,7 +115,7 @@ def add_graph_plots(pdf, sparse_mapping_poses, ar_tag_poses, graph_localization_
                                      markeredgewidth=0.1,
                                      markersize=1.5)
   if ar_tag_poses.times:
-    position_plotter.add_pose_position(ar_tag_poses.pose_type,
+    position_plotter.add_pose_position(ar_tag_poses,
                                        linestyle='None',
                                        marker='x',
                                        markeredgewidth=0.1,
