@@ -23,6 +23,7 @@ import poses
 import velocities
 import rmse_utilities
 import utilities
+import vector3d_plotter
 
 import matplotlib
 matplotlib.use('pdf')
@@ -43,23 +44,21 @@ def l2_map(vector3ds):
 def add_graph_plots(pdf, sparse_mapping_poses, ar_tag_poses, graph_localization_states,
                     imu_augmented_graph_localization_poses):
   colors = ['r', 'b', 'g']
-  plt.figure()
-  plot_helpers.plot_positions(sparse_mapping_poses,
-                              colors,
-                              linestyle='None',
-                              marker='o',
-                              markeredgewidth=0.1,
-                              markersize=1.5)
+  position_plotter = vector3d_plotter.Vector3dPlotter('Time (s)', 'Position (m)', 'Graph vs. Sparse Mapping Position',
+                                                      True)
+  position_plotter.add_pose_position(sparse_mapping_poses,
+                                     linestyle='None',
+                                     marker='o',
+                                     markeredgewidth=0.1,
+                                     markersize=1.5)
   if ar_tag_poses.times:
-    plot_helpers.plot_positions(ar_tag_poses, colors, linestyle='None', marker='x', markeredgewidth=0.1, markersize=1.5)
-  plot_helpers.plot_positions(graph_localization_states, colors, linewidth=0.5)
-  plt.xlabel('Time (s)')
-  plt.ylabel('Position (m)')
-  plt.title('Graph vs. Sparse Mapping Position')
-  plt.legend(prop={'size': 6})
-  pdf.savefig()
-  plt.close()
-
+    position_plotter.add_pose_position(ar_tag_poses.pose_type,
+                                       linestyle='None',
+                                       marker='x',
+                                       markeredgewidth=0.1,
+                                       markersize=1.5)
+  position_plotter.add_pose_position(graph_localization_states)
+  position_plotter.plot(pdf)
   # orientations
   plt.figure()
   plot_helpers.plot_orientations(sparse_mapping_poses,
