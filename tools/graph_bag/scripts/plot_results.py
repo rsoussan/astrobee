@@ -78,31 +78,23 @@ def add_graph_plots(pdf, sparse_mapping_poses, ar_tag_poses, graph_localization_
   orientation_plotter.plot(pdf)
 
   # Imu Augmented Loc vs. Loc
-  plt.figure()
-  plot_helpers.plot_positions(graph_localization_states,
-                              colors,
-                              linestyle='None',
-                              marker='o',
-                              markeredgewidth=0.1,
-                              markersize=1.5)
-  plot_helpers.plot_positions(imu_augmented_graph_localization_poses, colors, linewidth=0.5)
-  plt.xlabel('Time (s)')
-  plt.ylabel('Position (m)')
-  plt.title('Graph vs. Imu Augmented Graph Position')
-  plt.legend(prop={'size': 6})
-  pdf.savefig()
-  plt.close()
+  position_plotter = vector3d_plotter.Vector3dPlotter('Time (s)', 'Position (m)',
+                                                      'Graph vs. IMU Augmented Graph Position', True)
+  position_plotter.add_pose_position(graph_localization_states,
+                                     linestyle='None',
+                                     marker='o',
+                                     markeredgewidth=0.1,
+                                     markersize=1.5)
+
+  position_plotter.add_pose_position(imu_augmented_graph_localization_poses, linewidth=0.5)
+  position_plotter.plot(pdf)
 
   # orientations
-  plt.figure()
-  plot_helpers.plot_orientations(graph_localization_states, colors, marker='o', markeredgewidth=0.1, markersize=1.5)
-  plot_helpers.plot_orientations(imu_augmented_graph_localization_poses, colors, linewidth=0.5)
-  plt.xlabel('Time (s)')
-  plt.ylabel('Orienation (deg)')
-  plt.title('Graph vs. Imu Augmented Graph Orientation')
-  plt.legend(prop={'size': 6})
-  pdf.savefig()
-  plt.close()
+  orientation_plotter = vector3d_plotter.Vector3dPlotter('Time (s)', 'Orientation (deg)',
+                                                         'Graph vs. IMU Augmented Graph Orientation', True)
+  orientation_plotter.add_pose_orientation(graph_localization_states, marker='o', markeredgewidth=0.1, markersize=1.5)
+  orientation_plotter.add_pose_orientation(imu_augmented_graph_localization_poses, linewidth=0.5)
+  orientation_plotter.plot(pdf)
 
   # Velocity
   plt.figure()
@@ -115,23 +107,23 @@ def add_graph_plots(pdf, sparse_mapping_poses, ar_tag_poses, graph_localization_
   plt.close()
 
   # Integrated Velocities
-  plt.figure()
-  plot_helpers.plot_positions(sparse_mapping_poses,
-                              colors,
-                              linestyle='None',
-                              marker='o',
-                              markeredgewidth=0.1,
-                              markersize=1.5)
+  position_plotter = vector3d_plotter.Vector3dPlotter('Time (s)', 'Position (m)',
+                                                      'Integrated Graph Velocities vs. Sparse Mapping Position', True)
+  position_plotter.add_pose_position(sparse_mapping_poses,
+                                     linestyle='None',
+                                     marker='o',
+                                     markeredgewidth=0.1,
+                                     markersize=1.5)
   if ar_tag_poses.times:
-    plot_helpers.plot_positions(ar_tag_poses, colors, linestyle='None', marker='x', markeredgewidth=0.1, markersize=1.5)
+    position_plotter.add_pose_position(ar_tag_poses.pose_type,
+                                       linestyle='None',
+                                       marker='x',
+                                       markeredgewidth=0.1,
+                                       markersize=1.5)
+
   integrated_graph_localization_states = utilities.integrate_velocities(graph_localization_states)
-  plot_helpers.plot_positions(integrated_graph_localization_states, colors, linewidth=0.5)
-  plt.xlabel('Time (s)')
-  plt.ylabel('Position (m)')
-  plt.title('Integrated Graph Velocities vs. Sparse Mapping Position')
-  plt.legend(prop={'size': 6})
-  pdf.savefig()
-  plt.close()
+  position_plotter.add_pose_position(integrated_graph_localization_states)
+  position_plotter.plot(pdf)
 
 
 def plot_features(feature_counts,
