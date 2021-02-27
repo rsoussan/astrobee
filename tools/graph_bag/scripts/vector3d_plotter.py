@@ -50,10 +50,48 @@ class Vector3dPlotter():
   def add_y_vals(self, y_vals):
     self.y_vals_vec.append(y_vals)
 
-  def plot(self, pdf):
+  def plot(self, pdf, individual_plots=True):
     plt.figure()
     for y_vals in self.y_vals_vec:
       y_vals.full_plot()
+    plt.xlabel(self.xlabel)
+    plt.ylabel(self.ylabel)
+    plt.title(self.title)
+    plt.legend(prop={'size': 6})
+    pdf.savefig()
+    plt.close()
+
+    if individual_plots:
+      self.plot_xs(pdf)
+      self.plot_ys(pdf)
+      self.plot_zs(pdf)
+
+  def plot_xs(self, pdf):
+    plt.figure()
+    for y_vals in self.y_vals_vec:
+      y_vals.plot_x()
+    plt.xlabel(self.xlabel)
+    plt.ylabel(self.ylabel)
+    plt.title(self.title)
+    plt.legend(prop={'size': 6})
+    pdf.savefig()
+    plt.close()
+
+  def plot_ys(self, pdf):
+    plt.figure()
+    for y_vals in self.y_vals_vec:
+      y_vals.plot_y()
+    plt.xlabel(self.xlabel)
+    plt.ylabel(self.ylabel)
+    plt.title(self.title)
+    plt.legend(prop={'size': 6})
+    pdf.savefig()
+    plt.close()
+
+  def plot_zs(self, pdf):
+    plt.figure()
+    for y_vals in self.y_vals_vec:
+      y_vals.plot_z()
     plt.xlabel(self.xlabel)
     plt.ylabel(self.ylabel)
     plt.title(self.title)
