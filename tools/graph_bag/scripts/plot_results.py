@@ -533,5 +533,12 @@ def create_plots(bagfile,
                          rmse_rel_start_time=rmse_rel_start_time,
                          rmse_rel_end_time=rmse_rel_end_time)
     if has_imu_bias_tester_poses:
-      plot_loc_state_stats(pdf, imu_bias_tester_poses, sparse_mapping_poses, output_csv_file, 'imu_bias_tester_', 0.01,
-                           False)
+      plot_loc_state_stats(pdf,
+                           imu_bias_tester_poses,
+                           sparse_mapping_poses,
+                           output_csv_file,
+                           'imu_bias_tester_',
+                           0.01,
+                           False,
+                           rmse_rel_start_time=rmse_rel_start_time,
+                           rmse_rel_end_time=rmse_rel_end_time)
