@@ -28,7 +28,7 @@ def get_average_opt_and_update_times(bagfile):
   with rosbag.Bag(bagfile, 'r') as bag:
     optimization_times = []
     update_times = []
-    for _, msg, _ in bag.read_messages(['graph_loc/state']):
+    for _, msg, _ in bag.read_messages(['/graph_loc/state']):
       optimization_times.append(msg.optimization_time)
       update_times.append(msg.update_time)
 
