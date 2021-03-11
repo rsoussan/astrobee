@@ -100,6 +100,10 @@ ImuAugmentorWrapper::LatestImuAugmentedCombinedNavStateAndCovariances() {
     LogError("LatestImuAugmentedCombinedNavSTateAndCovariances: Failed to pim predict combined nav state.");
     return boost::none;
   }
+
+  const auto latest_filtered_combined_nav_state = ConstantVelocityKalmanFilterEstimate(
+    *latest_combined_nav_state_, *latest_covariances_, *latest_imu_augmented_combined_nav_state);
+  // TODO(rsoussan): add option for filtering! return filtered estimate if necessary!
   // TODO(rsoussan): propogate uncertainties from imu augmentor
   return std::pair<lc::CombinedNavState, lc::CombinedNavStateCovariances>{*latest_imu_augmented_combined_nav_state,
                                                                           *latest_covariances_};
