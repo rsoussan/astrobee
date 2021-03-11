@@ -81,7 +81,7 @@ std::pair<gtsam::Vector6, gtsam::Matrix6> ConstantVelocityKalmanFilterEstimate(c
   gtsam::Matrix6 Q = gtsam::Matrix6::Identity();
   Q.block<3, 3>(0, 0) = dt * dt * kPosSigma * kPosSigma * gtsam::Matrix3::Identity();
   Q.block<3, 3>(3, 3) = dt * dt * kVelSigma * kVelSigma * gtsam::Matrix3::Identity();
-  // Constant Velocity Observation Matrix
+  // Observation Matrix for position and veloctity
   gtsam::Matrix6 H = gtsam::Matrix6::Identity();
   return KalmanFilterEstimate(x, P, F, Q, z, H, R);
 }

@@ -15,16 +15,15 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-#ifndef IMU_AUGMENTOR_IMU_AUGMENTOR_PARAMS_H_
-#define IMU_AUGMENTOR_IMU_AUGMENTOR_PARAMS_H_
+#ifndef IMU_AUGMENTOR_UTILITIES_H_
+#define IMU_AUGMENTOR_UTILITIES_H_
 
-#include <imu_integration/imu_integrator_params.h>
+#include <config_reader/config_reader.h>
+#include <imu_augmentor/imu_augmentor_params.h>
+#include <imu_augmentor/utilities.h>
 
 namespace imu_augmentor {
-struct ImuAugmentorParams : imu_integration::ImuIntegratorParams {
-  bool standstill_enabled;
-  bool use_constant_velocity_kalman_filter;
-};
+void LoadImuAugmentorParams(config_reader::ConfigReader& config, ImuAugmentorParams& params);
 }  // namespace imu_augmentor
 
-#endif  // IMU_AUGMENTOR_IMU_AUGMENTOR_PARAMS_H_
+#endif  // IMU_AUGMENTOR_UTILITIES_H_

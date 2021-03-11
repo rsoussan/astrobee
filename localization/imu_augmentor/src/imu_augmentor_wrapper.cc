@@ -17,8 +17,9 @@
  */
 
 #include <config_reader/config_reader.h>
+#include <imu_augmentor/constant_velocity_kalman_filter.h>
 #include <imu_augmentor/imu_augmentor_wrapper.h>
-#include <imu_integration/utilities.h>
+#include <imu_augmentor/utilities.h>
 #include <localization_common/logger.h>
 #include <localization_common/utilities.h>
 #include <localization_measurements/imu_measurement.h>
@@ -26,7 +27,6 @@
 #include <msg_conversions/msg_conversions.h>
 
 namespace imu_augmentor {
-namespace ii = imu_integration;
 namespace lc = localization_common;
 namespace lm = localization_measurements;
 namespace mc = msg_conversions;
@@ -41,8 +41,7 @@ ImuAugmentorWrapper::ImuAugmentorWrapper(const std::string& graph_config_path_pr
     LogFatal("Failed to read config files.");
   }
 
-  ii::LoadImuIntegratorParams(config, params_);
-  params_.standstill_enabled = mc::LoadBool(config, "imu_augmentor_standstill");
+  LoadImuAugmentorParams(config, params_);
   imu_augmentor_.reset(new ImuAugmentor(params_));
 
   // Preintegration_helper_ is only being used to frame change and remove centrifugal acceleration, so body_T_imu is the
