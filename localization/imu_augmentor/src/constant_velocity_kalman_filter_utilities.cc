@@ -28,11 +28,14 @@ std::pair<gtsam::Vector6, gtsam::Matrix6> ConstantVelocityKalmanFilterStateAndCo
   const lc::CombinedNavStateCovariances& combined_nav_state_covariances) {
   gtsam::Vector6 state;
   state << combined_nav_state.pose().position() << combined_nav_state.velocity();
-  // TODO(rsoussan): create cov matrix!!!! (AAAAAA)
+  gtsam::Matrix6 covariances(gtsam::Matrix6::Zero());
+  // TODO(rsoussan): Store off diagonal components in combined nav state covs and fill in here
+  covariances.block<3, 3>(0, 0) = combined_nav_state_covariances.pose_covariances().block<3, 3>(0, 0);
+  covariances.block<3, 3>(3, 3) = combined_nav_state_covariances.velocity_covariances();
   return {state, covariances};
 }
 
-lc::CombinedNavState ConstantVelocityKalmanFilterEstimate(
+std::pair<lc::CombinedNavState, lc::CombinedNavStateCovariances> ConstantVelocityKalmanFilterEstimate(
   const lc::CombinedNavState& start_combined_nav_state,
   const lc::CombinedNavStateCovariances& start_combined_nav_state_covariances,
   const lc::CombinedNavState& predicted_combined_nav_state,
@@ -45,7 +48,21 @@ lc::CombinedNavState ConstantVelocityKalmanFilterEstimate(
   const auto estimated_state_and_covariances = ConstantVelocityKalmanFilterEstimate(
     start_state_and_covariances.first, start_state_and_covariances.second, predicted_state_and_covariances.first,
     predicted_state_and_covariances.second, dt);
-  // todo: return result as combined nav state and covs
+  const gtsam::Point3 translation = estimated_state_and_covariances.first.head<3>();
+  const gtsam::Vector3 velocity = estimated_state_and_covariances.first.tail<3>();
+  // KF only estimates translation and velocity, get orientation from integrated imu measurements on starting combined
+  // nav state
+  const gtsam::Rot3 orientation = predicted_combined_nav_state.pose().rotation();
+  const gtsam::Pose3 pose(orientation, translation);
+  const lc::CombinedNavState estimated_combined_nav_state(pose, velocity, combined_nav_state.bias(),
+                                                          predicted_combined_nav_state.timestamp());
+  gtsam::Matrix6 pose_covariance(gtsam::Matrix6::Zero());
+  pose_covariance.block<3, 3>(0, 0) = estimated_state_and_covariances.second.block<3, 3>(0, 0);
+  pose_covariance.block<3, 3>(3, 3) = start_combined_nav_state_covariances.pose_covariance().block<3, 3>(3, 3);
+  const lc::CombinedNavStateCovariances estimated_combined_nav_state_covariances(
+    pose_covariance, estimated_state_and_covariances.second.block<3, 3>(3, 3),
+    start_combined_nav_state_covariances.bias_covariance());
+  return {estimated_combined_nav_state, estimated_combined_nav_state_covariances};
 }
 
 std::pair<gtsam::Vector6, gtsam::Matrix6> ConstantVelocityKalmanFilterEstimate(const gtsam::Vector6& x,

@@ -15,17 +15,18 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
+#ifndef IMU_AUGMENTOR_KALMAN_FILTER_UTILITIES_H_
+#define IMU_AUGMENTOR_KALMAN_FILTER_UTILITIES_H_
 
-#include <imu_augmentor/kalman_filter_utilities.h>
-#include <localization_common/logger.h>
+#include <utility>
 
 namespace imu_augmentor {
-emplate<typename State, typename StateCovariance, typename TransitionMatrix, typename TransitionCovariance,
-        typename Measurement, typename ObservationMatrix, typename ObservationCovariance>
-  std::pair<State, StateCovariance> KalmanFilterEstimate(const State& x, const StateCovariance& P,
-                                                         const TransitionMatrix& F, const TransitionCovariance& Q,
-                                                         const Measurement& z, const ObservationMatrix& H,
-                                                         const ObservationCovariance& R) {
+template <typename State, typename StateCovariance, typename TransitionMatrix, typename TransitionCovariance,
+          typename Measurement, typename ObservationMatrix, typename ObservationCovariance>
+std::pair<State, StateCovariance> KalmanFilterEstimate(const State& x, const StateCovariance& P,
+                                                       const TransitionMatrix& F, const TransitionCovariance& Q,
+                                                       const Measurement& z, const ObservationMatrix& H,
+                                                       const ObservationCovariance& R) {
   const auto predicted_state_and_covariance = Predict(x, P, F, Q);
   return Update(predicted_state_and_covariance.first, predicted_state_and_covariance.second, z, H, R);
 }
@@ -55,3 +56,5 @@ std::pair<State, StateCovariance> Update(const State& predicted_x, const StateCo
   return {estimated_x, estimated_P};
 }
 }  // namespace imu_augmentor
+
+#endif  // IMU_AUGMENTOR_KALMAN_FILTER_UTILITIES_H_
