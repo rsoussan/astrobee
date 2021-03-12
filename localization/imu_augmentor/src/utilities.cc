@@ -17,9 +17,11 @@
  */
 #include <imu_augmentor/utilities.h>
 #include <imu_integration/utilities.h>
+#include <msg_conversions/msg_conversions.h>
 
 namespace imu_augmentor {
 namespace ii = imu_integration;
+namespace mc = msg_conversions;
 void LoadImuAugmentorParams(config_reader::ConfigReader& config, ImuAugmentorParams& params) {
   ii::LoadImuIntegratorParams(config, params);
   params.standstill_enabled = mc::LoadBool(config, "imu_augmentor_standstill");

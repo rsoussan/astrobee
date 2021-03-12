@@ -24,27 +24,28 @@
 #include <localization_common/combined_nav_state_covariances.h>
 #include <localization_common/time.h>
 
-#include <gtsam/Vector.h>
-#include <gtsam/Matrix.h>
+#include <gtsam/base/Vector.h>
+#include <gtsam/base/Matrix.h>
 
 #include <utility>
 
 namespace imu_augmentor {
 std::pair<gtsam::Vector6, gtsam::Matrix6> ConstantVelocityKalmanFilterStateAndCovariances(
-  const lc::CombinedNavState& combined_nav_state,
-  const lc::CombinedNavStateCovariances& combined_nav_state_covariances);
+  const localization_common::CombinedNavState& combined_nav_state,
+  const localization_common::CombinedNavStateCovariances& combined_nav_state_covariances);
 
-std::pair<lc::CombinedNavState, lc::CombinedNavStateCovariances> ConstantVelocityKalmanFilterEstimate(
-  const lc::CombinedNavState& start_combined_nav_state,
-  const lc::CombinedNavStateCovariances& start_combined_nav_state_covariances,
-  const lc::CombinedNavState& predicted_combined_nav_state,
-  const lc::CombinedNavStateCovariances& predicted_combined_nav_state_covariances);
+std::pair<localization_common::CombinedNavState, localization_common::CombinedNavStateCovariances>
+ConstantVelocityKalmanFilterEstimate(
+  const localization_common::CombinedNavState& start_combined_nav_state,
+  const localization_common::CombinedNavStateCovariances& start_combined_nav_state_covariances,
+  const localization_common::CombinedNavState& predicted_combined_nav_state,
+  const localization_common::CombinedNavStateCovariances& predicted_combined_nav_state_covariances);
 
 std::pair<gtsam::Vector6, gtsam::Matrix6> ConstantVelocityKalmanFilterEstimate(const gtsam::Vector6& x,
                                                                                const gtsam::Matrix6& P,
                                                                                const gtsam::Vector6& z,
                                                                                const gtsam::Matrix6& R,
-                                                                               const lc::Time dt);
+                                                                               const localization_common::Time dt);
 }  // namespace imu_augmentor
 
 #endif  // IMU_AUGMENTOR_CONSTANT_VELOCITY_KALMAN_FILTER_UTILITIES_H_

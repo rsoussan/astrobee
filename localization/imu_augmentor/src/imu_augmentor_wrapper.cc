@@ -17,7 +17,7 @@
  */
 
 #include <config_reader/config_reader.h>
-#include <imu_augmentor/constant_velocity_kalman_filter.h>
+#include <imu_augmentor/constant_velocity_kalman_filter_utilities.h>
 #include <imu_augmentor/imu_augmentor_wrapper.h>
 #include <imu_augmentor/utilities.h>
 #include <localization_common/logger.h>
@@ -100,10 +100,16 @@ ImuAugmentorWrapper::LatestImuAugmentedCombinedNavStateAndCovariances() {
     return boost::none;
   }
 
-  const auto latest_filtered_combined_nav_state = ConstantVelocityKalmanFilterEstimate(
-    *latest_combined_nav_state_, *latest_covariances_, *latest_imu_augmented_combined_nav_state);
-  // TODO(rsoussan): add option for filtering! return filtered estimate if necessary!
-  // TODO(rsoussan): propogate uncertainties from imu augmentor
+  if (params_.use_constant_velocity_kalman_filter) {
+    // TODO(rsoussan): propogate uncertainties from imu augmentor
+    const auto latest_filtered_combined_nav_state_and_covariances =
+      ConstantVelocityKalmanFilterEstimate(*latest_combined_nav_state_, *latest_covariances_,
+                                           *latest_imu_augmented_combined_nav_state, *latest_covariances_);
+    return std::pair<lc::CombinedNavState, lc::CombinedNavStateCovariances>{
+      latest_filtered_combined_nav_state_and_covariances.first,
+      latest_filtered_combined_nav_state_and_covariances.second};
+  }
+
   return std::pair<lc::CombinedNavState, lc::CombinedNavStateCovariances>{*latest_imu_augmented_combined_nav_state,
                                                                           *latest_covariances_};
 }

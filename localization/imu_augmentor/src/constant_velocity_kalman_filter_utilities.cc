@@ -27,11 +27,11 @@ std::pair<gtsam::Vector6, gtsam::Matrix6> ConstantVelocityKalmanFilterStateAndCo
   const lc::CombinedNavState& combined_nav_state,
   const lc::CombinedNavStateCovariances& combined_nav_state_covariances) {
   gtsam::Vector6 state;
-  state << combined_nav_state.pose().position() << combined_nav_state.velocity();
+  state << combined_nav_state.pose().translation(), combined_nav_state.velocity();
   gtsam::Matrix6 covariances(gtsam::Matrix6::Zero());
   // TODO(rsoussan): Store off diagonal components in combined nav state covs and fill in here
-  covariances.block<3, 3>(0, 0) = combined_nav_state_covariances.pose_covariances().block<3, 3>(0, 0);
-  covariances.block<3, 3>(3, 3) = combined_nav_state_covariances.velocity_covariances();
+  covariances.block<3, 3>(0, 0) = combined_nav_state_covariances.pose_covariance().block<3, 3>(0, 0);
+  covariances.block<3, 3>(3, 3) = combined_nav_state_covariances.velocity_covariance();
   return {state, covariances};
 }
 
@@ -54,7 +54,7 @@ std::pair<lc::CombinedNavState, lc::CombinedNavStateCovariances> ConstantVelocit
   // nav state
   const gtsam::Rot3 orientation = predicted_combined_nav_state.pose().rotation();
   const gtsam::Pose3 pose(orientation, translation);
-  const lc::CombinedNavState estimated_combined_nav_state(pose, velocity, combined_nav_state.bias(),
+  const lc::CombinedNavState estimated_combined_nav_state(pose, velocity, start_combined_nav_state.bias(),
                                                           predicted_combined_nav_state.timestamp());
   gtsam::Matrix6 pose_covariance(gtsam::Matrix6::Zero());
   pose_covariance.block<3, 3>(0, 0) = estimated_state_and_covariances.second.block<3, 3>(0, 0);

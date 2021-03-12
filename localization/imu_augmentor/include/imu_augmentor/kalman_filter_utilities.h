@@ -21,23 +21,14 @@
 #include <utility>
 
 namespace imu_augmentor {
-template <typename State, typename StateCovariance, typename TransitionMatrix, typename TransitionCovariance,
-          typename Measurement, typename ObservationMatrix, typename ObservationCovariance>
-std::pair<State, StateCovariance> KalmanFilterEstimate(const State& x, const StateCovariance& P,
-                                                       const TransitionMatrix& F, const TransitionCovariance& Q,
-                                                       const Measurement& z, const ObservationMatrix& H,
-                                                       const ObservationCovariance& R) {
-  const auto predicted_state_and_covariance = Predict(x, P, F, Q);
-  return Update(predicted_state_and_covariance.first, predicted_state_and_covariance.second, z, H, R);
-}
-
 template <typename State, typename StateCovariance, typename TransitionMatrix, typename TransitionCovariance>
 std::pair<State, StateCovariance> Predict(const State& x, const StateCovariance& P, const TransitionMatrix& F,
                                           const TransitionCovariance& Q) {
   const State predicted_x = F * x;
   const StateCovariance predicted_P = F * P * F.transpose() + Q;
-  return {predicted_x, predicted_p};
+  return {predicted_x, predicted_P};
 }
+
 template <typename State, typename StateCovariance, typename Measurement, typename ObservationMatrix,
           typename ObservationCovariance>
 std::pair<State, StateCovariance> Update(const State& predicted_x, const StateCovariance& predicted_P,
@@ -54,6 +45,16 @@ std::pair<State, StateCovariance> Update(const State& predicted_x, const StateCo
   // Covariance Estimate
   const StateCovariance estimated_P = (StateCovariance::Identity() - K * H) * estimated_P;
   return {estimated_x, estimated_P};
+}
+
+template <typename State, typename StateCovariance, typename TransitionMatrix, typename TransitionCovariance,
+          typename Measurement, typename ObservationMatrix, typename ObservationCovariance>
+std::pair<State, StateCovariance> KalmanFilterEstimate(const State& x, const StateCovariance& P,
+                                                       const TransitionMatrix& F, const TransitionCovariance& Q,
+                                                       const Measurement& z, const ObservationMatrix& H,
+                                                       const ObservationCovariance& R) {
+  const auto predicted_state_and_covariance = Predict(x, P, F, Q);
+  return Update(predicted_state_and_covariance.first, predicted_state_and_covariance.second, z, H, R);
 }
 }  // namespace imu_augmentor
 
