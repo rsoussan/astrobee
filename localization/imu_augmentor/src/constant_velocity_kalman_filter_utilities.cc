@@ -72,8 +72,7 @@ std::pair<gtsam::Vector6, gtsam::Matrix6> ConstantVelocityKalmanFilterEstimate(c
                                                                                const lc::Time dt) {
   // Constant Velocity Transition Matrix
   gtsam::Matrix6 F = gtsam::Matrix6::Identity();
-  // todo: check this!!
-  F.block<3, 3>(3, 0) = dt * gtsam::Matrix3::Identity();
+  F.block<3, 3>(0, 3) = dt * gtsam::Matrix3::Identity();
   // TODO(rsoussan): Make these config variables
   constexpr double kPosSigma = 0.01;
   constexpr double kVelSigma = 0.01;
