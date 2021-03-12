@@ -78,7 +78,7 @@ std::pair<gtsam::Vector6, gtsam::Matrix6> ConstantVelocityKalmanFilterEstimate(c
   constexpr double kPosSigma = 0.01;
   constexpr double kVelSigma = 0.01;
   // TODO(rsoussan): add correlation for velocities and positions
-  gtsam::Matrix6 Q = gtsam::Matrix6::Identity();
+  gtsam::Matrix6 Q = gtsam::Matrix6::Zero();
   Q.block<3, 3>(0, 0) = dt * dt * kPosSigma * kPosSigma * gtsam::Matrix3::Identity();
   Q.block<3, 3>(3, 3) = dt * dt * kVelSigma * kVelSigma * gtsam::Matrix3::Identity();
   // Observation Matrix for position and veloctity

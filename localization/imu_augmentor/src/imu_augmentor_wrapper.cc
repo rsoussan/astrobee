@@ -101,10 +101,22 @@ ImuAugmentorWrapper::LatestImuAugmentedCombinedNavStateAndCovariances() {
   }
 
   if (params_.use_constant_velocity_kalman_filter) {
-    // TODO(rsoussan): propogate uncertainties from imu augmentor
+    // TODO(rsoussan): Get proper propogated uncertainties from IMU Augmentor
+    const double dt = latest_imu_augmented_combined_nav_state->timestamp() - latest_combined_nav_state_->timestamp();
+    // TODO(rsoussan): Make these config variables
+    constexpr double kPosSigma = 0.01;
+    constexpr double kVelSigma = 0.01;
+    gtsam::Matrix3 integrated_position_covariance = dt * dt * kPosSigma * kPosSigma * gtsam::Matrix3::Identity();
+    gtsam::Matrix3 integrated_velocity_covariance = dt * dt * kVelSigma * kVelSigma * gtsam::Matrix3::Identity();
+    gtsam::Matrix6 augmented_pose_covariance = latest_covariances_->pose_covariance();
+    augmented_pose_covariance.block<3, 3>(0, 0) += integrated_position_covariance;
+    const gtsam::Matrix3 augmented_velocity_covariance =
+      latest_covariances_->velocity_covariance() + integrated_velocity_covariance;
+    const lc::CombinedNavStateCovariances imu_augmented_covariances(
+      augmented_pose_covariance, augmented_velocity_covariance, latest_covariances_->bias_covariance());
     const auto latest_filtered_combined_nav_state_and_covariances =
       ConstantVelocityKalmanFilterEstimate(*latest_combined_nav_state_, *latest_covariances_,
-                                           *latest_imu_augmented_combined_nav_state, *latest_covariances_);
+                                           *latest_imu_augmented_combined_nav_state, imu_augmented_covariances);
     return std::pair<lc::CombinedNavState, lc::CombinedNavStateCovariances>{
       latest_filtered_combined_nav_state_and_covariances.first,
       latest_filtered_combined_nav_state_and_covariances.second};
