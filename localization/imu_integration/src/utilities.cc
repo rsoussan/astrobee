@@ -97,7 +97,6 @@ void LoadImuIntegratorParams(config_reader::ConfigReader& config, ImuIntegratorP
   params.gyro_bias_sigma = mc::LoadDouble(config, "gyro_bias_sigma");
   params.integration_variance = mc::LoadDouble(config, "integration_variance");
   params.bias_acc_omega_int = mc::LoadDouble(config, "bias_acc_omega_int");
-  params.sliding_window_filter_length = mc::LoadInt(config, "imu_sliding_window_filter_length");
 }
 
 void LoadImuFilterParams(config_reader::ConfigReader& config, ImuFilterParams& params) {
@@ -107,6 +106,7 @@ void LoadImuFilterParams(config_reader::ConfigReader& config, ImuFilterParams& p
   params.nominal_ang_vel = mc::LoadString(config, "imu_filter_nominal_ang_vel");
   params.aggressive_accel = mc::LoadString(config, "imu_filter_aggressive_accel");
   params.aggressive_ang_vel = mc::LoadString(config, "imu_filter_aggressive_ang_vel");
+  params.sliding_window_filter_length = mc::LoadInt(config, "imu_sliding_window_filter_length");
 }
 
 std::unique_ptr<Filter> LoadFilter(const std::string& filter_type) {

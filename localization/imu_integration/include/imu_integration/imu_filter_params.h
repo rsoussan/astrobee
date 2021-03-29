@@ -30,6 +30,7 @@ struct ImuFilterParams {
   std::string nominal_ang_vel = "none";
   std::string aggressive_accel = "none";
   std::string aggressive_ang_vel = "none";
+  int sliding_window_filter_length;
 };
 }  // namespace imu_integration
 

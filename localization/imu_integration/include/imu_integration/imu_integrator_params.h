@@ -37,7 +37,6 @@ struct ImuIntegratorParams {
   double gyro_bias_sigma;
   double integration_variance;
   double bias_acc_omega_int;
-  int sliding_window_filter_length;
 };
 }  // namespace imu_integration
 

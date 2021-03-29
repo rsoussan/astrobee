@@ -100,6 +100,8 @@ void GraphLocalizerInitializer::ResetStartPose() { has_start_pose_ = false; }
 
 void GraphLocalizerInitializer::ResetBiases() {
   has_biases_ = false;
+  sliding_window_imu_filter_.reset(
+    new imu_integration::SlidingWindowImuFilter(params_.graph_initializer.filter.sliding_window_filter_length));
   imu_bias_filter_.reset(new imu_integration::DynamicImuFilter(params_.graph_initializer.filter));
   imu_bias_measurements_.clear();
   StartBiasEstimation();
@@ -140,7 +142,8 @@ void GraphLocalizerInitializer::ResetBiasesFromFile() {
 void GraphLocalizerInitializer::EstimateAndSetImuBiases(
   const localization_measurements::ImuMeasurement& imu_measurement, const lm::FanSpeedMode fan_speed_mode) {
   imu_bias_filter_->SetFanSpeedMode(fan_speed_mode);
-  const auto filtered_imu_measurement = imu_bias_filter_->AddMeasurement(imu_measurement);
+  const auto sliding_window_filtered_imu_measurement = sliding_window_imu_filter_->AddMeasurement(imu_measurement);
+  const auto filtered_imu_measurement = imu_bias_filter_->AddMeasurement(sliding_window_filtered_imu_measurement);
   if (filtered_imu_measurement) {
     imu_bias_measurements_.emplace_back(*filtered_imu_measurement);
   }
@@ -163,6 +166,8 @@ void GraphLocalizerInitializer::EstimateAndSetImuBiases(
 
   gtsam::imuBias::ConstantBias biases(accelerometer_bias, gyro_bias);
   SetBiases(biases, false, true);
+  sliding_window_imu_filter_.reset(
+    new imu_integration::SlidingWindowImuFilter(params_.graph_initializer.filter.sliding_window_filter_length));
   imu_bias_filter_.reset(new imu_integration::DynamicImuFilter(params_.graph_initializer.filter, fan_speed_mode));
   imu_bias_measurements_.clear();
 }

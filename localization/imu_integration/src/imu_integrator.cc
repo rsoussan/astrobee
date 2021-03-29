@@ -25,7 +25,7 @@ namespace imu_integration {
 namespace lc = localization_common;
 namespace lm = localization_measurements;
 ImuIntegrator::ImuIntegrator(const ImuIntegratorParams& params)
-    : params_(params), sliding_window_imu_filter_(params.sliding_window_filter_length) {
+    : params_(params), sliding_window_imu_filter_(params.filter.sliding_window_filter_length) {
   imu_filter_.reset(new DynamicImuFilter(params_.filter));
   LogDebug("ImuIntegrator: Gravity vector: " << std::endl << params_.gravity.matrix());
   pim_params_.reset(new gtsam::PreintegratedCombinedMeasurements::Params(params_.gravity));

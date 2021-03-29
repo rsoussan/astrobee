@@ -22,6 +22,7 @@
 #include <config_reader/config_reader.h>
 #include <graph_localizer/graph_localizer_params.h>
 #include <imu_integration/dynamic_imu_filter.h>
+#include <imu_integration/sliding_window_imu_filter.h>
 #include <localization_measurements/fan_speed_mode.h>
 #include <localization_measurements/imu_measurement.h>
 #include <msg_conversions/msg_conversions.h>
@@ -71,6 +72,7 @@ class GraphLocalizerInitializer {
   bool removed_gravity_from_bias_if_necessary_;
   graph_localizer::GraphLocalizerParams params_;
   std::unique_ptr<imu_integration::DynamicImuFilter> imu_bias_filter_;
+  std::unique_ptr<imu_integration::SlidingWindowImuFilter> sliding_window_imu_filter_;
   std::vector<localization_measurements::ImuMeasurement> imu_bias_measurements_;
 };
 }  // namespace graph_localizer
