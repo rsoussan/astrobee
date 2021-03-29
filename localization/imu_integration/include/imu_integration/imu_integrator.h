@@ -21,6 +21,7 @@
 
 #include <imu_integration/dynamic_imu_filter.h>
 #include <imu_integration/imu_integrator_params.h>
+#include <imu_integration/sliding_window_imu_filter.h>
 
 #include <localization_common/combined_nav_state.h>
 #include <localization_common/time.h>
@@ -82,6 +83,7 @@ class ImuIntegrator {
   boost::shared_ptr<gtsam::PreintegratedCombinedMeasurements::Params> pim_params_;
   std::map<localization_common::Time, localization_measurements::ImuMeasurement> measurements_;
   std::unique_ptr<DynamicImuFilter> imu_filter_;
+  SlidingWindowImuFilter sliding_window_imu_filter_;
 };
 }  // namespace imu_integration
 

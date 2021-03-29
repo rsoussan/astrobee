@@ -15,30 +15,25 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-#ifndef IMU_INTEGRATION_IMU_INTEGRATOR_PARAMS_H_
-#define IMU_INTEGRATION_IMU_INTEGRATOR_PARAMS_H_
 
-#include <imu_integration/imu_filter_params.h>
+#ifndef IMU_INTEGRATION_SLIDING_WINDOW_FILTER_H_
+#define IMU_INTEGRATION_SLIDING_WINDOW_FILTER_H_
 
-#include <gtsam/base/Vector.h>
-#include <gtsam/geometry/Pose3.h>
-
-#include <string>
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics/rolling_mean.hpp>
+#include <boost/accumulators/statistics/stats.hpp>
 
 namespace imu_integration {
-struct ImuIntegratorParams {
-  gtsam::Vector3 gravity;
-  gtsam::Pose3 body_T_imu;
-  ImuFilterParams filter;
-  // From gtsam: Angular and velocity random walk expressed in degrees respectively m/s per sqrt(hr).
-  double gyro_sigma;
-  double accel_sigma;
-  double accel_bias_sigma;
-  double gyro_bias_sigma;
-  double integration_variance;
-  double bias_acc_omega_int;
-  int sliding_window_filter_length;
+using SlidingWindowAccumulator =
+  boost::accumulators::accumulator_set<double, boost::accumulators::stats<boost::accumulators::tag::rolling_mean>>;
+class SlidingWindowFilter {
+ public:
+  explicit SlidingWindowFilter(const int length);
+  double AddValue(const double value);
+
+ private:
+  std::unique_ptr<SlidingWindowAccumulator> accumulator_;
 };
 }  // namespace imu_integration
 
-#endif  // IMU_INTEGRATION_IMU_INTEGRATOR_PARAMS_H_
+#endif  // IMU_INTEGRATION_SLIDING_WINDOW_FILTER_H_

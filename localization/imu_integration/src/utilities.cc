@@ -97,6 +97,7 @@ void LoadImuIntegratorParams(config_reader::ConfigReader& config, ImuIntegratorP
   params.gyro_bias_sigma = mc::LoadDouble(config, "gyro_bias_sigma");
   params.integration_variance = mc::LoadDouble(config, "integration_variance");
   params.bias_acc_omega_int = mc::LoadDouble(config, "bias_acc_omega_int");
+  params.sliding_window_filter_length = mc::LoadInt(config, "imu_sliding_window_filter_length");
 }
 
 void LoadImuFilterParams(config_reader::ConfigReader& config, ImuFilterParams& params) {
