@@ -43,7 +43,7 @@ class SmartProjectionCumulativeFactorAdder : public CumulativeFactorAdder<SmartP
     std::unordered_map<localization_measurements::FeatureId, localization_measurements::FeaturePoint>& added_points);
 
  private:
-  void AddSmartFactor(const std::vector<localization_measurements::FeaturePoint>& feature_track_points,
+  void AddSmartFactor(const std::vector<localization_measurements::FeaturePoint>& feature_track_points, int num_points,
                       FactorsToAdd& smart_factors_to_add) const;
 
   bool TooClose(const std::unordered_map<localization_measurements::FeatureId, localization_measurements::FeaturePoint>&
