@@ -53,7 +53,7 @@ void SmartProjectionCumulativeFactorAdder::AddFactors(
     if (ValidPointSet(points.size(), average_distance_from_mean, params().min_avg_distance_from_mean,
                       params().min_num_points) &&
         !TooClose(added_points, points.front(), feature_track_min_separation)) {
-      AddSmartFactor(points, feature_track.size(), smart_factors_to_add);
+      AddSmartFactor(points, spacing, smart_factors_to_add);
       // Use latest point
       added_points.emplace(points.front().feature_id, points.front());
     }
@@ -88,11 +88,11 @@ std::vector<FactorsToAdd> SmartProjectionCumulativeFactorAdder::AddFactors() {
 }
 
 void SmartProjectionCumulativeFactorAdder::AddSmartFactor(const std::vector<lm::FeaturePoint>& feature_track_points,
-                                                          int num_points, FactorsToAdd& smart_factors_to_add) const {
+                                                          int spacing, FactorsToAdd& smart_factors_to_add) const {
   SharedRobustSmartFactor smart_factor;
-  const int num_feature_track_points = num_points;  // feature_track_points.size();
-  const double noise_scale =
-    params().scale_noise_with_num_points ? params().noise_scale * num_feature_track_points : params().noise_scale;
+  const double noise_scale = params().scale_noise_with_num_points
+                               ? params().noise_scale * spacing * feature_track_points.size()
+                               : params().noise_scale;
   const auto noise = gtsam::noiseModel::Isotropic::Sigma(2, noise_scale * params().cam_noise->sigma());
   smart_factor =
     boost::make_shared<RobustSmartFactor>(noise, params().cam_intrinsics, params().body_T_cam, smart_projection_params_,
