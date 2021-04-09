@@ -379,7 +379,7 @@ def plot_loc_state_stats(pdf,
   integrated_rmse = []
   if plot_integrated_velocities:
     integrated_localization_states = utilities.integrate_velocities(localization_states)
-    integrated_rmse = rmse_utilities.rmse_timestamped_poses(integrated_localization_states, sparse_mapping_poses, False,
+    integrated_rmse = rmse_utilities.rmse_timestamped_poses_relative(integrated_localization_states, sparse_mapping_poses, False,
                                                             atol, rmse_rel_start_time, rmse_rel_end_time)
   stats = prefix + ' pos rmse: ' + str(rmse[0]) + '\n' + 'orientation rmse: ' + str(rmse[1])
   if plot_integrated_velocities:
