@@ -142,8 +142,9 @@ def rmse_timestamped_poses_relative(poses_a,
     mean_squared_position_error += (position_squared_error - mean_squared_position_error) / float(count)
     # Orientation Error
     if add_orientation_rmse:
-      a_rot = trimmed_poses_a.orientations.get_rotation(index)
-      b_rot = trimmed_poses_b.orientations.get_rotation(index)
+      # TODO(rsoussan): Add relative calculations for orientations
+      a_rot = trimmed_poses_a.orientations.get_rotation(index1)
+      b_rot = trimmed_poses_b.orientations.get_rotation(index1)
       orientation_squared_error = orientation_squared_difference(a_rot, b_rot)
       mean_squared_orientation_error += (orientation_squared_error - mean_squared_orientation_error) / float(count)
   position_rmse = math.sqrt(mean_squared_position_error)
