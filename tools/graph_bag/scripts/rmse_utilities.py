@@ -22,6 +22,7 @@ import poses
 import numpy as np
 import scipy.spatial.transform
 
+import bisect
 import math
 
 
@@ -118,13 +119,14 @@ def rmse_timestamped_poses_relative(poses_a,
   num_poses = len(trimmed_poses_a.times)
   mean_squared_position_error = 0
   mean_squared_orientation_error = 0
+  count = 0
   for index1 in range(num_poses):
     # Position Error
     a_vec1 = trimmed_poses_a.positions.get_numpy_vector(index1)
     b_vec1 = trimmed_poses_b.positions.get_numpy_vector(index1)
     time1 = trimmed_poses_a.times[index1]
-    index2 = bisect.bisect_left(trimmed_poses_a.times, times1 + min_relative_elapsed_time)
-    if (time2 == len(trimmed_poses_a.times)):
+    index2 = bisect.bisect_left(trimmed_poses_a.times, time1 + min_relative_elapsed_time)
+    if (index2 == len(trimmed_poses_a.times)):
       continue
     a_vec2 = trimmed_poses_a.positions.get_numpy_vector(index2)
     b_vec2 = trimmed_poses_b.positions.get_numpy_vector(index2)
@@ -132,14 +134,15 @@ def rmse_timestamped_poses_relative(poses_a,
     b_rel_vec = b_vec2 - b_vec1
 
     position_squared_error = position_squared_difference(a_rel_vec, b_rel_vec)
+    count += 1
     # Use rolling mean to avoid overflow
-    mean_squared_position_error += (position_squared_error - mean_squared_position_error) / (index + 1)
+    mean_squared_position_error += (position_squared_error - mean_squared_position_error) / float(count)
     # Orientation Error
     if add_orientation_rmse:
       a_rot = trimmed_poses_a.orientations.get_rotation(index)
       b_rot = trimmed_poses_b.orientations.get_rotation(index)
       orientation_squared_error = orientation_squared_difference(a_rot, b_rot)
-      mean_squared_orientation_error += (orientation_squared_error - mean_squared_orientation_error) / (index + 1)
+      mean_squared_orientation_error += (orientation_squared_error - mean_squared_orientation_error) / float(count)
   position_rmse = math.sqrt(mean_squared_position_error)
   orientation_rmse = math.sqrt(mean_squared_orientation_error)
   return position_rmse, orientation_rmse
