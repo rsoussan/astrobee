@@ -112,7 +112,7 @@ def rmse_timestamped_poses_relative(poses_a,
                                     abs_tol=0,
                                     rel_start_time=0,
                                     rel_end_time=-1,
-                                    min_relative_elapsed_time=10):
+                                    min_relative_elapsed_time=10, max_relative_elapsed_time=20):
   trimmed_poses_a, trimmed_poses_b = get_same_timestamp_poses(poses_a, poses_b, add_orientation_rmse, abs_tol,
                                                               rel_start_time, rel_end_time)
   assert len(trimmed_poses_a.times) == len(trimmed_poses_b.times), 'Length mismatch of poses'
@@ -127,6 +127,9 @@ def rmse_timestamped_poses_relative(poses_a,
     time1 = trimmed_poses_a.times[index1]
     index2 = bisect.bisect_left(trimmed_poses_a.times, time1 + min_relative_elapsed_time)
     if (index2 == len(trimmed_poses_a.times)):
+      continue
+    time2 = trimmed_poses_a.times[index2]
+    if (time2 - time1 > max_relative_elapsed_time):
       continue
     a_vec2 = trimmed_poses_a.positions.get_numpy_vector(index2)
     b_vec2 = trimmed_poses_b.positions.get_numpy_vector(index2)
