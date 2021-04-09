@@ -102,3 +102,44 @@ def rmse_timestamped_poses(poses_a, poses_b, add_orientation_rmse=True, abs_tol=
   position_rmse = math.sqrt(mean_squared_position_error)
   orientation_rmse = math.sqrt(mean_squared_orientation_error)
   return position_rmse, orientation_rmse
+
+
+# Relative RMSE between two sequences of poses. Only uses poses with the same timestamp
+def rmse_timestamped_poses_relative(poses_a,
+                                    poses_b,
+                                    add_orientation_rmse=True,
+                                    abs_tol=0,
+                                    rel_start_time=0,
+                                    rel_end_time=-1,
+                                    min_relative_elapsed_time=10):
+  trimmed_poses_a, trimmed_poses_b = get_same_timestamp_poses(poses_a, poses_b, add_orientation_rmse, abs_tol,
+                                                              rel_start_time, rel_end_time)
+  assert len(trimmed_poses_a.times) == len(trimmed_poses_b.times), 'Length mismatch of poses'
+  num_poses = len(trimmed_poses_a.times)
+  mean_squared_position_error = 0
+  mean_squared_orientation_error = 0
+  for index1 in range(num_poses):
+    # Position Error
+    a_vec1 = trimmed_poses_a.positions.get_numpy_vector(index1)
+    b_vec1 = trimmed_poses_b.positions.get_numpy_vector(index1)
+    time1 = trimmed_poses_a.times[index1]
+    index2 = bisect.bisect_left(trimmed_poses_a.times, times1 + min_relative_elapsed_time)
+    if (time2 == len(trimmed_poses_a.times)):
+      continue
+    a_vec2 = trimmed_poses_a.positions.get_numpy_vector(index2)
+    b_vec2 = trimmed_poses_b.positions.get_numpy_vector(index2)
+    a_rel_vec = a_vec2 - a_vec1
+    b_rel_vec = b_vec2 - b_vec1
+
+    position_squared_error = position_squared_difference(a_rel_vec, b_rel_vec)
+    # Use rolling mean to avoid overflow
+    mean_squared_position_error += (position_squared_error - mean_squared_position_error) / (index + 1)
+    # Orientation Error
+    if add_orientation_rmse:
+      a_rot = trimmed_poses_a.orientations.get_rotation(index)
+      b_rot = trimmed_poses_b.orientations.get_rotation(index)
+      orientation_squared_error = orientation_squared_difference(a_rot, b_rot)
+      mean_squared_orientation_error += (orientation_squared_error - mean_squared_orientation_error) / (index + 1)
+  position_rmse = math.sqrt(mean_squared_position_error)
+  orientation_rmse = math.sqrt(mean_squared_orientation_error)
+  return position_rmse, orientation_rmse
