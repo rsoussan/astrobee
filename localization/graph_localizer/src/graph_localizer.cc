@@ -934,14 +934,41 @@ void GraphLocalizer::RemoveOldBufferedFactors(const lc::Time oldest_allowed_time
   }
 }
 
+boost::optional<lc::Time> GraphLocalizer::LatestSmartProjectionFactorMeasurement() const {
+  boost::optional<lc::Time> latest_smart_projection_factor_time = boost::none;
+  for (const auto& buffered_factors_to_add_pair : buffered_factors_to_add_) {
+    const auto& factors_to_add = buffered_factors_to_add_pair.second;
+    const auto& factor_to_add = factors_to_add.Get().front();
+    if (dynamic_cast<RobustSmartFactor*>(factor_to_add.factor.get())) {
+      latest_smart_projection_factor_time =
+        latest_smart_projection_factor_time ? std::max(*latest_smart_projection_factor_time, factors_to_add.timestamp())
+                                            : factors_to_add.timestamp();
+    }
+  }
+  return latest_smart_projection_factor_time;
+}
+
 int GraphLocalizer::AddBufferedFactors() {
   LogDebug("AddBufferedfactors: Adding buffered factors.");
   LogDebug("AddBufferedFactors: Num buffered factors to add: " << buffered_factors_to_add_.size());
 
   int num_added_factors = 0;
+  const auto latest_imu_time = latest_imu_integrator_.LatestTime();
+  if (!latest_imu_time) {
+    LogDebug("AddBufferedFactors: Failed to get latest IMU time.");
+    return 0;
+  }
+  const auto latest_smart_projection_factor_timestamp = LatestSmartProjectionFactorMeasurement();
+  // Shound't add factors more recent than latest imu time since need imu measurements to add relative constraints.
+  // Also shouldn't add factors more recent than latest smart factor measurement as map outliers can cause jumps in
+  // velocity when they are not additionally constrained by visual odometry factors.
+  // TODO(rsoussan): Remove smart factor check if smart factor measurements are changed to span the entire duration of
+  // the graph
+  const lc::Time latest_allowed_time = latest_smart_projection_factor_timestamp
+                                         ? std::min(*latest_smart_projection_factor_timestamp, *latest_imu_time)
+                                         : *latest_imu_time;
   for (auto factors_to_add_it = buffered_factors_to_add_.begin();
-       factors_to_add_it != buffered_factors_to_add_.end() && latest_imu_integrator_.LatestTime() &&
-       factors_to_add_it->first <= *(latest_imu_integrator_.LatestTime());) {
+       factors_to_add_it != buffered_factors_to_add_.end() && factors_to_add_it->first <= latest_allowed_time;) {
     auto& factors_to_add = factors_to_add_it->second;
     for (auto& factor_to_add : factors_to_add.Get()) {
       // Add combined nav states and connecting imu factors for each key in factor if necessary

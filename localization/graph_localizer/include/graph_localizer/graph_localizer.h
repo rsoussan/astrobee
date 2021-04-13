@@ -182,6 +182,8 @@ class GraphLocalizer {
 
   void RemoveOldMeasurementsFromCumulativeFactors(const gtsam::KeyVector& old_keys);
 
+  boost::optional<localization_common::Time> LatestSmartProjectionFactorMeasurement() const;
+
   int AddBufferedFactors();
 
   bool DoGraphAction(FactorsToAdd& factors_to_add);

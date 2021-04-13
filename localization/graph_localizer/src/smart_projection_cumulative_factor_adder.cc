@@ -25,6 +25,7 @@
 #include <gtsam/slam/SmartProjectionPoseFactor.h>
 
 namespace graph_localizer {
+namespace lc = localization_common;
 namespace lm = localization_measurements;
 namespace sym = gtsam::symbol_shorthand;
 SmartProjectionCumulativeFactorAdder::SmartProjectionCumulativeFactorAdder(
@@ -89,13 +90,10 @@ std::vector<FactorsToAdd> SmartProjectionCumulativeFactorAdder::AddFactors() {
       AddFactors(feature_tracks, spacing, 0, smart_factors_to_add, added_points);
     }
   }
-  if (smart_factors_to_add.empty()) return {};
-  const auto latest_timestamp = feature_tracker_->LatestTimestamp();
-  if (!latest_timestamp) {
-    LogError("AddFactors: Failed to get latest timestamp.");
+  if (smart_factors_to_add.empty()) {
     return {};
   }
-  smart_factors_to_add.SetTimestamp(*latest_timestamp);
+  SetTimestamp(smart_factors_to_add);
   LogDebug("AddFactors: Added " << smart_factors_to_add.size() << " smart factors.");
   return {smart_factors_to_add};
 }
@@ -135,5 +133,16 @@ bool SmartProjectionCumulativeFactorAdder::TooClose(
     }
   }
   return false;
+}
+
+// TODO(rsoussan): Move this to factors to add?
+void SmartProjectionCumulativeFactorAdder::SetTimestamp(FactorsToAdd& factors_to_add) const {
+  lc::Time latest_time = 0;
+  for (const auto& factor_to_add : factors_to_add.Get()) {
+    for (const auto& key_info : factor_to_add.key_infos) {
+      latest_time = std::max(latest_time, key_info.timestamp());
+    }
+  }
+  factors_to_add.SetTimestamp(latest_time);
 }
 }  // namespace graph_localizer
