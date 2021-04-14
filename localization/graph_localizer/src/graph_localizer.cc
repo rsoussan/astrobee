@@ -959,16 +959,23 @@ int GraphLocalizer::AddBufferedFactors() {
     return 0;
   }
   const auto latest_smart_projection_factor_timestamp = LatestSmartProjectionFactorMeasurement();
-  // Shound't add factors more recent than latest imu time since need imu measurements to add relative constraints.
-  // Also shouldn't add factors more recent than latest smart factor measurement as map outliers can cause jumps in
-  // velocity when they are not additionally constrained by visual odometry factors.
-  // TODO(rsoussan): Remove smart factor check if smart factor measurements are changed to span the entire duration of
-  // the graph
-  const lc::Time latest_allowed_time = latest_smart_projection_factor_timestamp
-                                         ? std::min(*latest_smart_projection_factor_timestamp, *latest_imu_time)
-                                         : *latest_imu_time;
   for (auto factors_to_add_it = buffered_factors_to_add_.begin();
-       factors_to_add_it != buffered_factors_to_add_.end() && factors_to_add_it->first <= latest_allowed_time;) {
+       factors_to_add_it != buffered_factors_to_add_.end() && factors_to_add_it->first <= *latest_imu_time;) {
+    // Shouldn't add loc factors more recent than latest smart factor measurement as map outliers can cause jumps in
+    // velocity when they are not constrained by visual odometry factors.
+    // Note: Don't restrict ar tag loc factors as these are more accurate
+    // TODO(rsoussan): Remove smart factor check if smart factor measurements are changed to span the entire duration of
+    // the graph
+    const bool ar_tag_factor = factors_to_add_it->second.graph_action() == GraphAction::kARTagProjectionNoiseScaling;
+    const auto& factor = factors_to_add_it->second.Get().front().factor;
+    const bool loc_factor = !ar_tag_factor && (dynamic_cast<gtsam::LocProjectionFactor<>*>(factor.get()) ||
+                                               dynamic_cast<gtsam::LocPoseFactor*>(factor.get()));
+    if (loc_factor && latest_smart_projection_factor_timestamp &&
+        factors_to_add_it->first > *latest_smart_projection_factor_timestamp) {
+      ++factors_to_add_it;
+      continue;
+    }
+
     auto& factors_to_add = factors_to_add_it->second;
     for (auto& factor_to_add : factors_to_add.Get()) {
       // Add combined nav states and connecting imu factors for each key in factor if necessary
