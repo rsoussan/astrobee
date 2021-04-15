@@ -90,9 +90,7 @@ std::vector<FactorsToAdd> SmartProjectionCumulativeFactorAdder::AddFactors() {
       AddFactors(feature_tracks, spacing, 0, smart_factors_to_add, added_points);
     }
   }
-  if (smart_factors_to_add.empty()) {
-    return {};
-  }
+  if (smart_factors_to_add.empty()) return {};
   SetTimestamp(smart_factors_to_add);
   LogDebug("AddFactors: Added " << smart_factors_to_add.size() << " smart factors.");
   return {smart_factors_to_add};
