@@ -94,6 +94,7 @@ class GraphLocalizer {
   // Attempts to remove most recent or oldest measurements to make and invalid smart factor valid
   // TODO(rsoussan): Move this to SmartProjectionFactorAdder or utilities!
   void SplitSmartFactorsIfNeeded(FactorsToAdd& factors_to_add);
+  void RemoveIMUOnlyConstrainedStates();
 
   bool Update();
   const FeatureTrackIdMap& feature_tracks() const { return feature_tracker_->feature_tracks(); }

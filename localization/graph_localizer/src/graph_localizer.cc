@@ -726,13 +726,13 @@ bool GraphLocalizer::SlideWindow(const boost::optional<gtsam::Marginals>& margin
   // Since cumlative factors have many keys and shouldn't be marginalized, need to remove old measurements depending on
   // old keys before marginalizing and sliding window
   RemoveOldMeasurementsFromCumulativeFactors(old_keys);
-  auto old_factors = graph_values_->RemoveOldFactors(old_keys, graph_);
+  auto old_factors = graph_values_->RemoveFactors(old_keys, graph_);
   gtsam::KeyVector old_feature_keys;
   if (params_.factor.projection_adder.enabled) {
     // Call remove old factors before old feature keys, since old feature keys depend on
     // number of factors per key remaining
     old_feature_keys = graph_values_->OldFeatureKeys(graph_);
-    auto old_feature_factors = graph_values_->RemoveOldFactors(old_feature_keys, graph_);
+    auto old_feature_factors = graph_values_->RemoveFactors(old_feature_keys, graph_);
     old_keys.insert(old_keys.end(), old_feature_keys.begin(), old_feature_keys.end());
     old_factors.push_back(old_feature_factors);
   }
@@ -1147,6 +1147,58 @@ bool GraphLocalizer::standstill() const {
   return *standstill_;
 }
 
+void GraphLocalizer::RemoveIMUOnlyConstrainedStates() {
+  // Assumes every state parameter is constrained by some factor
+  for (const auto& timestamp_key_index_pair : graph_values_->timestamp_key_index_map()) {
+    const int key_index = timestamp_key_index_pair.second;
+    gtsam::CombinedImuFactor* imu_factor = nullptr;
+    bool imu_only_constraints = true;
+    for (const auto& factor : graph_) {
+      if (graph_values_->ContainsCombinedNavStateKey(*factor, key_index)) {
+        if (dynamic_cast<gtsam::CombinedImuFactor*>(factor.get())) {
+          imu_factor = dynamic_cast<gtsam::CombinedImuFactor*>(factor.get());
+        } else {
+          imu_only_constraints = false;
+          break;
+        }
+      }
+    }
+    if (imu_only_constraints) {
+      const auto first_bias_key = imu_factor->key5();
+      const auto first_bias = graph_values_->at<gtsam::imuBias::ConstantBias>(first_bias_key);
+      if (!first_bias) {
+        LogError("RemoveIMUOnlyConstrainedStates: Failed to get first bias.");
+        continue;
+      }
+      const auto first_key_index = gtsam::Symbol(first_bias_key).index();
+      const auto second_bias_key = imu_factor->key6();
+      const auto second_key_index = gtsam::Symbol(second_bias_key).index();
+      const auto first_timestamp = graph_values_->Timestamp(first_key_index);
+      if (!first_timestamp) {
+        LogError("RemoveIMUOnlyConstrainedStates: Failed to get first timestamp.");
+        continue;
+      }
+      const auto second_timestamp = graph_values_->Timestamp(second_key_index);
+      if (!second_timestamp) {
+        LogError("RemoveIMUOnlyConstrainedStates: Failed to get second timestamp.");
+        continue;
+      }
+
+      auto integrated_pim = latest_imu_integrator_.IntegratedPim(*first_bias, *first_timestamp, *second_timestamp,
+                                                                 latest_imu_integrator_.pim_params());
+      if (!integrated_pim) {
+        LogError("RemoveIMUOnlyConstrainedStates: Failed to create integrated pim.");
+        return;
+      }
+
+      const auto combined_imu_factor = ii::MakeCombinedImuFactor(first_key_index, second_key_index, *integrated_pim);
+      graph_.push_back(combined_imu_factor);
+      graph_values_->RemoveFactors({sym::P(key_index), sym::V(key_index), sym::B(key_index)}, graph_);
+      graph_values_->RemoveCombinedNavState(timestamp_key_index_pair.first);
+    }
+  }
+}
+
 bool GraphLocalizer::Update() {
   LogDebug("Update: Updating.");
   graph_stats_.update_timer_.Start();
@@ -1198,6 +1250,7 @@ bool GraphLocalizer::Update() {
     }
   }
 
+  RemoveIMUOnlyConstrainedStates();
   // Optimize
   gtsam::LevenbergMarquardtOptimizer optimizer(graph_, graph_values_->values(), levenberg_marquardt_params_);
 

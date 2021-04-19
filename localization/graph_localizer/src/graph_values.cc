@@ -235,6 +235,10 @@ boost::optional<int> GraphValues::LatestCombinedNavStateKeyIndex() const {
 
 int GraphValues::NumFeatures() const { return feature_id_key_map_.size(); }
 
+const std::map<localization_common::Time, int>& GraphValues::timestamp_key_index_map() const {
+  return timestamp_key_index_map_;
+}
+
 boost::optional<int> GraphValues::OldestCombinedNavStateKeyIndex() const {
   if (Empty()) {
     LogError("OldestCombinedNavStateKeyIndex: No combined nav states available.");
@@ -367,14 +371,14 @@ boost::optional<int> GraphValues::KeyIndex(const lc::Time timestamp) const {
 
 void GraphValues::UpdateValues(const gtsam::Values& new_values) { values_ = new_values; }
 
-gtsam::NonlinearFactorGraph GraphValues::RemoveOldFactors(const gtsam::KeyVector& old_keys,
-                                                          gtsam::NonlinearFactorGraph& graph) {
+gtsam::NonlinearFactorGraph GraphValues::RemoveFactors(const gtsam::KeyVector& keys,
+                                                       gtsam::NonlinearFactorGraph& graph) {
   gtsam::NonlinearFactorGraph removed_factors;
-  if (old_keys.empty()) return removed_factors;
+  if (keys.empty()) return removed_factors;
 
   for (auto factor_it = graph.begin(); factor_it != graph.end();) {
     bool found_key = false;
-    for (const auto& key : old_keys) {
+    for (const auto& key : keys) {
       if ((*factor_it)->find(key) != (*factor_it)->end()) {
         found_key = true;
         break;

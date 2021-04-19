@@ -64,8 +64,7 @@ class GraphValues {
   void UpdateValues(const gtsam::Values& new_values);
 
   // TODO(rsoussan): Put this somewhere else?
-  static gtsam::NonlinearFactorGraph RemoveOldFactors(const gtsam::KeyVector& old_keys,
-                                                      gtsam::NonlinearFactorGraph& graph);
+  static gtsam::NonlinearFactorGraph RemoveFactors(const gtsam::KeyVector& keys, gtsam::NonlinearFactorGraph& graph);
 
   gtsam::KeyVector OldFeatureKeys(const gtsam::NonlinearFactorGraph& factors) const;
 
@@ -138,10 +137,12 @@ class GraphValues {
 
   int NumFeatures() const;
 
- private:
+  const std::map<localization_common::Time, int>& timestamp_key_index_map() const;
+
   // Removes keys from timestamp_key_index_map, values from values
   bool RemoveCombinedNavState(const localization_common::Time timestamp);
 
+ private:
   bool Empty() const;
 
   boost::optional<localization_common::Time> LowerBoundOrEqualTimestamp(
