@@ -193,7 +193,7 @@ boost::optional<lc::Time> GraphValues::Timestamp(const int key_index) const {
   return boost::none;
 }
 
-boost::optional<lc::Time> GraphValues::Timestamp(const gtsam::Key& key) const {
+boost::optional<lc::Time> GraphValues::TimestampFromKey(const gtsam::Key& key) const {
   return Timestamp(gtsam::Symbol(key).index());
 }
 

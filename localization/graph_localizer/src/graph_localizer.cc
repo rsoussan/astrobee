@@ -1173,24 +1173,24 @@ void GraphLocalizer::RemoveIMUOnlyConstrainedStates() {
         continue;
       }
 
-      const auto first_timestamp_1 = graph_values_->Timestamp(imu_factor_1->key5());
+      const auto first_timestamp_1 = graph_values_->TimestampFromKey(imu_factor_1->key5());
       if (!first_timestamp_1) {
         LogError("RemoveIMUOnlyConstrainedStates: Failed to get first timestamp for IMU factor 1.");
         continue;
       }
-      const auto first_timestamp_2 = graph_values_->Timestamp(imu_factor_2->key5());
+      const auto first_timestamp_2 = graph_values_->TimestampFromKey(imu_factor_2->key5());
       if (!first_timestamp_2) {
         LogError("RemoveIMUOnlyConstrainedStates: Failed to get first timestamp for IMU factor 2.");
         continue;
       }
       const auto previous_combined_nav_state_timestamp = std::min(*first_timestamp_1, *first_timestamp_2);
 
-      const auto second_timestamp_1 = graph_values_->Timestamp(imu_factor_1->key6());
+      const auto second_timestamp_1 = graph_values_->TimestampFromKey(imu_factor_1->key6());
       if (!second_timestamp_1) {
         LogError("RemoveIMUOnlyConstrainedStates: Failed to get second timestamp for IMU factor 1.");
         continue;
       }
-      const auto second_timestamp_2 = graph_values_->Timestamp(imu_factor_2->key6());
+      const auto second_timestamp_2 = graph_values_->TimestampFromKey(imu_factor_2->key6());
       if (!second_timestamp_2) {
         LogError("RemoveIMUOnlyConstrainedStates: Failed to get second timestamp for IMU factor 2.");
         continue;
