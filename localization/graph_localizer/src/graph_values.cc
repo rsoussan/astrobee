@@ -239,8 +239,11 @@ boost::optional<int> GraphValues::LatestCombinedNavStateKeyIndex() const {
 
 int GraphValues::NumFeatures() const { return feature_id_key_map_.size(); }
 
-const std::map<localization_common::Time, int>& GraphValues::timestamp_key_index_map() const {
-  return timestamp_key_index_map_;
+std::vector<int> GraphValues::KeyIndices() const {
+  std::vector<int> key_indices;
+  for (const auto& timestamp_key_index_pair : timestamp_key_index_map_)
+    key_indices.emplace_back(timestamp_key_index_pair.second);
+  return key_indices;
 }
 
 boost::optional<int> GraphValues::OldestCombinedNavStateKeyIndex() const {

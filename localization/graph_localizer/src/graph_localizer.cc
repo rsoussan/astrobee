@@ -1149,8 +1149,7 @@ bool GraphLocalizer::standstill() const {
 
 void GraphLocalizer::RemoveIMUOnlyConstrainedStates() {
   // Assumes every state parameter is constrained by some factor
-  for (const auto& timestamp_key_index_pair : graph_values_->timestamp_key_index_map()) {
-    const int key_index = timestamp_key_index_pair.second;
+  for (const auto key_index : graph_values_->KeyIndices()) {
     gtsam::CombinedImuFactor* imu_factor_1 = nullptr;
     gtsam::CombinedImuFactor* imu_factor_2 = nullptr;
     bool imu_only_constraints = true;
@@ -1226,7 +1225,12 @@ void GraphLocalizer::RemoveIMUOnlyConstrainedStates() {
       const auto combined_imu_factor = ii::MakeCombinedImuFactor(*previous_key_index, *next_key_index, *integrated_pim);
       graph_.push_back(combined_imu_factor);
       graph_values_->RemoveFactors({sym::P(key_index), sym::V(key_index), sym::B(key_index)}, graph_);
-      graph_values_->RemoveCombinedNavState(timestamp_key_index_pair.first);
+      const auto timestamp = graph_values_->Timestamp(key_index);
+      if (!timestamp) {
+        LogError("RemoveIMUOnlyConstrainedStates: Failed to get timestamp for key index.");
+        return;
+      }
+      graph_values_->RemoveCombinedNavState(*timestamp);
     }
   }
 }

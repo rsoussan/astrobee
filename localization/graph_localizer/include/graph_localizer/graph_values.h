@@ -139,7 +139,7 @@ class GraphValues {
 
   int NumFeatures() const;
 
-  const std::map<localization_common::Time, int>& timestamp_key_index_map() const;
+  std::vector<int> KeyIndices() const;
 
   // Removes keys from timestamp_key_index_map, values from values
   bool RemoveCombinedNavState(const localization_common::Time timestamp);
