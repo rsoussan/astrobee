@@ -1216,7 +1216,7 @@ void GraphLocalizer::RemoveIMUOnlyConstrainedStates() {
         return;
       }
 
-      const auto next_key_index = graph_values_->KeyIndex(previous_combined_nav_state_timestamp);
+      const auto next_key_index = graph_values_->KeyIndex(next_combined_nav_state_timestamp);
       if (!next_key_index) {
         LogError("RemoveIMUOnlyConstrainedStates: Failed to get next key index.");
         return;
