@@ -1151,12 +1151,16 @@ void GraphLocalizer::RemoveIMUOnlyConstrainedStates() {
   // Assumes every state parameter is constrained by some factor
   for (const auto& timestamp_key_index_pair : graph_values_->timestamp_key_index_map()) {
     const int key_index = timestamp_key_index_pair.second;
-    gtsam::CombinedImuFactor* imu_factor = nullptr;
+    gtsam::CombinedImuFactor* imu_factor_1 = nullptr;
+    gtsam::CombinedImuFactor* imu_factor_2 = nullptr;
     bool imu_only_constraints = true;
     for (const auto& factor : graph_) {
       if (graph_values_->ContainsCombinedNavStateKey(*factor, key_index)) {
         if (dynamic_cast<gtsam::CombinedImuFactor*>(factor.get())) {
-          imu_factor = dynamic_cast<gtsam::CombinedImuFactor*>(factor.get());
+          if (!imu_factor_1)
+            imu_factor_1 = dynamic_cast<gtsam::CombinedImuFactor*>(factor.get());
+          else
+            imu_factor_2 = dynamic_cast<gtsam::CombinedImuFactor*>(factor.get());
         } else {
           imu_only_constraints = false;
           break;
@@ -1164,34 +1168,62 @@ void GraphLocalizer::RemoveIMUOnlyConstrainedStates() {
       }
     }
     if (imu_only_constraints) {
-      const auto first_bias_key = imu_factor->key5();
-      const auto first_bias = graph_values_->at<gtsam::imuBias::ConstantBias>(first_bias_key);
-      if (!first_bias) {
-        LogError("RemoveIMUOnlyConstrainedStates: Failed to get first bias.");
-        continue;
-      }
-      const auto first_key_index = gtsam::Symbol(first_bias_key).index();
-      const auto second_bias_key = imu_factor->key6();
-      const auto second_key_index = gtsam::Symbol(second_bias_key).index();
-      const auto first_timestamp = graph_values_->Timestamp(first_key_index);
-      if (!first_timestamp) {
-        LogError("RemoveIMUOnlyConstrainedStates: Failed to get first timestamp.");
-        continue;
-      }
-      const auto second_timestamp = graph_values_->Timestamp(second_key_index);
-      if (!second_timestamp) {
-        LogError("RemoveIMUOnlyConstrainedStates: Failed to get second timestamp.");
+      if (!imu_factor_1 || !imu_factor_2) {
+        LogError("RemoveIMUOnlyConstrainedStates: Failed to get both IMU factors.");
         continue;
       }
 
-      auto integrated_pim = latest_imu_integrator_.IntegratedPim(*first_bias, *first_timestamp, *second_timestamp,
-                                                                 latest_imu_integrator_.pim_params());
+      const auto first_timestamp_1 = graph_values_->Timestamp(imu_factor_1->key5());
+      if (!first_timestamp_1) {
+        LogError("RemoveIMUOnlyConstrainedStates: Failed to get first timestamp for IMU factor 1.");
+        continue;
+      }
+      const auto first_timestamp_2 = graph_values_->Timestamp(imu_factor_2->key5());
+      if (!first_timestamp_2) {
+        LogError("RemoveIMUOnlyConstrainedStates: Failed to get first timestamp for IMU factor 2.");
+        continue;
+      }
+      const auto previous_combined_nav_state_timestamp = std::min(*first_timestamp_1, *first_timestamp_2);
+
+      const auto second_timestamp_1 = graph_values_->Timestamp(imu_factor_1->key6());
+      if (!second_timestamp_1) {
+        LogError("RemoveIMUOnlyConstrainedStates: Failed to get second timestamp for IMU factor 1.");
+        continue;
+      }
+      const auto second_timestamp_2 = graph_values_->Timestamp(imu_factor_2->key6());
+      if (!second_timestamp_2) {
+        LogError("RemoveIMUOnlyConstrainedStates: Failed to get second timestamp for IMU factor 2.");
+        continue;
+      }
+      const auto next_combined_nav_state_timestamp = std::max(*second_timestamp_1, *second_timestamp_2);
+      const auto previous_combined_nav_state =
+        graph_values_->GetCombinedNavState(previous_combined_nav_state_timestamp);
+      if (!previous_combined_nav_state) {
+        LogError("RemoveIMUOnlyConstrainedStates: Failed to get previous combined nav state.");
+        continue;
+      }
+
+      auto integrated_pim =
+        latest_imu_integrator_.IntegratedPim(previous_combined_nav_state->bias(), previous_combined_nav_state_timestamp,
+                                             next_combined_nav_state_timestamp, latest_imu_integrator_.pim_params());
       if (!integrated_pim) {
         LogError("RemoveIMUOnlyConstrainedStates: Failed to create integrated pim.");
         return;
       }
 
-      const auto combined_imu_factor = ii::MakeCombinedImuFactor(first_key_index, second_key_index, *integrated_pim);
+      const auto previous_key_index = graph_values_->KeyIndex(previous_combined_nav_state_timestamp);
+      if (!previous_key_index) {
+        LogError("RemoveIMUOnlyConstrainedStates: Failed to get previous key index.");
+        return;
+      }
+
+      const auto next_key_index = graph_values_->KeyIndex(previous_combined_nav_state_timestamp);
+      if (!next_key_index) {
+        LogError("RemoveIMUOnlyConstrainedStates: Failed to get next key index.");
+        return;
+      }
+
+      const auto combined_imu_factor = ii::MakeCombinedImuFactor(*previous_key_index, *next_key_index, *integrated_pim);
       graph_.push_back(combined_imu_factor);
       graph_values_->RemoveFactors({sym::P(key_index), sym::V(key_index), sym::B(key_index)}, graph_);
       graph_values_->RemoveCombinedNavState(timestamp_key_index_pair.first);

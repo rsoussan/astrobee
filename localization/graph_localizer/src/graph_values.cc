@@ -193,6 +193,10 @@ boost::optional<lc::Time> GraphValues::Timestamp(const int key_index) const {
   return boost::none;
 }
 
+boost::optional<lc::Time> GraphValues::Timestamp(const gtsam::Key& key) const {
+  return Timestamp(gtsam::Symbol(key).index());
+}
+
 bool GraphValues::HasFeature(const lm::FeatureId id) const { return (feature_id_key_map_.count(id) > 0); }
 
 boost::optional<gtsam::Key> GraphValues::FeatureKey(const lm::FeatureId id) const {

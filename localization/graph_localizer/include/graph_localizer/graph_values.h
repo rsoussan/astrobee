@@ -123,6 +123,8 @@ class GraphValues {
 
   boost::optional<localization_common::Time> Timestamp(const int key_index) const;
 
+  boost::optional<localization_common::Time> Timestamp(const gtsam::Key& key) const;
+
   bool HasFeature(const localization_measurements::FeatureId id) const;
 
   boost::optional<gtsam::Key> FeatureKey(const localization_measurements::FeatureId id) const;
