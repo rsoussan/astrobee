@@ -865,7 +865,7 @@ void GraphLocalizer::BufferCumulativeFactors() {
   if (latest_imu_integrator_.LatestTime()) {
     for (const auto& factors_to_add : buffered_factors_to_add_) {
       if (factors_to_add.first > *(latest_imu_integrator_.LatestTime())) break;
-        latest_buffered_time = factors_to_add.first;
+      latest_buffered_time = factors_to_add.first;
     }
   }
   const auto latest_graph_values_time = graph_values_->LatestTimestamp();

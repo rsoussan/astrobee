@@ -128,13 +128,14 @@ void SmartProjectionCumulativeFactorAdder::AddSmartFactor(const std::vector<lm::
   }
   const int offset = std::max(0, latest_index - params().max_num_points_per_factor);
   for (int i = 0; i < static_cast<int>(feature_track_points.size()); ++i) {
+    int j = i;
     constexpr double ratio = 0.85;
     if (smart_factors_to_add.size() >= ratio * (params().max_num_factors)) {
-      i += offset;
+      j += offset;
     }
-    if (i >= feature_track_points.size()) break;
-    const auto& feature_point = feature_track_points[i];
-    LogError("i: " << i << ", af: " << smart_factors_to_add.size());
+    if (j >= feature_track_points.size()) break;
+    const auto& feature_point = feature_track_points[j];
+    LogError("j: " << j << ", af: " << smart_factors_to_add.size());
     if (i >= params().max_num_points_per_factor) break;
     const KeyInfo key_info(&sym::P, feature_point.timestamp);
     key_infos.emplace_back(key_info);
