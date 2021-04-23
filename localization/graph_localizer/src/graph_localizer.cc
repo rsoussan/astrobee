@@ -860,6 +860,27 @@ void GraphLocalizer::RemovePriors(const int key_index) {
 void GraphLocalizer::BufferCumulativeFactors() {
   // Remove measurements here so they are more likely to fit in sliding window duration when optimized
   feature_tracker_->RemoveOldFeaturePointsAndSlideWindow();
+  // Get latest timestamp from buffered factors list and graph values
+  boost::optional<lc::Time> latest_buffered_time;
+  for (auto factors_to_add_it = buffered_factors_to_add_.cbegin();
+       factors_to_add_it != buffered_factors_to_add_.cend() && latest_imu_integrator_.LatestTime() &&
+       factors_to_add_it->first <= *(latest_imu_integrator_.LatestTime());) {
+    if (!latest_buffered_time)
+      latest_buffered_time = factors_to_add_it->first;
+    else
+      *latest_buffered_time = std::max(*latest_buffered_time, factors_to_add_it->first);
+  }
+  const auto latest_graph_values_time = graph_values_->LatestTimestamp();
+  if (latest_buffered_time || latest_graph_values_time) {
+    lc::Time latest_time;
+    if (!latest_buffered_time)
+      latest_time = *latest_graph_values_time;
+    else if (!latest_graph_values_time)
+      latest_time = *latest_buffered_time;
+    else
+      latest_time = std::max(*latest_graph_values_time, *latest_buffered_time);
+    smart_projection_cumulative_factor_adder_->SetGraphLatestTimestamp(latest_time);
+  }
   if (params_.factor.smart_projection_adder.enabled) {
     BufferFactors(smart_projection_cumulative_factor_adder_->AddFactors());
   }

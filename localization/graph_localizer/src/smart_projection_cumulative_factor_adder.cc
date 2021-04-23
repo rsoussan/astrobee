@@ -25,6 +25,7 @@
 #include <gtsam/slam/SmartProjectionPoseFactor.h>
 
 namespace graph_localizer {
+namespace lc = localization_common;
 namespace lm = localization_measurements;
 namespace sym = gtsam::symbol_shorthand;
 SmartProjectionCumulativeFactorAdder::SmartProjectionCumulativeFactorAdder(
@@ -115,8 +116,25 @@ void SmartProjectionCumulativeFactorAdder::AddSmartFactor(const std::vector<lm::
   key_infos.reserve(feature_track_points.size());
   // Gtsam requires unique key indices for each key, even though these will be replaced later
   int uninitialized_key_index = 0;
+  // TODO: rename this
+  int latest_index = 0;
+  if (graph_latest_timestamp_) {
+    for (int i = 0; i < static_cast<int>(feature_track_points.size()); ++i) {
+      if (feature_track_points[i].timestamp >= *graph_latest_timestamp_) {
+        latest_index = i;
+        break;
+      }
+    }
+  }
+  const int offset = std::max(0, latest_index - params().max_num_points_per_factor);
   for (int i = 0; i < static_cast<int>(feature_track_points.size()); ++i) {
+    constexpr double ratio = 0.85;
+    if (smart_factors_to_add.size() >= ratio * (params().max_num_factors) && offset != 0) {
+      i += offset;
+    }
+    if (i >= feature_track_points.size()) break;
     const auto& feature_point = feature_track_points[i];
+    LogError("i: " << i << ", af: " << smart_factors_to_add.size());
     if (i >= params().max_num_points_per_factor) break;
     const KeyInfo key_info(&sym::P, feature_point.timestamp);
     key_infos.emplace_back(key_info);
@@ -135,5 +153,9 @@ bool SmartProjectionCumulativeFactorAdder::TooClose(
     }
   }
   return false;
+}
+
+void SmartProjectionCumulativeFactorAdder::SetGraphLatestTimestamp(const lc::Time time) {
+  graph_latest_timestamp_ = time;
 }
 }  // namespace graph_localizer

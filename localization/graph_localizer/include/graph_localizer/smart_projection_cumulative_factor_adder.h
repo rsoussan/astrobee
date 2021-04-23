@@ -46,6 +46,8 @@ class SmartProjectionCumulativeFactorAdder : public CumulativeFactorAdder<SmartP
     FactorsToAdd& smart_factors_to_add,
     std::unordered_map<localization_measurements::FeatureId, localization_measurements::FeaturePoint>& added_points);
 
+  void SetGraphLatestTimestamp(const localization_common::Time time);
+
  private:
   void AddSmartFactor(const std::vector<localization_measurements::FeaturePoint>& feature_track_points,
                       FactorsToAdd& smart_factors_to_add) const;
@@ -56,6 +58,7 @@ class SmartProjectionCumulativeFactorAdder : public CumulativeFactorAdder<SmartP
 
   std::shared_ptr<const FeatureTracker> feature_tracker_;
   gtsam::SmartProjectionParams smart_projection_params_;
+  boost::optional<localization_common::Time> graph_latest_timestamp_;
 };
 }  // namespace graph_localizer
 
