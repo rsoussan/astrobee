@@ -862,13 +862,11 @@ void GraphLocalizer::BufferCumulativeFactors() {
   feature_tracker_->RemoveOldFeaturePointsAndSlideWindow();
   // Get latest timestamp from buffered factors list and graph values
   boost::optional<lc::Time> latest_buffered_time;
-  for (auto factors_to_add_it = buffered_factors_to_add_.cbegin();
-       factors_to_add_it != buffered_factors_to_add_.cend() && latest_imu_integrator_.LatestTime() &&
-       factors_to_add_it->first <= *(latest_imu_integrator_.LatestTime());) {
-    if (!latest_buffered_time)
-      latest_buffered_time = factors_to_add_it->first;
-    else
-      *latest_buffered_time = std::max(*latest_buffered_time, factors_to_add_it->first);
+  if (latest_imu_integrator_.LatestTime()) {
+    for (const auto& factors_to_add : buffered_factors_to_add_) {
+      if (factors_to_add.first > *(latest_imu_integrator_.LatestTime())) break;
+        latest_buffered_time = factors_to_add.first;
+    }
   }
   const auto latest_graph_values_time = graph_values_->LatestTimestamp();
   if (latest_buffered_time || latest_graph_values_time) {
