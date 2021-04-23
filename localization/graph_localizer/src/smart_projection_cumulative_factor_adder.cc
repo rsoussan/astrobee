@@ -129,7 +129,7 @@ void SmartProjectionCumulativeFactorAdder::AddSmartFactor(const std::vector<lm::
   const int offset = std::max(0, latest_index - params().max_num_points_per_factor);
   for (int i = 0; i < static_cast<int>(feature_track_points.size()); ++i) {
     constexpr double ratio = 0.85;
-    if (smart_factors_to_add.size() >= ratio * (params().max_num_factors) && offset != 0) {
+    if (smart_factors_to_add.size() >= ratio * (params().max_num_factors)) {
       i += offset;
     }
     if (i >= feature_track_points.size()) break;
