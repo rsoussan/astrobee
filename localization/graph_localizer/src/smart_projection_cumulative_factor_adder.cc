@@ -63,9 +63,21 @@ void SmartProjectionCumulativeFactorAdder::AddFactors(
 std::vector<FactorsToAdd> SmartProjectionCumulativeFactorAdder::AddFactors() {
   // Add smart factor for each valid feature track
   FactorsToAdd smart_factors_to_add(GraphAction::kDeleteExistingSmartFactors);
+  int i = 0;
   if (params().use_allowed_timestamps) {
     for (const auto& feature_track : feature_tracker_->feature_tracks()) {
-      const auto points = feature_track.second->AllowedPoints(feature_tracker_->smart_factor_timestamp_allow_list());
+      auto points = feature_track.second->AllowedPoints(feature_tracker_->smart_factor_timestamp_allow_list());
+      if (static_cast<int>(smart_factors_to_add.size()) == params().max_num_factors - 1) {
+        const int spacing = std::max(0, (static_cast<int>(points.size()) - params().max_num_points_per_factor) /
+                                          (params().max_num_points_per_factor - 1));
+        int i = 0;
+        std::vector<lm::FeaturePoint> new_points;
+        for (const auto& point: points) {
+          if (i++ % (spacing + 1) != 0) continue;
+          else new_points.emplace_back(point);
+        }
+        points = new_points;
+      }
       const double average_distance_from_mean = AverageDistanceFromMean(points);
       if (ValidPointSet(points.size(), average_distance_from_mean, params().min_avg_distance_from_mean,
                         params().min_num_points) &&
