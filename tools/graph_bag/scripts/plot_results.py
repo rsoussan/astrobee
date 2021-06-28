@@ -51,10 +51,13 @@ def add_graph_plots(pdf, sparse_mapping_poses, ar_tag_poses, graph_localization_
                                      marker='o',
                                      markeredgewidth=0.1,
                                      markersize=1.5)
+  print("ar tag size: " + str(len(ar_tag_poses.times)))
   if ar_tag_poses.times:
     position_plotter.add_pose_position(ar_tag_poses, linestyle='None', marker='x', markeredgewidth=0.1, markersize=1.5)
   position_plotter.add_pose_position(graph_localization_states)
   position_plotter.plot(pdf)
+
+  return
 
   # orientations
   orientation_plotter = vector3d_plotter.Vector3dPlotter('Time (s)', 'Orientation (deg)',
@@ -72,6 +75,7 @@ def add_graph_plots(pdf, sparse_mapping_poses, ar_tag_poses, graph_localization_
                                              markersize=1.5)
   orientation_plotter.add_pose_orientation(graph_localization_states)
   orientation_plotter.plot(pdf)
+
 
   # Imu Augmented Loc vs. Loc
   position_plotter = vector3d_plotter.Vector3dPlotter('Time (s)', 'Position (m)',
@@ -532,16 +536,20 @@ def create_plots(bagfile,
                  rmse_rel_start_time=0,
                  rmse_rel_end_time=-1):
   bag = rosbag.Bag(bagfile)
+  ekf_bag = rosbag.Bag('ekf_bag.bag')
   groundtruth_bag = rosbag.Bag(groundtruth_bagfile) if groundtruth_bagfile else bag
   bag_start_time = bag.get_start_time()
+  ekf_bag_start_time = ekf_bag.get_start_time()
 
   has_imu_augmented_graph_localization_state = has_topic(bag, '/gnc/ekf')
   has_imu_bias_tester_poses = has_topic(bag, '/imu_bias_tester/pose')
   sparse_mapping_poses = poses.Poses('Sparse Mapping', '/sparse_mapping/pose')
-  ar_tag_poses = poses.Poses('AR Tag', '/ar_tag/pose')
+  ar_tag_poses = poses.Poses('EKF', 'ekf_results')
   imu_bias_tester_poses = poses.Poses('Imu Bias Tester', '/imu_bias_tester/pose')
-  vec_of_poses = [ar_tag_poses, imu_bias_tester_poses]
+  vec_of_poses = [imu_bias_tester_poses]
+  ekf_vec_of_poses = [ar_tag_poses]
   load_pose_msgs(vec_of_poses, bag, bag_start_time)
+  load_pose_msgs(ekf_vec_of_poses, ekf_bag, ekf_bag_start_time)
   groundtruth_vec_of_poses = [sparse_mapping_poses]
   load_pose_msgs(groundtruth_vec_of_poses, groundtruth_bag, bag_start_time)
 
@@ -558,35 +566,35 @@ def create_plots(bagfile,
   with PdfPages(output_pdf_file) as pdf:
     add_graph_plots(pdf, sparse_mapping_poses, ar_tag_poses, graph_localization_states,
                     imu_augmented_graph_localization_states)
-    if has_imu_bias_tester_poses:
-      add_imu_bias_tester_poses(pdf, imu_bias_tester_poses, sparse_mapping_poses)
-      add_imu_bias_tester_velocities(pdf, imu_bias_tester_velocities)
-    if has_imu_augmented_graph_localization_state:
-      add_other_loc_plots(pdf, graph_localization_states, imu_augmented_graph_localization_states, sparse_mapping_poses,
-                          ar_tag_poses)
-    else:
-      add_other_loc_plots(pdf, graph_localization_states, graph_localization_states)
-    plot_loc_state_stats(pdf,
-                         graph_localization_states,
-                         sparse_mapping_poses,
-                         output_csv_file,
-                         rmse_rel_start_time=rmse_rel_start_time,
-                         rmse_rel_end_time=rmse_rel_end_time)
-    plot_loc_state_stats(pdf,
-                         imu_augmented_graph_localization_states,
-                         sparse_mapping_poses,
-                         output_csv_file,
-                         'imu_augmented_',
-                         0.01,
-                         rmse_rel_start_time=rmse_rel_start_time,
-                         rmse_rel_end_time=rmse_rel_end_time)
-    if has_imu_bias_tester_poses:
-      plot_loc_state_stats(pdf,
-                           imu_bias_tester_poses,
-                           sparse_mapping_poses,
-                           output_csv_file,
-                           'imu_bias_tester_',
-                           0.01,
-                           False,
-                           rmse_rel_start_time=rmse_rel_start_time,
-                           rmse_rel_end_time=rmse_rel_end_time)
+   # if has_imu_bias_tester_poses:
+   #   add_imu_bias_tester_poses(pdf, imu_bias_tester_poses, sparse_mapping_poses)
+   #   add_imu_bias_tester_velocities(pdf, imu_bias_tester_velocities)
+   # if has_imu_augmented_graph_localization_state:
+   #   add_other_loc_plots(pdf, graph_localization_states, imu_augmented_graph_localization_states, sparse_mapping_poses,
+   #                       ar_tag_poses)
+   # else:
+   #   add_other_loc_plots(pdf, graph_localization_states, graph_localization_states)
+   # plot_loc_state_stats(pdf,
+    #                     graph_localization_states,
+    #                     sparse_mapping_poses,
+    #                     output_csv_file,
+    #                     rmse_rel_start_time=rmse_rel_start_time,
+    #                     rmse_rel_end_time=rmse_rel_end_time)
+    #plot_loc_state_stats(pdf,
+    #                     imu_augmented_graph_localization_states,
+#                         sparse_mapping_poses,
+#                         output_csv_file,
+#                         'imu_augmented_',
+#                         0.01,
+#                         rmse_rel_start_time=rmse_rel_start_time,
+#                         rmse_rel_end_time=rmse_rel_end_time)
+#    if has_imu_bias_tester_poses:
+#      plot_loc_state_stats(pdf,
+#                           imu_bias_tester_poses,
+#                           sparse_mapping_poses,
+#                           output_csv_file,
+#                           'imu_bias_tester_',
+#                           0.01,
+#                           False,
+#                           rmse_rel_start_time=rmse_rel_start_time,
+#                           rmse_rel_end_time=rmse_rel_end_time)

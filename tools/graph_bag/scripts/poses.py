@@ -34,10 +34,10 @@ class Poses(object):
 
   def add_pose(self, pose_msg, timestamp, bag_start_time=0):
     self.positions.add(pose_msg.position.x, pose_msg.position.y, pose_msg.position.z)
-    euler_angles = scipy.spatial.transform.Rotation.from_quat(
-      [pose_msg.orientation.x, pose_msg.orientation.y, pose_msg.orientation.z,
-       pose_msg.orientation.w]).as_euler('ZYX', degrees=True)
-    self.orientations.add(euler_angles[0], euler_angles[1], euler_angles[2])
+    #euler_angles = scipy.spatial.transform.Rotation.from_quat(
+    #  [pose_msg.orientation.x, pose_msg.orientation.y, pose_msg.orientation.z,
+    #   pose_msg.orientation.w]).as_euler('ZYX', degrees=True)
+    #self.orientations.add(euler_angles[0], euler_angles[1], euler_angles[2])
     self.times.append(timestamp.secs + 1e-9 * timestamp.nsecs - bag_start_time)
 
   def add_msg(self, msg, timestamp, bag_start_time=0):

@@ -19,6 +19,7 @@
 #include <ekf/ekf.h>
 #include <camera/camera_params.h>
 
+#include <rosbag/bag.h>
 #include <Eigen/Geometry>
 #include <Eigen/Dense>
 
@@ -640,6 +641,8 @@ int Ekf::Step(ff_msgs::EkfState* state) {
 }
 
 void Ekf::UpdateState(ff_msgs::EkfState* state) {
+  static rosbag::Bag results_bag("ekf_results.bag", rosbag::bagmode::Write);
+ 
   // now copy everything to the output message
   state->header.stamp.sec  = imu_.imu_timestamp_sec;
   state->header.stamp.nsec = imu_.imu_timestamp_nsec;
@@ -665,6 +668,10 @@ void Ekf::UpdateState(ff_msgs::EkfState* state) {
             state->ml_mahal_dists.c_array());
   else
     memset(state->ml_mahal_dists.c_array(), 0, ml_max_features_ * sizeof(float));
+  geometry_msgs::PoseStamped msg;
+  msg.pose = state->pose;
+  msg.header= state->header;
+  results_bag.write("ekf_results", ros::Time(msg.header.stamp.sec, msg.header.stamp.nsec), msg);
 }
 
 void Ekf::Reset(void) {
