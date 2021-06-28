@@ -40,6 +40,7 @@
 #include <localization_common/combined_nav_state.h>
 #include <localization_common/combined_nav_state_covariances.h>
 #include <localization_common/time.h>
+#include <localization_measurements/acceleration_command.h>
 #include <localization_measurements/fan_speed_mode.h>
 #include <localization_measurements/feature_points_measurement.h>
 #include <localization_measurements/handrail_points_measurement.h>
@@ -93,6 +94,7 @@ class GraphLocalizer : public graph_optimizer::GraphOptimizer {
   void AddSparseMappingMeasurement(
     const localization_measurements::MatchedProjectionsMeasurement& matched_projections_measurement);
   void AddHandrailMeasurement(const localization_measurements::HandrailPointsMeasurement& handrail_points_measurement);
+  void AddAccelerationCommand(const localization_measurements::AccelerationCommand& acceleration_command);
   bool DoPostOptimizeActions() final;
   const FeatureTrackIdMap& feature_tracks() const { return feature_tracker_->feature_tracks(); }
 

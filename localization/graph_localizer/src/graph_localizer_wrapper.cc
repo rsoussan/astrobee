@@ -256,7 +256,10 @@ void GraphLocalizerWrapper::FlightModeCallback(const ff_msgs::FlightMode& flight
 }
 
 void GraphLocalizerWrapper::FamCommandCallback(const ff_msgs::FamCommand& fam_command_msg) {
-  const lm::AccelerationCommand acceleration_commond = lm::MakeAccelerationCommand(fam_command_msg);
+  const lm::AccelerationCommand acceleration_command = lm::MakeAccelerationCommand(fam_command_msg);
+  if (graph_localizer_) {
+    graph_localizer_->AddAccelerationCommand(acceleration_command);
+  }
 }
 
 void GraphLocalizerWrapper::InitializeGraph() {
