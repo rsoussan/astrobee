@@ -20,10 +20,12 @@
 #define LOCALIZATION_MEASUREMENTS_MEASUREMENT_CONVERSIONS_H_
 
 #include <ff_msgs/DepthLandmarks.h>
+#include <ff_msgs/FamCommand.h>
 #include <ff_msgs/Feature2dArray.h>
 #include <ff_msgs/VisualLandmarks.h>
 #include <localization_common/combined_nav_state.h>
 #include <localization_common/combined_nav_state_covariances.h>
+#include <localization_measurements/acceleration_command.h>
 #include <localization_measurements/fan_speed_mode.h>
 #include <localization_measurements/feature_points_measurement.h>
 #include <localization_measurements/handrail_points_measurement.h>
@@ -52,6 +54,8 @@ MatchedProjectionsMeasurement FrameChangeMatchedProjectionsMeasurement(
   const gtsam::Pose3& new_frame_T_measurement_origin);
 
 FeaturePointsMeasurement MakeFeaturePointsMeasurement(const ff_msgs::Feature2dArray& optical_flow_tracks);
+
+AccelerationCommand MakeAccelerationCommand(const ff_msgs::FamCommand& fam_command);
 
 FanSpeedMode ConvertFanSpeedMode(const uint8_t speed);
 }  // namespace localization_measurements

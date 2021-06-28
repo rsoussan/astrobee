@@ -122,6 +122,16 @@ FeaturePointsMeasurement MakeFeaturePointsMeasurement(const ff_msgs::Feature2dAr
   return feature_points_measurement;
 }
 
+AccelerationCommand MakeAccelerationCommand(const ff_msgs::FamCommand& fam_command) {
+  AccelerationCommand acceleration_command;
+  acceleration_command.timestamp = lc::TimeFromHeader(fam_command.header);
+  acceleration_command.linear_acceleration =
+    mc::VectorFromMsg<gtsam::Vector3, geometry_msgs::Vector3>(fam_command.accel);
+  acceleration_command.angular_acceleration =
+    mc::VectorFromMsg<gtsam::Vector3, geometry_msgs::Vector3>(fam_command.alpha);
+  return acceleration_command;
+}
+
 FanSpeedMode ConvertFanSpeedMode(const uint8_t speed) {
   switch (speed) {
     case 0:

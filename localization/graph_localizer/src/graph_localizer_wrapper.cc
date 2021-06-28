@@ -255,7 +255,9 @@ void GraphLocalizerWrapper::FlightModeCallback(const ff_msgs::FlightMode& flight
   graph_localizer_initializer_.SetFanSpeedMode(fan_speed_mode_);
 }
 
-void GraphLocalizerWrapper::FamCommandCallback(const ff_msgs::FamCommand& fam_command_msg) {}
+void GraphLocalizerWrapper::FamCommandCallback(const ff_msgs::FamCommand& fam_command_msg) {
+  const lm::AccelerationCommand acceleration_commond = lm::MakeAccelerationCommand(fam_command_msg);
+}
 
 void GraphLocalizerWrapper::InitializeGraph() {
   if (!graph_localizer_initializer_.ReadyToInitialize()) {
