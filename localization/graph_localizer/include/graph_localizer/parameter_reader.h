@@ -19,6 +19,7 @@
 #define GRAPH_LOCALIZER_PARAMETER_READER_H_
 
 #include <config_reader/config_reader.h>
+#include <graph_localizer/acceleration_command_factor_adder_params.h>
 #include <graph_localizer/calibration_params.h>
 #include <graph_localizer/combined_nav_state_graph_values_params.h>
 #include <graph_localizer/combined_nav_state_node_updater_params.h>
@@ -38,6 +39,8 @@
 #include <graph_localizer/standstill_factor_adder_params.h>
 
 namespace graph_localizer {
+void LoadAccelerationCommandFactorAdderParams(config_reader::ConfigReader& config,
+                                              AccelerationCommandFactorAdderParams& params);
 void LoadCalibrationParams(config_reader::ConfigReader& config, CalibrationParams& params);
 void LoadFactorParams(config_reader::ConfigReader& config, FactorParams& params);
 void LoadHandrailFactorAdderParams(config_reader::ConfigReader& config, HandrailFactorAdderParams& params);

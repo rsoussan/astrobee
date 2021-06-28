@@ -39,6 +39,7 @@ void LoadCalibrationParams(config_reader::ConfigReader& config, CalibrationParam
 }
 
 void LoadFactorParams(config_reader::ConfigReader& config, FactorParams& params) {
+  LoadAccelerationCommandFactorAdderParams(config, params.acceleration_command_adder);
   LoadHandrailFactorAdderParams(config, params.handrail_adder);
   LoadLocFactorAdderParams(config, params.loc_adder);
   LoadARTagLocFactorAdderParams(config, params.ar_tag_loc_adder);
@@ -46,6 +47,12 @@ void LoadFactorParams(config_reader::ConfigReader& config, FactorParams& params)
   LoadProjectionFactorAdderParams(config, params.projection_adder);
   LoadSmartProjectionFactorAdderParams(config, params.smart_projection_adder);
   LoadStandstillFactorAdderParams(config, params.standstill_adder);
+}
+
+void LoadAccelerationCommandFactorAdderParams(config_reader::ConfigReader& config,
+                                              AccelerationCommandFactorAdderParams& params) {
+  params.enabled = mc::LoadBool(config, "acceleration_command_adder_enabled");
+  params.huber_k = mc::LoadDouble(config, "huber_k");
 }
 
 void LoadHandrailFactorAdderParams(config_reader::ConfigReader& config, HandrailFactorAdderParams& params) {
