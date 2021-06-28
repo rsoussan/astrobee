@@ -19,9 +19,10 @@
 #define GRAPH_LOCALIZER_GRAPH_LOCALIZER_WRAPPER_H_
 
 #include <ff_msgs/DepthLandmarks.h>
-#include <ff_msgs/GraphState.h>
+#include <ff_msgs/FamCommand.h>
 #include <ff_msgs/Feature2dArray.h>
 #include <ff_msgs/FlightMode.h>
+#include <ff_msgs/GraphState.h>
 #include <ff_msgs/LocalizationGraph.h>
 #include <ff_msgs/VisualLandmarks.h>
 #include <graph_localizer/feature_counts.h>
@@ -85,6 +86,8 @@ class GraphLocalizerWrapper {
   void ImuCallback(const sensor_msgs::Imu& imu_msg);
 
   void FlightModeCallback(const ff_msgs::FlightMode& flight_mode);
+
+  void FamCommandCallback(const ff_msgs::FamCommand& fam_command_msg);
 
   boost::optional<const FeatureTrackIdMap&> feature_tracks() const;
 

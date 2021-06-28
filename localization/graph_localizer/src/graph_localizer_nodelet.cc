@@ -197,12 +197,12 @@ void GraphLocalizerNodelet::ImuCallback(const sensor_msgs::Imu::ConstPtr& imu_ms
   graph_localizer_wrapper_.ImuCallback(*imu_msg);
 }
 
-void GraphLocalizerNodelet::FlightModeCallback(ff_msgs::FlightMode::ConstPtr const& mode) {
+void GraphLocalizerNodelet::FlightModeCallback(const ff_msgs::FlightMode::ConstPtr& mode) {
   graph_localizer_wrapper_.FlightModeCallback(*mode);
 }
 
-void GraphLocalizerNodelet::FamCommandCallback(ff_msgs::FamCommand::ConstPtr const& fam_command_msg) {
-  // graph_localizer_wrapper_.FamCommandCallback(*fam_command_msg);
+void GraphLocalizerNodelet::FamCommandCallback(const ff_msgs::FamCommand::ConstPtr& fam_command_msg) {
+  graph_localizer_wrapper_.FamCommandCallback(*fam_command_msg);
 }
 
 void GraphLocalizerNodelet::PublishLocalizationState() {
