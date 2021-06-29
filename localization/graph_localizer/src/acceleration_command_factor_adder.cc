@@ -17,12 +17,25 @@
  */
 
 #include <graph_localizer/acceleration_command_factor_adder.h>
+#include <graph_localizer/utilities.h>
+#include <imu_integration/utilities.h>
 #include <localization_common/logger.h>
+#include <localization_measurements/imu_measurement.h>
 
 #include <gtsam/inference/Symbol.h>
 
+/*namespace {
+localization_measurements::ImuMeasurement MakeImuMeasurement(const localization_measurements::AccelerationCommand&
+last_acceleration_command, const double elapsed_time){
+  // TODO: integrate angular acceleration command!!!! (A)
+ return localization_measurements::ImuMeasurement(last_acceleration_command.linear_acceleration, angular_velocity_diff,
+last_acceleration_command.timestamp);
+}
+}*/
+
 namespace graph_localizer {
 namespace go = graph_optimizer;
+namespace ii = imu_integration;
 namespace lm = localization_measurements;
 namespace sym = gtsam::symbol_shorthand;
 AccelerationCommandFactorAdder::AccelerationCommandFactorAdder(const AccelerationCommandFactorAdderParams& params)
@@ -31,16 +44,30 @@ AccelerationCommandFactorAdder::AccelerationCommandFactorAdder(const Acceleratio
 std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
   const lm::AccelerationCommand& acceleration_command) {
   std::vector<go::FactorsToAdd> factors_to_add;
-  /*go::FactorsToAdd standstill_prior_factors_to_add;
-  const gtsam::Vector3 velocity_prior_noise_sigmas((gtsam::Vector(3) << params().prior_velocity_stddev,
-                                                    params().prior_velocity_stddev, params().prior_velocity_stddev)
-                                                     .finished());
-  const auto velocity_noise =
-    Robust(gtsam::noiseModel::Diagonal::Sigmas(Eigen::Ref<const Eigen::VectorXd>(velocity_prior_noise_sigmas)),
-           params().huber_k);
 
-  const go::KeyInfo velocity_key_info(&sym::V, go::NodeUpdaterType::CombinedNavState,
-                                      feature_points_measurement.timestamp);
+  if (!last_acceleration_command_) {
+    last_acceleration_command_ = acceleration_command;
+    return factors_to_add;
+  }
+  // pim_.resetIntegrationAndSetBias(gtsam::imuBias::ConstantBias());
+  const double elapsed_time = acceleration_command.timestamp - last_acceleration_command_->timestamp;
+  // const lm::ImuMeasurement acceleration_command_measurement = MakeImuMeasurement(last_acceleration_command_,
+  // elapsed_time); ii::AddMeasurement(last_acceleration_command_measurement_, last_acceleration_command_.timestamp,
+  // pim_);
+  // TODO: get relative velocity diff and orientation diff from pim!!!
+  go::FactorsToAdd acceleration_command_factors_to_add;
+  const gtsam::Vector3 linear_acceleration_command_noise_sigmas(
+    (gtsam::Vector(3) << params().linear_acceleration_stddev, params().linear_acceleration_stddev,
+     params().linear_acceleration_stddev)
+      .finished());
+  const auto linear_acceleration_command_noise = Robust(
+    gtsam::noiseModel::Diagonal::Sigmas(Eigen::Ref<const Eigen::VectorXd>(linear_acceleration_command_noise_sigmas)),
+    params().huber_k);
+
+  /*const go::KeyInfo velocity_a_key_info(&sym::V, go::NodeUpdaterType::CombinedNavState,
+                                      last_acceleration_command_->timestamp);
+ const go::KeyInfo velocity_b_key_info(&sym::V, go::NodeUpdaterType::CombinedNavState,
+                                      acceleration_command.timestamp);
   gtsam::PriorFactor<gtsam::Velocity3>::shared_ptr velocity_prior_factor(new gtsam::PriorFactor<gtsam::Velocity3>(
     velocity_key_info.UninitializedKey(), gtsam::Velocity3::Zero(), velocity_noise));
   standstill_prior_factors_to_add.push_back({{velocity_key_info}, velocity_prior_factor});

@@ -22,7 +22,9 @@
 #include <graph_optimizer/factor_adder_params.h>
 
 namespace graph_localizer {
-struct AccelerationCommandFactorAdderParams : public graph_optimizer::FactorAdderParams {};
+struct AccelerationCommandFactorAdderParams : public graph_optimizer::FactorAdderParams {
+  double linear_acceleration_stddev;
+};
 }  // namespace graph_localizer
 
 #endif  // GRAPH_LOCALIZER_ACCELERATION_COMMAND_FACTOR_ADDER_PARAMS_H_
