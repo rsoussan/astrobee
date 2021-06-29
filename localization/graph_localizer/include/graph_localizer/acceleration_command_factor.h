@@ -60,36 +60,39 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
 
   Vector evaluateError(const Pose3& world_T_body_a, const Velocity3& world_F_world_v_body_a,
                        const imuBias::ConstantBias& imu_biases_a, const Pose3& world_T_body_b,
-                       const Velocity3& world_F_world_v_body_b, boost::optional<Matrix&> H1 = boost::none,
-                       boost::optional<Matrix&> H2 = boost::none, boost::optional<Matrix&> H3 = boost::none,
-                       boost::optional<Matrix&> H4 = boost::none,
-                       boost::optional<Matrix&> H5 = boost::none) const override {
-    const Vector3 measured_delta_velocity = world_T_body_a.rotation() * acceleration_command_.linear_acceleration * dt_;
+                       const Velocity3& world_F_world_v_body_b,
+                       boost::optional<Matrix&> d_e_d_world_T_body_a = boost::none,
+                       boost::optional<Matrix&> d_e_d_world_F_world_v_body_a = boost::none,
+                       boost::optional<Matrix&> d_e_d_biases_a = boost::none,
+                       boost::optional<Matrix&> d_e_d_world_T_body_b = boost::none,
+                       boost::optional<Matrix&> d_e_d_world_F_world_v_body_b = boost::none) const override {
+    const gtsam::Rot3 world_R_body_a = world_T_body_a.rotation();
+    const Vector3 measured_delta_velocity = world_R_body_a * acceleration_command_.linear_acceleration * dt_;
     const Vector3 expected_delta_velocity = world_F_world_v_body_b - world_F_world_v_body_a;
-    return measured_delta_velocity - expected_delta_velocity;
-    /*if (H) {
-      Matrix66 d_world_T_sensor_d_world_T_body;
-      Matrix36 d_world_t_point_d_world_T_sensor;
-      Matrix13 d_distance_d_world_t_point;
-      const auto error = getError(world_T_body, d_world_T_sensor_d_world_T_body, d_world_t_point_d_world_T_sensor,
-                                  d_distance_d_world_t_point);
-      *H = d_distance_d_world_t_point * d_world_t_point_d_world_T_sensor * d_world_T_sensor_d_world_T_body;
-      return error;
+    const Vector3 error = measured_delta_velocity - expected_delta_velocity;
+    // Calculate Jacobians
+    if (d_e_d_world_T_body_a) {
+      gtsam::Matrix d_e_d_world_R_body_a;
+      world_R_body_a.rotate(acceleration_command_.linear_acceleration * dt_, d_e_d_world_R_body_a);
+      gtsam::Matrix d_world_R_body_a_d_world_T_body_a;
+      world_T_body_a.rotation(d_world_R_body_a_d_world_T_body_a);
+      *d_e_d_world_T_body_a = d_e_d_world_R_body_a * d_world_R_body_a_d_world_T_body_a;
     }
-    return getError(world_T_body);*/
-    return Vector3();
-  }
+    if (d_e_d_world_F_world_v_body_a) {
+      *d_e_d_world_F_world_v_body_a << -1.0 * I_3x3;
+    }
+    if (d_e_d_biases_a) {
+      *d_e_d_biases_a << Z_3x3;
+    }
+    if (d_e_d_world_T_body_b) {
+      *d_e_d_world_T_body_b << Eigen::Matrix<double, 3, 6>::Zero();
+    }
+    if (d_e_d_world_F_world_v_body_b) {
+      *d_e_d_world_F_world_v_body_b << I_3x3;
+    }
 
-  /*Vector getError(const Pose3& world_T_body, OptionalJacobian<6, 6> d_world_T_sensor_d_world_T_body = boost::none,
-                  OptionalJacobian<3, 6> d_world_t_point_d_world_T_sensor = boost::none,
-                  OptionalJacobian<1, 3> d_distance_d_world_t_point = boost::none) const {
-    const Pose3 world_T_sensor = world_T_body.transformPoseFrom(body_T_sensor_, d_world_T_sensor_d_world_T_body);
-    const Point3 world_t_point = world_T_sensor.transformFrom(sensor_t_point_, d_world_t_point_d_world_T_sensor);
-    const double distance = world_T_plane_.Distance(world_t_point, d_distance_d_world_t_point);
-    Vector error(1);
-    error << distance;
     return error;
-  }*/
+  }
 
   const localization_measurements::AccelerationCommand& acceleration_command() const { return acceleration_command_; }
   const double dt() const { return dt_; }
