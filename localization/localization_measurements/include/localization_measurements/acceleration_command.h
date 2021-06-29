@@ -21,12 +21,47 @@
 
 #include <localization_measurements/measurement.h>
 
+#include <gtsam/base/Testable.h>
 #include <gtsam/base/Vector.h>
+// Add VectorSpace header as this is where traits::Equal is defined for
+// Vector as well.  Remove when fixed in GTSAM
+#include <gtsam/base/VectorSpace.h>
+
+#include <iostream>
+#include <string>
 
 namespace localization_measurements {
 struct AccelerationCommand : public Measurement {
   gtsam::Vector3 linear_acceleration;
   gtsam::Vector3 angular_acceleration;
+
+  void print(const std::string& s = "") const {
+    std::cout << (s.empty() ? s : s + " ") << linear_acceleration << ", " << angular_acceleration << ", " << timestamp
+              << std::endl;
+  }
+  bool equals(const AccelerationCommand& acceleration_command, double tol = 1e-9) const {
+    return gtsam::traits<gtsam::Vector3>::Equals(this->linear_acceleration, acceleration_command.linear_acceleration,
+                                                 tol) &&
+           gtsam::traits<gtsam::Vector3>::Equals(this->angular_acceleration, acceleration_command.angular_acceleration,
+                                                 tol) &&
+           std::abs(timestamp - acceleration_command.timestamp) < tol;
+  }
+
+ private:
+  // Serialization function
+  friend class boost::serialization::access;
+  template <class ARCHIVE>
+  void serialize(ARCHIVE& ar, const unsigned int /*version*/) {
+    ar& BOOST_SERIALIZATION_NVP(linear_acceleration);
+    ar& BOOST_SERIALIZATION_NVP(angular_acceleration);
+    ar& BOOST_SERIALIZATION_NVP(timestamp);
+  }
 };
 }  // namespace localization_measurements
+
+namespace gtsam {
+template <>
+struct traits<localization_measurements::AccelerationCommand>
+    : public Testable<localization_measurements::AccelerationCommand> {};
+}  // namespace gtsam
 #endif  // LOCALIZATION_MEASUREMENTS_ACCELERATION_COMMAND_H_

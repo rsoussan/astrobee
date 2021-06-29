@@ -44,17 +44,15 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
 
   void print(const std::string& s = "", const KeyFormatter& keyFormatter = DefaultKeyFormatter) const override {
     std::cout << s << "AccelerationCommandFactor, z = ";
-    // traits<localization_measurements::AccelerationCommand>::Print(acceleration_command_);
+    traits<localization_measurements::AccelerationCommand>::Print(acceleration_command_);
     Base::print("", keyFormatter);
   }
 
   bool equals(const NonlinearFactor& p, double tol = 1e-9) const override {
     const This* e = dynamic_cast<const This*>(&p);
-    return e &&
-           Base::equals(
-             p,
-             tol);  // && traits<localization_measurements::AccelerationCommand>::Equals(this->acceleration_command(),
-                    // e->acceleration_command(), tol);
+    return e && Base::equals(p, tol) &&
+           traits<localization_measurements::AccelerationCommand>::Equals(this->acceleration_command(),
+                                                                          e->acceleration_command(), tol);
   }
 
   Vector evaluateError(const Pose3& world_T_body_a, const Velocity3& world_F_world_v_body_a,
@@ -94,7 +92,7 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
   template <class ARCHIVE>
   void serialize(ARCHIVE& ar, const unsigned int /*version*/) {
     ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(Base);
-    // ar& BOOST_SERIALIZATION_NVP(acceleration_command_);
+    ar& BOOST_SERIALIZATION_NVP(acceleration_command_);
   }
 
   localization_measurements::AccelerationCommand acceleration_command_;
