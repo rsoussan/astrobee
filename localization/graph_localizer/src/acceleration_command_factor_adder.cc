@@ -51,7 +51,7 @@ std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
     return factors_to_add;
   }
   // pim_.resetIntegrationAndSetBias(gtsam::imuBias::ConstantBias());
-  const double elapsed_time = acceleration_command.timestamp - last_acceleration_command_->timestamp;
+  const double dt = acceleration_command.timestamp - last_acceleration_command_->timestamp;
   // const lm::ImuMeasurement acceleration_command_measurement = MakeImuMeasurement(last_acceleration_command_,
   // elapsed_time); ii::AddMeasurement(last_acceleration_command_measurement_, last_acceleration_command_.timestamp,
   // pim_);
@@ -76,7 +76,7 @@ std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
   const go::KeyInfo velocity_b_key_info(&sym::V, go::NodeUpdaterType::CombinedNavState, acceleration_command.timestamp);
 
   gtsam::AccelerationCommandFactor::shared_ptr acceleration_command_factor(new gtsam::AccelerationCommandFactor(
-    *last_acceleration_command_, linear_acceleration_command_noise, pose_a_key_info.UninitializedKey(),
+    *last_acceleration_command_, dt, linear_acceleration_command_noise, pose_a_key_info.UninitializedKey(),
     velocity_a_key_info.UninitializedKey(), imu_bias_a_key_info.UninitializedKey(), pose_b_key_info.UninitializedKey(),
     velocity_b_key_info.UninitializedKey()));
   acceleration_command_factors_to_add.push_back(

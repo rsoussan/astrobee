@@ -36,15 +36,17 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
  public:
   AccelerationCommandFactor() {}
 
-  AccelerationCommandFactor(const localization_measurements::AccelerationCommand& acceleration_command,
+  AccelerationCommandFactor(const localization_measurements::AccelerationCommand& acceleration_command, const double dt,
                             const SharedNoiseModel& model, Key pose_a_key, Key velocity_a_key, Key imu_bias_a_key,
                             Key pose_b_key, Key velocity_b_key)
       : Base(model, pose_a_key, velocity_a_key, imu_bias_a_key, pose_b_key, velocity_b_key),
-        acceleration_command_(acceleration_command) {}
+        acceleration_command_(acceleration_command),
+        dt_(dt) {}
 
   void print(const std::string& s = "", const KeyFormatter& keyFormatter = DefaultKeyFormatter) const override {
     std::cout << s << "AccelerationCommandFactor, z = ";
     traits<localization_measurements::AccelerationCommand>::Print(acceleration_command_);
+    std::cout << " dt: " << dt_ << std::endl;
     Base::print("", keyFormatter);
   }
 
@@ -52,7 +54,8 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
     const This* e = dynamic_cast<const This*>(&p);
     return e && Base::equals(p, tol) &&
            traits<localization_measurements::AccelerationCommand>::Equals(this->acceleration_command(),
-                                                                          e->acceleration_command(), tol);
+                                                                          e->acceleration_command(), tol) &&
+           std::abs(dt_ - e->dt()) < tol;
   }
 
   Vector evaluateError(const Pose3& world_T_body_a, const Velocity3& world_F_world_v_body_a,
@@ -61,6 +64,9 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
                        boost::optional<Matrix&> H2 = boost::none, boost::optional<Matrix&> H3 = boost::none,
                        boost::optional<Matrix&> H4 = boost::none,
                        boost::optional<Matrix&> H5 = boost::none) const override {
+    const Vector3 measured_delta_velocity = world_T_body_a.rotation() * acceleration_command_.linear_acceleration * dt_;
+    const Vector3 expected_delta_velocity = world_F_world_v_body_b - world_F_world_v_body_a;
+    return measured_delta_velocity - expected_delta_velocity;
     /*if (H) {
       Matrix66 d_world_T_sensor_d_world_T_body;
       Matrix36 d_world_t_point_d_world_T_sensor;
@@ -86,6 +92,7 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
   }*/
 
   const localization_measurements::AccelerationCommand& acceleration_command() const { return acceleration_command_; }
+  const double dt() const { return dt_; }
 
  private:
   friend class boost::serialization::access;
@@ -93,9 +100,11 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
   void serialize(ARCHIVE& ar, const unsigned int /*version*/) {
     ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(Base);
     ar& BOOST_SERIALIZATION_NVP(acceleration_command_);
+    ar& BOOST_SERIALIZATION_NVP(dt_);
   }
 
   localization_measurements::AccelerationCommand acceleration_command_;
+  double dt_;
 
  public:
   GTSAM_MAKE_ALIGNED_OPERATOR_NEW
