@@ -22,6 +22,7 @@
 #include <localization_measurements/plane.h>
 
 #include <gtsam/geometry/Pose3.h>
+#include <gtsam/navigation/ImuBias.h>
 
 #include <random>
 
@@ -56,5 +57,7 @@ localization_measurements::Plane RandomPlane() {
   gtsam::Vector3 normal = RandomVector().normalized();
   return localization_measurements::Plane(point, normal);
 }
+
+gtsam::imuBias::ConstantBias RandomIMUBias() { return gtsam::imuBias::ConstantBias(RandomVector(), RandomVector()); }
 }  // namespace graph_localizer
 #endif  // GRAPH_LOCALIZER_TEST_UTILITIES_H_ // NOLINT

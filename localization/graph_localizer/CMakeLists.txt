@@ -84,6 +84,14 @@ if(CATKIN_ENABLE_TESTING)
   target_link_libraries(test_silu
     graph_localizer gtsam
   )
+ add_rostest_gtest(test_acceleration_command_factor
+    test/test_acceleration_command_factor.test
+    test/test_acceleration_command_factor.cc
+  )
+  target_link_libraries(test_acceleration_command_factor
+    graph_localizer gtsam
+  )
+
 endif()
 
 install_launch_files()
