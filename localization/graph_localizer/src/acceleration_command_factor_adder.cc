@@ -16,6 +16,7 @@
  * under the License.
  */
 
+#include <graph_localizer/acceleration_command_factor.h>
 #include <graph_localizer/acceleration_command_factor_adder.h>
 #include <graph_localizer/utilities.h>
 #include <imu_integration/utilities.h>
@@ -63,17 +64,27 @@ std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
   const auto linear_acceleration_command_noise = Robust(
     gtsam::noiseModel::Diagonal::Sigmas(Eigen::Ref<const Eigen::VectorXd>(linear_acceleration_command_noise_sigmas)),
     params().huber_k);
+  // CombinedNavState a Keys
+  const go::KeyInfo pose_a_key_info(&sym::P, go::NodeUpdaterType::CombinedNavState,
+                                    last_acceleration_command_->timestamp);
+  const go::KeyInfo velocity_a_key_info(&sym::V, go::NodeUpdaterType::CombinedNavState,
+                                        last_acceleration_command_->timestamp);
+  const go::KeyInfo imu_bias_a_key_info(&sym::B, go::NodeUpdaterType::CombinedNavState,
+                                        last_acceleration_command_->timestamp);
+  // CombinedNavState b Keys
+  const go::KeyInfo pose_b_key_info(&sym::P, go::NodeUpdaterType::CombinedNavState, acceleration_command.timestamp);
+  const go::KeyInfo velocity_b_key_info(&sym::V, go::NodeUpdaterType::CombinedNavState, acceleration_command.timestamp);
 
-  /*const go::KeyInfo velocity_a_key_info(&sym::V, go::NodeUpdaterType::CombinedNavState,
-                                      last_acceleration_command_->timestamp);
- const go::KeyInfo velocity_b_key_info(&sym::V, go::NodeUpdaterType::CombinedNavState,
-                                      acceleration_command.timestamp);
-  gtsam::PriorFactor<gtsam::Velocity3>::shared_ptr velocity_prior_factor(new gtsam::PriorFactor<gtsam::Velocity3>(
-    velocity_key_info.UninitializedKey(), gtsam::Velocity3::Zero(), velocity_noise));
-  standstill_prior_factors_to_add.push_back({{velocity_key_info}, velocity_prior_factor});
-  standstill_prior_factors_to_add.SetTimestamp(feature_points_measurement.timestamp);
-  LogDebug("AddFactors: Added " << standstill_prior_factors_to_add.size() << " standstill velocity prior factors.");
-  factors_to_add.emplace_back(standstill_prior_factors_to_add);*/
+  gtsam::AccelerationCommandFactor::shared_ptr acceleration_command_factor(new gtsam::AccelerationCommandFactor(
+    *last_acceleration_command_, linear_acceleration_command_noise, pose_a_key_info.UninitializedKey(),
+    velocity_a_key_info.UninitializedKey(), imu_bias_a_key_info.UninitializedKey(), pose_b_key_info.UninitializedKey(),
+    velocity_b_key_info.UninitializedKey()));
+  acceleration_command_factors_to_add.push_back(
+    {{pose_a_key_info, velocity_a_key_info, imu_bias_a_key_info, pose_b_key_info, velocity_b_key_info},
+     acceleration_command_factor});
+  acceleration_command_factors_to_add.SetTimestamp(acceleration_command.timestamp);
+  LogDebug("AddFactors: Added " << acceleration_command_factors_to_add.size() << " acceleration command factors.");
+  factors_to_add.emplace_back(acceleration_command_factors_to_add);
   return factors_to_add;
 }
 }  // namespace graph_localizer
