@@ -19,6 +19,7 @@
 #ifndef GRAPH_LOCALIZER_GRAPH_LOCALIZER_H_
 #define GRAPH_LOCALIZER_GRAPH_LOCALIZER_H_
 
+#include <graph_localizer/acceleration_command_factor_adder.h>
 #include <graph_localizer/combined_nav_state_node_updater.h>
 #include <graph_localizer/combined_nav_state_node_updater_params.h>
 #include <graph_localizer/feature_tracker.h>
@@ -154,6 +155,7 @@ class GraphLocalizer : public graph_optimizer::GraphOptimizer {
   boost::optional<localization_measurements::FeaturePointsMeasurement> last_optical_flow_measurement_;
 
   // Factor Adders
+  std::shared_ptr<AccelerationCommandFactorAdder> acceleration_command_factor_adder_;
   std::shared_ptr<LocFactorAdder> ar_tag_loc_factor_adder_;
   std::shared_ptr<HandrailFactorAdder> handrail_factor_adder_;
   std::shared_ptr<LocFactorAdder> loc_factor_adder_;

@@ -76,6 +76,8 @@ GraphLocalizer::GraphLocalizer(const GraphLocalizerParams& params)
   AddNodeUpdater(feature_point_node_updater_);
 
   // Initialize Factor Adders
+  acceleration_command_factor_adder_.reset(
+    new AccelerationCommandFactorAdder(params_.factor.acceleration_command_adder));
   ar_tag_loc_factor_adder_.reset(
     new LocFactorAdder(params_.factor.ar_tag_loc_adder, go::GraphActionCompleterType::ARTagLocProjectionFactor));
   handrail_factor_adder_.reset(new HandrailFactorAdder(params_.factor.handrail_adder));
@@ -314,10 +316,10 @@ void GraphLocalizer::AddAccelerationCommand(const lm::AccelerationCommand& accel
     return;
   }
 
-  /*if (params_.factor.handrail_adder.enabled) {
-    LogDebug("AddSparseMappingMeasurement: Adding handrail measurement.");
-    BufferFactors(handrail_factor_adder_->AddFactors(handrail_points_measurement));
-  }*/
+  if (params_.factor.acceleration_command_adder.enabled) {
+    LogDebug("AddAccelerationCommand: Adding acceleration command.");
+    BufferFactors(acceleration_command_factor_adder_->AddFactors(acceleration_command));
+  }
 }
 
 void GraphLocalizer::DoPostSlideWindowActions(const localization_common::Time oldest_allowed_time,
