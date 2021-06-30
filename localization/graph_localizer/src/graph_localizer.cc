@@ -16,6 +16,7 @@
  * under the License.
  */
 
+#include <graph_localizer/acceleration_command_factor.h>
 #include <graph_localizer/graph_localizer.h>
 #include <graph_localizer/loc_projection_factor.h>
 #include <graph_localizer/loc_pose_factor.h>
@@ -385,7 +386,8 @@ bool GraphLocalizer::ValidGraph() const {
     go::NumFactors<gtsam::PointToPlaneFactor>(graph_factors()) +
     go::NumFactors<gtsam::PointToHandrailEndpointFactor>(graph_factors()) +
     go::NumFactors<gtsam::PoseRotationFactor>(graph_factors()) +
-    go::NumFactors<gtsam::BetweenFactor<gtsam::Pose3>>(graph_factors());
+    go::NumFactors<gtsam::BetweenFactor<gtsam::Pose3>>(graph_factors()) +
+    go::NumFactors<gtsam::AccelerationCommandFactor>(graph_factors());
   return num_valid_non_imu_measurement_factors > 0;
 }
 
