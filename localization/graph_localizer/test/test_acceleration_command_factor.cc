@@ -27,14 +27,32 @@
 
 #include <gtest/gtest.h>
 
+#include <iostream>
+
 namespace {
-localization_measurements::AccelerationMeasurement RandomAccelerationMeasurement() {
-  localization_measurements::AccelerationMeasurement random_acceleration_measurement;
-  random_acceleration_measurement.linear_acceleration = gl::RandomVector();
-  random_acceleration_measurement.angular_acceleration = gl::RandomVector();
-  random_acceleration_measurement.timestamp = gl::RandomDouble();
+localization_measurements::AccelerationCommand RandomAccelerationCommand() {
+  localization_measurements::AccelerationCommand random_acceleration_measurement;
+  random_acceleration_measurement.linear_acceleration = graph_localizer::RandomVector();
+  random_acceleration_measurement.angular_acceleration = graph_localizer::RandomVector();
+  random_acceleration_measurement.timestamp = graph_localizer::RandomDouble();
   return random_acceleration_measurement;
 }
+
+class TestErrorHelper {
+ public:
+  TestErrorHelper(const gtsam::AccelerationCommandFactor& factor) : factor_(factor) {}
+  // Workaround to test factor Jacobians since boost::bind can't accept more than 9 arguments.
+  // evaluateError has 10 including the optional Jacobians, but these count towards the boost bind limit.
+  gtsam::Vector evaluateError(const gtsam::Pose3& world_T_body_a, const gtsam::Velocity3& world_F_world_v_body_a,
+                              const gtsam::imuBias::ConstantBias& imu_biases_a, const gtsam::Pose3& world_T_body_b,
+                              const gtsam::Velocity3& world_F_world_v_body_b) const {
+    return factor_.evaluateError(world_T_body_a, world_F_world_v_body_a, imu_biases_a, world_T_body_b,
+                                 world_F_world_v_body_b);
+  }
+
+ private:
+  gtsam::AccelerationCommandFactor factor_;
+};
 }  // namespace
 
 namespace gl = graph_localizer;
@@ -42,7 +60,7 @@ namespace lm = localization_measurements;
 namespace sym = gtsam::symbol_shorthand;
 TEST(AccelerationCommandFactorTester, Jacobian) {
   for (int i = 0; i < 500; ++i) {
-    const auto acceleration_measurement = RandomAccelerationMeasurement();
+    const auto acceleration_measurement = RandomAccelerationCommand();
     const double dt = gl::RandomDouble();
     const gtsam::Pose3 world_T_body_a = gl::RandomPose();
     const gtsam::Pose3 world_T_body_b = gl::RandomPose();
@@ -55,15 +73,35 @@ TEST(AccelerationCommandFactorTester, Jacobian) {
     gtsam::Matrix H1, H2, H3, H4, H5;
     const auto factor_error = factor.evaluateError(world_T_body_a, world_F_world_v_body_a, biases_a, world_T_body_b,
                                                    world_F_world_v_body_b, H1, H2, H3, H4, H5);
-    const auto function = boost::function<gtsam::Vector(const gtsam::Vector&, const gtsam::Pose3&,
-                                                        const gtsam::Velocity3&, const gtsam::imuBias::ConstantBias&,
-                                                        const gtsam::Pose3&, const gtsam::Velocity3& >)>(
-      boost::bind(&gtsam::AccelerationCommandFactor::evaluateError, factor, _1, _2, _3, _4, _5, boost::none,
-                  boost::none, boost::none, boost::none, boost::none));
+    const TestErrorHelper test_error_helper(factor);
+    const auto function =
+      boost::function<gtsam::Vector(const gtsam::Pose3&, const gtsam::Velocity3&, const gtsam::imuBias::ConstantBias&,
+                                    const gtsam::Pose3&, const gtsam::Velocity3&)>(
+        boost::bind(&TestErrorHelper::evaluateError, test_error_helper, _1, _2, _3, _4, _5));
     const auto numerical_H1 =
-      gtsam::numericalDerivative15<gtsam::Vector, gtsam::Pose3, gtsam::Velocity3, gtsam::imuBias::ConstantBias,
+      gtsam::numericalDerivative51<gtsam::Vector, gtsam::Pose3, gtsam::Velocity3, gtsam::imuBias::ConstantBias,
                                    gtsam::Pose3, gtsam::Velocity3>(
         function, world_T_body_a, world_F_world_v_body_a, biases_a, world_T_body_b, world_F_world_v_body_b, 1e-5);
     ASSERT_TRUE(numerical_H1.isApprox(H1.matrix(), 1e-6));
+    const auto numerical_H2 =
+      gtsam::numericalDerivative52<gtsam::Vector, gtsam::Pose3, gtsam::Velocity3, gtsam::imuBias::ConstantBias,
+                                   gtsam::Pose3, gtsam::Velocity3>(
+        function, world_T_body_a, world_F_world_v_body_a, biases_a, world_T_body_b, world_F_world_v_body_b, 1e-5);
+    ASSERT_TRUE(numerical_H2.isApprox(H2.matrix(), 1e-6));
+    const auto numerical_H3 =
+      gtsam::numericalDerivative53<gtsam::Vector, gtsam::Pose3, gtsam::Velocity3, gtsam::imuBias::ConstantBias,
+                                   gtsam::Pose3, gtsam::Velocity3>(
+        function, world_T_body_a, world_F_world_v_body_a, biases_a, world_T_body_b, world_F_world_v_body_b, 1e-5);
+    ASSERT_TRUE(numerical_H3.isApprox(H3.matrix(), 1e-6));
+    const auto numerical_H4 =
+      gtsam::numericalDerivative54<gtsam::Vector, gtsam::Pose3, gtsam::Velocity3, gtsam::imuBias::ConstantBias,
+                                   gtsam::Pose3, gtsam::Velocity3>(
+        function, world_T_body_a, world_F_world_v_body_a, biases_a, world_T_body_b, world_F_world_v_body_b, 1e-5);
+    ASSERT_TRUE(numerical_H4.isApprox(H4.matrix(), 1e-6));
+    const auto numerical_H5 =
+      gtsam::numericalDerivative55<gtsam::Vector, gtsam::Pose3, gtsam::Velocity3, gtsam::imuBias::ConstantBias,
+                                   gtsam::Pose3, gtsam::Velocity3>(
+        function, world_T_body_a, world_F_world_v_body_a, biases_a, world_T_body_b, world_F_world_v_body_b, 1e-5);
+    ASSERT_TRUE(numerical_H5.isApprox(H5.matrix(), 1e-6));
   }
 }

@@ -79,19 +79,27 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
       *d_e_d_world_T_body_a = d_e_d_world_R_body_a * d_world_R_body_a_d_world_T_body_a;
     }
     if (d_e_d_world_F_world_v_body_a) {
-      *d_e_d_world_F_world_v_body_a << -1.0 * I_3x3;
+      *d_e_d_world_F_world_v_body_a = I_3x3;
     }
     if (d_e_d_biases_a) {
-      *d_e_d_biases_a << Z_3x3;
+      *d_e_d_biases_a = Eigen::Matrix<double, 3, 6>::Zero();
     }
     if (d_e_d_world_T_body_b) {
-      *d_e_d_world_T_body_b << Eigen::Matrix<double, 3, 6>::Zero();
+      *d_e_d_world_T_body_b = Eigen::Matrix<double, 3, 6>::Zero();
     }
     if (d_e_d_world_F_world_v_body_b) {
-      *d_e_d_world_F_world_v_body_b << I_3x3;
+      *d_e_d_world_F_world_v_body_b = -1.0 * I_3x3;
     }
 
     return error;
+  }
+
+  // Workaround to test factor Jacobians since boost::bind can't accept more than 9 arguments.
+  // evaluateError has 10 including the optional Jacobians, but these count towards the boost bind limit.
+  Vector testEvaluateError(const Pose3& world_T_body_a, const Velocity3& world_F_world_v_body_a,
+                           const imuBias::ConstantBias& imu_biases_a, const Pose3& world_T_body_b,
+                           const Velocity3& world_F_world_v_body_b) const {
+    return evaluateError(world_T_body_a, world_F_world_v_body_a, imu_biases_a, world_T_body_b, world_F_world_v_body_b);
   }
 
   const localization_measurements::AccelerationCommand& acceleration_command() const { return acceleration_command_; }
