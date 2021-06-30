@@ -93,6 +93,10 @@ void GraphBag::Run() {
   while (live_measurement_simulator_->ProcessMessage()) {
     const lc::Time current_time = live_measurement_simulator_->CurrentTime();
     if (params_.log_relative_time) LogInfo("Run: Rel t: " << current_time - start_time);
+    const auto fam_command_msg = live_measurement_simulator_->GetFamCommandMessage(current_time);
+    if (fam_command_msg) {
+      graph_localizer_simulator_->BufferFamCommandMsg(*fam_command_msg);
+    }
     const auto flight_mode_msg = live_measurement_simulator_->GetFlightModeMessage(current_time);
     if (flight_mode_msg) {
       graph_localizer_simulator_->BufferFlightModeMsg(*flight_mode_msg);

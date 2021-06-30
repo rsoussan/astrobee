@@ -42,6 +42,10 @@ void GraphLocalizerSimulator::BufferFlightModeMsg(const ff_msgs::FlightMode& fli
   flight_mode_msg_buffer_.emplace_back(flight_mode_msg);
 }
 
+void GraphLocalizerSimulator::BufferFamCommandMsg(const ff_msgs::FamCommand& fam_command_msg) {
+  fam_command_msg_buffer_.emplace_back(fam_command_msg);
+}
+
 bool GraphLocalizerSimulator::AddMeasurementsAndUpdateIfReady(const lc::Time& current_time) {
   // If not initialized, add measurements as these are required for initialization.
   // Otherwise add measurements if enough time has passed since last optimization, simulating
@@ -56,6 +60,11 @@ bool GraphLocalizerSimulator::AddMeasurementsAndUpdateIfReady(const lc::Time& cu
     FlightModeCallback(flight_mode_msg);
   }
   flight_mode_msg_buffer_.clear();
+
+  for (const auto& fam_command_msg : fam_command_msg_buffer_) {
+    FamCommandCallback(fam_command_msg);
+  }
+  fam_command_msg_buffer_.clear();
 
   for (const auto& imu_msg : imu_msg_buffer_) {
     ImuCallback(imu_msg);

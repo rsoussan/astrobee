@@ -33,6 +33,7 @@ LiveMeasurementSimulator::LiveMeasurementSimulator(const LiveMeasurementSimulato
       params_(params),
       kImageTopic_(params.image_topic),
       imu_buffer_(params.imu),
+      fam_command_buffer_(params.fam_command),
       flight_mode_buffer_(params.flight_mode),
       of_buffer_(params.of),
       vl_buffer_(params.vl),
@@ -67,6 +68,9 @@ LiveMeasurementSimulator::LiveMeasurementSimulator(const LiveMeasurementSimulato
 
   topics.push_back(std::string("/") + TOPIC_MOBILITY_FLIGHT_MODE);
   topics.push_back(TOPIC_MOBILITY_FLIGHT_MODE);
+
+  topics.push_back(std::string("/") + TOPIC_GNC_CTL_COMMAND);
+  topics.push_back(TOPIC_GNC_CTL_COMMAND);
 
   view_.reset(new rosbag::View(bag_, rosbag::TopicQuery(topics)));
   current_time_ = lc::TimeFromRosTime(view_->getBeginTime());
@@ -104,6 +108,9 @@ bool LiveMeasurementSimulator::ProcessMessage() {
   if (string_ends_with(msg.getTopic(), TOPIC_HARDWARE_IMU)) {
     sensor_msgs::ImuConstPtr imu_msg = msg.instantiate<sensor_msgs::Imu>();
     imu_buffer_.BufferMessage(*imu_msg);
+  } else if (string_ends_with(msg.getTopic(), TOPIC_GNC_CTL_COMMAND)) {
+    const ff_msgs::FamCommandConstPtr fam_command = msg.instantiate<ff_msgs::FamCommand>();
+    fam_command_buffer_.BufferMessage(*fam_command);
   } else if (string_ends_with(msg.getTopic(), TOPIC_MOBILITY_FLIGHT_MODE)) {
     const ff_msgs::FlightModeConstPtr flight_mode = msg.instantiate<ff_msgs::FlightMode>();
     flight_mode_buffer_.BufferMessage(*flight_mode);
@@ -142,6 +149,9 @@ boost::optional<sensor_msgs::Imu> LiveMeasurementSimulator::GetImuMessage(const 
 }
 boost::optional<ff_msgs::FlightMode> LiveMeasurementSimulator::GetFlightModeMessage(const lc::Time current_time) {
   return flight_mode_buffer_.GetMessage(current_time);
+}
+boost::optional<ff_msgs::FamCommand> LiveMeasurementSimulator::GetFamCommandMessage(const lc::Time current_time) {
+  return fam_command_buffer_.GetMessage(current_time);
 }
 boost::optional<ff_msgs::Feature2dArray> LiveMeasurementSimulator::GetOFMessage(const lc::Time current_time) {
   return of_buffer_.GetMessage(current_time);

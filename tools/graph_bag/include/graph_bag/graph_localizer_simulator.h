@@ -19,6 +19,7 @@
 #ifndef GRAPH_BAG_GRAPH_LOCALIZER_SIMULATOR_H_
 #define GRAPH_BAG_GRAPH_LOCALIZER_SIMULATOR_H_
 
+#include <ff_msgs/FamCommand.h>
 #include <ff_msgs/Feature2dArray.h>
 #include <ff_msgs/FlightMode.h>
 #include <ff_msgs/VisualLandmarks.h>
@@ -46,6 +47,8 @@ class GraphLocalizerSimulator : public graph_localizer::GraphLocalizerWrapper {
 
   void BufferFlightModeMsg(const ff_msgs::FlightMode& flight_mode_msg);
 
+  void BufferFamCommandMsg(const ff_msgs::FamCommand& fam_command_msg);
+
   bool AddMeasurementsAndUpdateIfReady(const localization_common::Time& current_time);
 
  private:
@@ -54,6 +57,7 @@ class GraphLocalizerSimulator : public graph_localizer::GraphLocalizerWrapper {
   std::vector<ff_msgs::VisualLandmarks> ar_msg_buffer_;
   std::vector<sensor_msgs::Imu> imu_msg_buffer_;
   std::vector<ff_msgs::FlightMode> flight_mode_msg_buffer_;
+  std::vector<ff_msgs::FamCommand> fam_command_msg_buffer_;
   boost::optional<localization_common::Time> last_update_time_;
   GraphLocalizerSimulatorParams params_;
 };
