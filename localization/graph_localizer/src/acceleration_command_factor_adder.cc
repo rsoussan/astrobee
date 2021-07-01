@@ -85,6 +85,7 @@ std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
   acceleration_command_factors_to_add.SetTimestamp(acceleration_command.timestamp);
   LogDebug("AddFactors: Added " << acceleration_command_factors_to_add.size() << " acceleration command factors.");
   factors_to_add.emplace_back(acceleration_command_factors_to_add);
+  last_acceleration_command_ = acceleration_command;
   return factors_to_add;
 }
 }  // namespace graph_localizer
