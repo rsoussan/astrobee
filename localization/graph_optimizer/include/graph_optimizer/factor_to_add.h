@@ -40,9 +40,9 @@ class FactorsToAdd {
  public:
   FactorsToAdd(const localization_common::Time timestamp, const std::vector<FactorToAdd>& factors_to_add,
                const GraphActionCompleterType graph_action_completer_type = GraphActionCompleterType::None)
-      : timestamp_(timestamp),
-        factors_to_add_(factors_to_add),
-        graph_action_completer_type_(graph_action_completer_type) {}
+      : factors_to_add_(factors_to_add), graph_action_completer_type_(graph_action_completer_type) {
+    SetTimestamp(timestamp);
+  }
 
   explicit FactorsToAdd(const GraphActionCompleterType graph_action_completer_type = GraphActionCompleterType::None)
       : graph_action_completer_type_(graph_action_completer_type) {}
@@ -52,16 +52,21 @@ class FactorsToAdd {
   bool empty() const { return factors_to_add_.empty(); }
   void push_back(FactorToAdd&& factor_to_add) { factors_to_add_.emplace_back(std::move(factor_to_add)); }  // NOLINT
   void push_back(const FactorToAdd& factor_to_add) { factors_to_add_.push_back(factor_to_add); }
-  void SetTimestamp(const localization_common::Time timestamp) { timestamp_ = timestamp; }
+  void SetTimestamp(const localization_common::Time timestamp) { timestamps_.emplace(timestamp); }
+  void SetTimestamps(const std::initializer_list<localization_common::Time>& timestamps) {
+    timestamps_.insert(timestamps);
+  }
+  void SetTimestamps(const std::vector<localization_common::Time>& timestamps) {
+    timestamps_.insert(timestamps.begin(), timestamps.end());
+  }
 
-  localization_common::Time timestamp() const { return timestamp_; }
+  localization_common::Time LatestTimestamp() const { return *(timestamps_.crbegin()); }
   const std::vector<FactorToAdd>& Get() const { return factors_to_add_; }
   std::vector<FactorToAdd>& Get() { return factors_to_add_; }
   GraphActionCompleterType graph_action_completer_type() const { return graph_action_completer_type_; }
 
  private:
-  // Timestamp used to sort factors when adding to graph.
-  localization_common::Time timestamp_;
+  std::set<localization_common::Time> timestamps_;
   std::vector<FactorToAdd> factors_to_add_;
   GraphActionCompleterType graph_action_completer_type_;
 };

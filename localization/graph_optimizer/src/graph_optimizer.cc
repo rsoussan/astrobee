@@ -166,7 +166,7 @@ bool GraphOptimizer::ValidGraph() const { return true; }
 
 void GraphOptimizer::BufferFactors(const std::vector<FactorsToAdd>& factors_to_add_vec) {
   for (const auto& factors_to_add : factors_to_add_vec)
-    buffered_factors_to_add_.emplace(factors_to_add.timestamp(), factors_to_add);
+    buffered_factors_to_add_.emplace(factors_to_add.LatestTimestamp(), factors_to_add);
 }
 
 void GraphOptimizer::RemoveOldBufferedFactors(const lc::Time oldest_allowed_timestamp) {

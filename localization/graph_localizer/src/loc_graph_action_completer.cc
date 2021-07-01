@@ -97,8 +97,9 @@ bool LocGraphActionCompleter::DoAction(go::FactorsToAdd& factors_to_add, gtsam::
       params_.huber_k);
     gtsam::LocPoseFactor::shared_ptr pose_prior_factor(
       new gtsam::LocPoseFactor(*pose_key, *world_T_cam * params_.body_T_cam.inverse(), pose_noise));
-    factors_to_add.push_back(go::FactorToAdd(
-      {go::KeyInfo(&sym::P, go::NodeUpdaterType::CombinedNavState, factors_to_add.timestamp())}, pose_prior_factor));
+    factors_to_add.push_back(
+      go::FactorToAdd({go::KeyInfo(&sym::P, go::NodeUpdaterType::CombinedNavState, factors_to_add.LatestTimestamp())},
+                      pose_prior_factor));
   }
   return true;
 }
