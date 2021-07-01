@@ -50,6 +50,12 @@ std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
     last_acceleration_command_ = acceleration_command;
     return factors_to_add;
   }
+
+  if (last_acceleration_command_->timestamp > acceleration_command.timestamp) {
+    LogDebug("AddFactors: Out of order acceleration command received.");
+    return factors_to_add;
+  }
+
   // pim_.resetIntegrationAndSetBias(gtsam::imuBias::ConstantBias());
   const double dt = acceleration_command.timestamp - last_acceleration_command_->timestamp;
   // const lm::ImuMeasurement acceleration_command_measurement = MakeImuMeasurement(last_acceleration_command_,
