@@ -39,8 +39,10 @@ namespace go = graph_optimizer;
 namespace ii = imu_integration;
 namespace lm = localization_measurements;
 namespace sym = gtsam::symbol_shorthand;
-AccelerationCommandFactorAdder::AccelerationCommandFactorAdder(const AccelerationCommandFactorAdderParams& params)
-    : AccelerationCommandFactorAdder::Base(params) {}
+AccelerationCommandFactorAdder::AccelerationCommandFactorAdder(
+  const AccelerationCommandFactorAdderParams& params,
+  std::shared_ptr<imu_integration::LatestImuIntegrator> latest_imu_integrator)
+    : AccelerationCommandFactorAdder::Base(params), latest_imu_integrator_(latest_imu_integrator) {}
 
 std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
   const lm::AccelerationCommand& acceleration_command) {

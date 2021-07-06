@@ -21,6 +21,7 @@
 
 #include <graph_localizer/acceleration_command_factor_adder_params.h>
 #include <graph_optimizer/factor_adder.h>
+#include <imu_integration/latest_imu_integrator.h>
 #include <localization_measurements/acceleration_command.h>
 
 #include <gtsam/navigation/CombinedImuFactor.h>
@@ -35,7 +36,8 @@ class AccelerationCommandFactorAdder
     graph_optimizer::FactorAdder<localization_measurements::AccelerationCommand, AccelerationCommandFactorAdderParams>;
 
  public:
-  explicit AccelerationCommandFactorAdder(const AccelerationCommandFactorAdderParams& params);
+  explicit AccelerationCommandFactorAdder(const AccelerationCommandFactorAdderParams& params,
+                                          std::shared_ptr<imu_integration::LatestImuIntegrator> latest_imu_integrator);
 
   std::vector<graph_optimizer::FactorsToAdd> AddFactors(
     const localization_measurements::AccelerationCommand& acceleration_command) final;
@@ -43,6 +45,7 @@ class AccelerationCommandFactorAdder
  private:
   gtsam::PreintegratedCombinedMeasurements pim_;
   boost::optional<localization_measurements::AccelerationCommand> last_acceleration_command_;
+  std::shared_ptr<imu_integration::LatestImuIntegrator> latest_imu_integrator_;
 };
 }  // namespace graph_localizer
 
