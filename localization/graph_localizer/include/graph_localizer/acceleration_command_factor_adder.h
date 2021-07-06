@@ -43,9 +43,13 @@ class AccelerationCommandFactorAdder
     const localization_measurements::AccelerationCommand& acceleration_command) final;
 
  private:
+  boost::optional<localization_measurements::ImuMeasurement> ClosestImuMeasurement(
+    const localization_common::Time time) const;
+
   gtsam::PreintegratedCombinedMeasurements pim_;
   boost::optional<localization_measurements::AccelerationCommand> last_acceleration_command_;
   std::shared_ptr<imu_integration::LatestImuIntegrator> latest_imu_integrator_;
+  std::map<localization_common::Time, localization_measurements::AccelerationCommand> acceleration_commands_;
 };
 }  // namespace graph_localizer
 

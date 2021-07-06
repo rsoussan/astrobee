@@ -37,6 +37,7 @@ last_acceleration_command.timestamp);
 namespace graph_localizer {
 namespace go = graph_optimizer;
 namespace ii = imu_integration;
+namespace lc = localization_common;
 namespace lm = localization_measurements;
 namespace sym = gtsam::symbol_shorthand;
 AccelerationCommandFactorAdder::AccelerationCommandFactorAdder(
@@ -44,8 +45,26 @@ AccelerationCommandFactorAdder::AccelerationCommandFactorAdder(
   std::shared_ptr<imu_integration::LatestImuIntegrator> latest_imu_integrator)
     : AccelerationCommandFactorAdder::Base(params), latest_imu_integrator_(latest_imu_integrator) {}
 
+boost::optional<localization_measurements::ImuMeasurement> AccelerationCommandFactorAdder::ClosestImuMeasurement(
+  const lc::Time time) const {
+  if (latest_imu_integrator_->Empty()) return boost::none;
+  const auto& measurements = latest_imu_integrator_->measurements();
+  const auto& upper_bound_it = measurements.lower_bound(time);
+  const auto& lower_bound_it = std::prev(upper_bound_it);
+  const double upper_bound_time_diff = std::abs(time - upper_bound_it->first);
+  const double lower_bound_time_diff = std::abs(time - lower_bound_it->first);
+  return upper_bound_time_diff < lower_bound_time_diff ? upper_bound_it->second : lower_bound_it->second;
+}
+
+/*boost::optional<gtsam::Vector3> AngularVelocityDiff(const lc::Time time_a, const lc::Time time_b){
+
+
+}*/
+
 std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
   const lm::AccelerationCommand& acceleration_command) {
+  acceleration_commands_.emplace(acceleration_command.timestamp, acceleration_command);
+
   std::vector<go::FactorsToAdd> factors_to_add;
 
   if (!last_acceleration_command_) {
