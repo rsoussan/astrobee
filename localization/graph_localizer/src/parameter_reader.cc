@@ -53,8 +53,15 @@ void LoadAccelerationCommandFactorAdderParams(config_reader::ConfigReader& confi
                                               AccelerationCommandFactorAdderParams& params) {
   params.enabled = mc::LoadBool(config, "acceleration_command_adder_enabled");
   params.huber_k = mc::LoadDouble(config, "huber_k");
-  params.linear_acceleration_stddev = mc::LoadDouble(config, "acceleration_command_adder_linear_acceleration_stddev");
   params.min_dt = mc::LoadDouble(config, "acceleration_command_adder_min_dt");
+  params.gravity = lc::LoadVector3(config, "world_gravity_vector");
+  const bool ignore_gravity = mc::LoadBool(config, "ignore_gravity");
+  if (ignore_gravity) params.gravity = gtsam::Vector3::Zero();
+  params.gyro_sigma = mc::LoadDouble(config, "acceleration_command_adder_gyro_sigma");
+  params.accel_sigma = mc::LoadDouble(config, "acceleration_command_adder_accel_sigma");
+  params.gyro_bias_sigma = mc::LoadDouble(config, "acceleration_command_adder_gyro_bias_sigma");
+  params.integration_variance = mc::LoadDouble(config, "acceleration_command_adder_integration_variance");
+  params.bias_acc_omega_int = mc::LoadDouble(config, "acceleration_command_adder_bias_acc_omega_int");
 }
 
 void LoadHandrailFactorAdderParams(config_reader::ConfigReader& config, HandrailFactorAdderParams& params) {

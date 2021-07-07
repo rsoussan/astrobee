@@ -46,7 +46,17 @@ AccelerationCommandFactorAdder::AccelerationCommandFactorAdder(
   std::shared_ptr<CombinedNavStateGraphValues> graph_values)
     : AccelerationCommandFactorAdder::Base(params),
       latest_imu_integrator_(latest_imu_integrator),
-      graph_values_(graph_values) {}
+      graph_values_(graph_values) {
+  pim_params_.reset(new gtsam::PreintegratedCombinedMeasurements::Params(params.gravity));
+  // Set sensor covariances
+  pim_params_->gyroscopeCovariance = params.gyro_sigma * params.gyro_sigma * gtsam::I_3x3;
+  pim_params_->accelerometerCovariance = params.accel_sigma * params.accel_sigma * gtsam::I_3x3;
+  pim_params_->integrationCovariance = params.integration_variance * gtsam::I_3x3;
+  // Set bias random walk covariances only for Gyro
+  pim_params_->biasOmegaCovariance = params.gyro_bias_sigma * params.gyro_bias_sigma * gtsam::I_3x3;
+  // Set bias covariance used for pim integration
+  pim_params_->biasAccOmegaInt = params.bias_acc_omega_int * gtsam::I_6x6;
+}
 
 boost::optional<localization_measurements::ImuMeasurement> AccelerationCommandFactorAdder::ClosestImuMeasurement(
   const lc::Time time) const {
@@ -91,18 +101,8 @@ std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
 
   std::vector<go::FactorsToAdd> factors_to_add;
 
-  if (!last_acceleration_command_) {
-    last_acceleration_command_ = acceleration_command;
-    return factors_to_add;
-  }
-
-  if (last_acceleration_command_->timestamp > acceleration_command.timestamp) {
-    LogDebug("AddFactors: Out of order acceleration command received.");
-    return factors_to_add;
-  }
-
   // pim_.resetIntegrationAndSetBias(gtsam::imuBias::ConstantBias());
-  const double dt = acceleration_command.timestamp - last_acceleration_command_->timestamp;
+  /*const double dt = acceleration_command.timestamp - last_acceleration_command_->timestamp;
   // const lm::ImuMeasurement acceleration_command_measurement = MakeImuMeasurement(last_acceleration_command_,
   // elapsed_time); ii::AddMeasurement(last_acceleration_command_measurement_, last_acceleration_command_.timestamp,
   // pim_);
@@ -136,7 +136,7 @@ std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
   acceleration_command_factors_to_add.SetTimestamp(acceleration_command.timestamp);
   LogDebug("AddFactors: Added " << acceleration_command_factors_to_add.size() << " acceleration command factors.");
   factors_to_add.emplace_back(acceleration_command_factors_to_add);
-  last_acceleration_command_ = acceleration_command;
+  last_acceleration_command_ = acceleration_command;*/
   return factors_to_add;
 }
 }  // namespace graph_localizer

@@ -21,10 +21,18 @@
 
 #include <graph_optimizer/factor_adder_params.h>
 
+#include <gtsam/base/Vector.h>
+
 namespace graph_localizer {
 struct AccelerationCommandFactorAdderParams : public graph_optimizer::FactorAdderParams {
-  double linear_acceleration_stddev;
   double min_dt;
+  gtsam::Vector3 gravity;
+  // From gtsam: Angular and velocity random walk expressed in degrees respectively m/s per sqrt(hr).
+  double gyro_sigma;
+  double accel_sigma;
+  double gyro_bias_sigma;
+  double integration_variance;
+  double bias_acc_omega_int;
 };
 }  // namespace graph_localizer
 
