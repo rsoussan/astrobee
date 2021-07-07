@@ -24,6 +24,7 @@
 namespace graph_localizer {
 struct AccelerationCommandFactorAdderParams : public graph_optimizer::FactorAdderParams {
   double linear_acceleration_stddev;
+  double min_dt;
 };
 }  // namespace graph_localizer
 

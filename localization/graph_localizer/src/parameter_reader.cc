@@ -54,6 +54,7 @@ void LoadAccelerationCommandFactorAdderParams(config_reader::ConfigReader& confi
   params.enabled = mc::LoadBool(config, "acceleration_command_adder_enabled");
   params.huber_k = mc::LoadDouble(config, "huber_k");
   params.linear_acceleration_stddev = mc::LoadDouble(config, "acceleration_command_adder_linear_acceleration_stddev");
+  params.min_dt = mc::LoadDouble(config, "acceleration_command_adder_min_dt");
 }
 
 void LoadHandrailFactorAdderParams(config_reader::ConfigReader& config, HandrailFactorAdderParams& params) {
