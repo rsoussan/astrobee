@@ -78,7 +78,8 @@ GraphLocalizer::GraphLocalizer(const GraphLocalizerParams& params)
 
   // Initialize Factor Adders
   acceleration_command_factor_adder_.reset(
-    new AccelerationCommandFactorAdder(params_.factor.acceleration_command_adder, latest_imu_integrator_));
+    new AccelerationCommandFactorAdder(params_.factor.acceleration_command_adder, latest_imu_integrator_,
+                                       combined_nav_state_node_updater_->shared_graph_values()));
   ar_tag_loc_factor_adder_.reset(
     new LocFactorAdder(params_.factor.ar_tag_loc_adder, go::GraphActionCompleterType::ARTagLocProjectionFactor));
   handrail_factor_adder_.reset(new HandrailFactorAdder(params_.factor.handrail_adder));

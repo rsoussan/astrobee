@@ -42,8 +42,11 @@ namespace lm = localization_measurements;
 namespace sym = gtsam::symbol_shorthand;
 AccelerationCommandFactorAdder::AccelerationCommandFactorAdder(
   const AccelerationCommandFactorAdderParams& params,
-  std::shared_ptr<imu_integration::LatestImuIntegrator> latest_imu_integrator)
-    : AccelerationCommandFactorAdder::Base(params), latest_imu_integrator_(latest_imu_integrator) {}
+  std::shared_ptr<imu_integration::LatestImuIntegrator> latest_imu_integrator,
+  std::shared_ptr<CombinedNavStateGraphValues> graph_values)
+    : AccelerationCommandFactorAdder::Base(params),
+      latest_imu_integrator_(latest_imu_integrator),
+      graph_values_(graph_values) {}
 
 boost::optional<localization_measurements::ImuMeasurement> AccelerationCommandFactorAdder::ClosestImuMeasurement(
   const lc::Time time) const {
