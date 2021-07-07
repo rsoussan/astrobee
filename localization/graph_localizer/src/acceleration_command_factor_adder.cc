@@ -59,6 +59,27 @@ boost::optional<localization_measurements::ImuMeasurement> AccelerationCommandFa
   return upper_bound_time_diff < lower_bound_time_diff ? upper_bound_it->second : lower_bound_it->second;
 }
 
+boost::optional<gtsam::Vector3> AccelerationCommandFactorAdder::ClosestGyroBias(const lc::Time time) const {
+  const auto closest_timestamp = graph_values_->ClosestPoseTimestamp(time);
+  if (!closest_timestamp) {
+    LogError("ClosestGyroBias: Failed to get closest timestamp");
+    return boost::none;
+  }
+
+  const double time_diff = std::abs(*closest_timestamp - time);
+  if (time_diff > 1) {
+    LogWarning("ClosestGyroBias: Time diff " << time_diff << " > 1 second");
+  }
+
+  const auto combined_nav_state = graph_values_->GetCombinedNavState(*closest_timestamp);
+  if (!combined_nav_state) {
+    LogError("ClosestGyroBias: Failed to get closest combined nav state");
+    return boost::none;
+  }
+
+  return combined_nav_state->bias().gyroscope();
+}
+
 /*boost::optional<gtsam::Vector3> AngularVelocityDiff(const lc::Time time_a, const lc::Time time_b){
 
 
