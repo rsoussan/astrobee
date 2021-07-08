@@ -98,11 +98,28 @@ double AccelerationCommandFactorAdder::ElapsedTime() const {
   return acceleration_commands_.crbegin()->first - acceleration_commands_.cbegin()->first;
 }
 
+void AccelerationCommandFactorAdder::AddMeasurements(std::map<lc::Time, lm::AccelerationCommand>& acceleration_commands,
+                                                     gtsam::PreintegratedCombinedMeasurements& pim) {}
+
 std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
   const lm::AccelerationCommand& acceleration_command) {
   acceleration_commands_.emplace(acceleration_command.timestamp, acceleration_command);
   const double dt = ElapsedTime();
   if (dt < params().min_dt) return {};
+  const auto first_timestamp = acceleration_commands_.cbegin()->first;
+  const auto closest_gyro_bias = ClosestGyroBias(first_timestamp);
+  if (!closest_gyro_bias) {
+    LogWarning("AddFactors: Failed to get closest gyro bias.");
+    return {};
+  }
+
+  // No linear acceleration bias since is used directly from the acceleration command, whereas
+  // the intregrated angular acceleration bias is added to the closest angular velocity measurement
+  // coming from the IMU which needs to have its bias removed.
+  const gtsam::imuBias::ConstantBias initial_bias(gtsam::Vector3::Zero(), *closest_gyro_bias);
+  pim_->resetIntegrationAndSetBias(initial_bias);
+
+  AddMeasurements(acceleration_commands_, *pim_);
   // TODO: get closest gyro bias, make bias with this and zero lin accel bias
   // pim_->resetIntegrationAndSetBias(gyro_bias);
   // add fcn to incrementally add measurements to pim! remove measureents afterwards!
