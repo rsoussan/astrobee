@@ -57,17 +57,19 @@ AccelerationCommandFactorAdder::AccelerationCommandFactorAdder(
   pim_params_->biasOmegaCovariance = params.gyro_bias_sigma * params.gyro_bias_sigma * gtsam::I_3x3;
   // Set bias covariance used for pim integration
   pim_params_->biasAccOmegaInt = params.bias_acc_omega_int * gtsam::I_6x6;
+
+  pim_.reset(new gtsam::PreintegratedCombinedMeasurements(pim_params_));
 }
 
-boost::optional<localization_measurements::ImuMeasurement> AccelerationCommandFactorAdder::ClosestImuMeasurement(
+boost::optional<localization_measurements::ImuMeasurement> AccelerationCommandFactorAdder::GetImuMeasurement(
   const lc::Time time) const {
   if (latest_imu_integrator_->Empty()) return boost::none;
   const auto& measurements = latest_imu_integrator_->measurements();
   const auto& upper_bound_it = measurements.lower_bound(time);
+  if (upper_bound_it == measurements.begin()) return upper_bound_it->second;
   const auto& lower_bound_it = std::prev(upper_bound_it);
-  const double upper_bound_time_diff = std::abs(time - upper_bound_it->first);
-  const double lower_bound_time_diff = std::abs(time - lower_bound_it->first);
-  return upper_bound_time_diff < lower_bound_time_diff ? upper_bound_it->second : lower_bound_it->second;
+  if (upper_bound_it == measurements.end()) return lower_bound_it->second;
+  return ii::Interpolate(lower_bound_it->second, upper_bound_it->second, time);
 }
 
 boost::optional<gtsam::Vector3> AccelerationCommandFactorAdder::ClosestGyroBias(const lc::Time time) const {
@@ -99,6 +101,8 @@ boost::optional<gtsam::Vector3> AccelerationCommandFactorAdder::ClosestGyroBias(
 std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
   const lm::AccelerationCommand& acceleration_command) {
   acceleration_commands_.emplace(acceleration_command.timestamp, acceleration_command);
+  // TODO: get closest gyro bias, make bias with this and zero lin accel bias
+  // pim_->resetIntegrationAndSetBias(gyro_bias);
 
   std::vector<go::FactorsToAdd> factors_to_add;
 

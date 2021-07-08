@@ -45,12 +45,12 @@ class AccelerationCommandFactorAdder
     const localization_measurements::AccelerationCommand& acceleration_command) final;
 
  private:
-  boost::optional<localization_measurements::ImuMeasurement> ClosestImuMeasurement(
+  boost::optional<localization_measurements::ImuMeasurement> GetImuMeasurement(
     const localization_common::Time time) const;
 
   boost::optional<gtsam::Vector3> ClosestGyroBias(const localization_common::Time time) const;
 
-  gtsam::PreintegratedCombinedMeasurements pim_;
+  std::shared_ptr<gtsam::PreintegratedCombinedMeasurements> pim_;
   boost::shared_ptr<gtsam::PreintegratedCombinedMeasurements::Params> pim_params_;
   std::shared_ptr<const imu_integration::LatestImuIntegrator> latest_imu_integrator_;
   std::shared_ptr<const CombinedNavStateGraphValues> graph_values_;
