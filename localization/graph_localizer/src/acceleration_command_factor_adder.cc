@@ -144,44 +144,27 @@ std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
     return {};
   }
 
-  std::vector<go::FactorsToAdd> factors_to_add;
-
-  // pim_.resetIntegrationAndSetBias(gtsam::imuBias::ConstantBias());
-  /*const double dt = acceleration_command.timestamp - last_acceleration_command_->timestamp;
-  // const lm::ImuMeasurement acceleration_command_measurement = MakeImuMeasurement(last_acceleration_command_,
-  // elapsed_time); ii::AddMeasurement(last_acceleration_command_measurement_, last_acceleration_command_.timestamp,
-  // pim_);
-  // TODO: get relative velocity diff and orientation diff from pim!!!
-  go::FactorsToAdd acceleration_command_factors_to_add;
-  const gtsam::Vector3 linear_acceleration_command_noise_sigmas(
-    (gtsam::Vector(3) << params().linear_acceleration_stddev, params().linear_acceleration_stddev,
-     params().linear_acceleration_stddev)
-      .finished());
-  const auto linear_acceleration_command_noise = Robust(
-    gtsam::noiseModel::Diagonal::Sigmas(Eigen::Ref<const Eigen::VectorXd>(linear_acceleration_command_noise_sigmas)),
-    params().huber_k);
   // CombinedNavState a Keys
-  const go::KeyInfo pose_a_key_info(&sym::P, go::NodeUpdaterType::CombinedNavState,
-                                    last_acceleration_command_->timestamp);
-  const go::KeyInfo velocity_a_key_info(&sym::V, go::NodeUpdaterType::CombinedNavState,
-                                        last_acceleration_command_->timestamp);
-  const go::KeyInfo imu_bias_a_key_info(&sym::B, go::NodeUpdaterType::CombinedNavState,
-                                        last_acceleration_command_->timestamp);
+  const lc::Time starting_timestamp = acceleration_commands_.cbegin()->first;
+  const go::KeyInfo pose_a_key_info(&sym::P, go::NodeUpdaterType::CombinedNavState, starting_timestamp);
+  const go::KeyInfo velocity_a_key_info(&sym::V, go::NodeUpdaterType::CombinedNavState, starting_timestamp);
+  const go::KeyInfo imu_bias_a_key_info(&sym::B, go::NodeUpdaterType::CombinedNavState, starting_timestamp);
   // CombinedNavState b Keys
-  const go::KeyInfo pose_b_key_info(&sym::P, go::NodeUpdaterType::CombinedNavState, acceleration_command.timestamp);
-  const go::KeyInfo velocity_b_key_info(&sym::V, go::NodeUpdaterType::CombinedNavState, acceleration_command.timestamp);
+  const lc::Time ending_timestamp = acceleration_commands_.crbegin()->first;
+  const go::KeyInfo pose_b_key_info(&sym::P, go::NodeUpdaterType::CombinedNavState, ending_timestamp);
+  const go::KeyInfo velocity_b_key_info(&sym::V, go::NodeUpdaterType::CombinedNavState, ending_timestamp);
 
-  gtsam::AccelerationCommandFactor::shared_ptr acceleration_command_factor(new gtsam::AccelerationCommandFactor(
-    *last_acceleration_command_, dt, linear_acceleration_command_noise, pose_a_key_info.UninitializedKey(),
-    velocity_a_key_info.UninitializedKey(), imu_bias_a_key_info.UninitializedKey(), pose_b_key_info.UninitializedKey(),
-    velocity_b_key_info.UninitializedKey()));
+  gtsam::AccelerationCommandFactor::shared_ptr acceleration_command_factor(
+    new gtsam::AccelerationCommandFactor(*pim_, params().huber_k, pose_a_key_info.UninitializedKey(),
+                                         velocity_a_key_info.UninitializedKey(), imu_bias_a_key_info.UninitializedKey(),
+                                         pose_b_key_info.UninitializedKey(), velocity_b_key_info.UninitializedKey()));
+  go::FactorsToAdd acceleration_command_factors_to_add;
   acceleration_command_factors_to_add.push_back(
     {{pose_a_key_info, velocity_a_key_info, imu_bias_a_key_info, pose_b_key_info, velocity_b_key_info},
      acceleration_command_factor});
-  acceleration_command_factors_to_add.SetTimestamp(acceleration_command.timestamp);
+  acceleration_command_factors_to_add.SetTimestamp(ending_timestamp);
   LogDebug("AddFactors: Added " << acceleration_command_factors_to_add.size() << " acceleration command factors.");
-  factors_to_add.emplace_back(acceleration_command_factors_to_add);
-  last_acceleration_command_ = acceleration_command;*/
-  return factors_to_add;
+  acceleration_commands_.clear();
+  return {acceleration_command_factors_to_add};
 }
 }  // namespace graph_localizer
