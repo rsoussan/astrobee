@@ -98,8 +98,23 @@ double AccelerationCommandFactorAdder::ElapsedTime() const {
   return acceleration_commands_.crbegin()->first - acceleration_commands_.cbegin()->first;
 }
 
-void AccelerationCommandFactorAdder::AddMeasurements(std::map<lc::Time, lm::AccelerationCommand>& acceleration_commands,
-                                                     gtsam::PreintegratedCombinedMeasurements& pim) {}
+bool AccelerationCommandFactorAdder::AddMeasurements(const gtsam::Vector3& initial_angular_velocity,
+                                                     std::map<lc::Time, lm::AccelerationCommand>& acceleration_commands,
+                                                     gtsam::PreintegratedCombinedMeasurements& pim) {
+  if (acceleration_commands.size() < 2) return false;
+  gtsam::Vector3 angular_velocity = initial_angular_velocity;
+  for (auto acceleration_command_it = acceleration_commands.begin();
+       acceleration_command_it != std::prev(acceleration_commands.end()); ++acceleration_command_it) {
+    const auto& acceleration_command = acceleration_command_it->second;
+    const auto& next_acceleration_command = std::next(acceleration_command_it)->second;
+    const double dt = next_acceleration_command.timestamp - acceleration_command.timestamp;
+    angular_velocity += dt * acceleration_command.angular_acceleration;
+    const lm::ImuMeasurement imu_measurement(acceleration_command.linear_acceleration, angular_velocity,
+                                             next_acceleration_command.timestamp);
+  }
+
+  return true;
+}
 
 std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
   const lm::AccelerationCommand& acceleration_command) {
@@ -113,13 +128,23 @@ std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
     return {};
   }
 
+  const auto initial_imu_measurement = GetImuMeasurement(first_timestamp);
+  if (!initial_imu_measurement) {
+    LogWarning("AddFactors: Failed to get initial IMU measurement.");
+    return {};
+  }
+  const auto& initial_angular_velocity = initial_imu_measurement->angular_velocity;
+
   // No linear acceleration bias since is used directly from the acceleration command, whereas
   // the intregrated angular acceleration bias is added to the closest angular velocity measurement
   // coming from the IMU which needs to have its bias removed.
   const gtsam::imuBias::ConstantBias initial_bias(gtsam::Vector3::Zero(), *closest_gyro_bias);
   pim_->resetIntegrationAndSetBias(initial_bias);
 
-  AddMeasurements(acceleration_commands_, *pim_);
+  if (!AddMeasurements(initial_angular_velocity, acceleration_commands_, *pim_)) {
+    LogError("AddFactors: Failed to add acceleration commands.");
+    return {};
+  }
   // TODO: get closest gyro bias, make bias with this and zero lin accel bias
   // pim_->resetIntegrationAndSetBias(gyro_bias);
   // add fcn to incrementally add measurements to pim! remove measureents afterwards!

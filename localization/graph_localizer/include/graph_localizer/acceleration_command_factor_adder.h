@@ -49,7 +49,8 @@ class AccelerationCommandFactorAdder
     const localization_common::Time time) const;
   boost::optional<gtsam::Vector3> ClosestGyroBias(const localization_common::Time time) const;
   double ElapsedTime() const;
-  void AddMeasurements(
+  bool AddMeasurements(
+    const gtsam::Vector3& initial_angular_velocity,
     std::map<localization_common::Time, localization_measurements::AccelerationCommand>& acceleration_commands,
     gtsam::PreintegratedCombinedMeasurements& pim);
 
