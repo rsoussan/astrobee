@@ -63,30 +63,31 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
                        boost::optional<Matrix&> d_e_d_biases_a = boost::none,
                        boost::optional<Matrix&> d_e_d_world_T_body_b = boost::none,
                        boost::optional<Matrix&> d_e_d_world_F_world_v_body_b = boost::none) const override {
-    // TODO(rsoussan): pass imu_biases_b???????
     const auto combined_imu_factor_error = combined_imu_factor_.evaluateError(
       world_T_body_a, world_F_world_v_body_a, world_T_body_b, world_F_world_v_body_b, imu_biases_a, imu_biases_a,
       d_e_d_world_T_body_a, d_e_d_world_F_world_v_body_a, d_e_d_world_T_body_b, d_e_d_world_F_world_v_body_b,
       d_e_d_biases_a, boost::none);
-    // Calculate Jacobians
+    // Remove random walk bias from error function and Jacobians
+    // Since error is originally size 15, new error is size 9
     if (d_e_d_world_T_body_a) {
-      //*d_e_d_world_T_body_a = d_e_d_world_R_body_a * d_world_R_body_a_d_world_T_body_a;
+      *d_e_d_world_T_body_a = d_e_d_world_T_body_a->block(0, 0, 9, 6);
     }
     if (d_e_d_world_F_world_v_body_a) {
-      *d_e_d_world_F_world_v_body_a = I_3x3;
+      *d_e_d_world_F_world_v_body_a = d_e_d_world_F_world_v_body_a->block(0, 0, 9, 3);
     }
     if (d_e_d_biases_a) {
-      *d_e_d_biases_a = Eigen::Matrix<double, 3, 6>::Zero();
+      *d_e_d_biases_a = d_e_d_biases_a->block(0, 0, 9, 6);
+      // Zero linear acceleration bias Jacobian
+      d_e_d_biases_a->block(0, 9, 9, 3) = Eigen::Matrix3d::Zero();
     }
     if (d_e_d_world_T_body_b) {
-      *d_e_d_world_T_body_b = Eigen::Matrix<double, 3, 6>::Zero();
+      *d_e_d_world_T_body_b = d_e_d_world_T_body_b->block(0, 0, 9, 6);
     }
     if (d_e_d_world_F_world_v_body_b) {
-      *d_e_d_world_F_world_v_body_b = -1.0 * I_3x3;
+      *d_e_d_world_F_world_v_body_b = d_e_d_world_F_world_v_body_b->block(0, 0, 9, 3);
     }
 
-    // return error;
-    return Vector();
+    return combined_imu_factor_error.head(9);
   }
 
   const CombinedImuFactor& combined_imu_factor() const { return combined_imu_factor_; }
