@@ -93,16 +93,19 @@ boost::optional<gtsam::Vector3> AccelerationCommandFactorAdder::ClosestGyroBias(
   return combined_nav_state->bias().gyroscope();
 }
 
-/*boost::optional<gtsam::Vector3> AngularVelocityDiff(const lc::Time time_a, const lc::Time time_b){
-
-
-}*/
+double AccelerationCommandFactorAdder::ElapsedTime() const {
+  if (acceleration_commands_.size() <= 1) return 0;
+  return acceleration_commands_.crbegin()->first - acceleration_commands_.cbegin()->first;
+}
 
 std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
   const lm::AccelerationCommand& acceleration_command) {
   acceleration_commands_.emplace(acceleration_command.timestamp, acceleration_command);
+  const double dt = ElapsedTime();
+  if (dt < params().min_dt) return {};
   // TODO: get closest gyro bias, make bias with this and zero lin accel bias
   // pim_->resetIntegrationAndSetBias(gyro_bias);
+  // add fcn to incrementally add measurements to pim! remove measureents afterwards!
 
   std::vector<go::FactorsToAdd> factors_to_add;
 

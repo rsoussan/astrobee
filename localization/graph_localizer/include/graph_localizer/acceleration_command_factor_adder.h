@@ -47,8 +47,8 @@ class AccelerationCommandFactorAdder
  private:
   boost::optional<localization_measurements::ImuMeasurement> GetImuMeasurement(
     const localization_common::Time time) const;
-
   boost::optional<gtsam::Vector3> ClosestGyroBias(const localization_common::Time time) const;
+  double ElapsedTime() const;
 
   std::shared_ptr<gtsam::PreintegratedCombinedMeasurements> pim_;
   boost::shared_ptr<gtsam::PreintegratedCombinedMeasurements::Params> pim_params_;
