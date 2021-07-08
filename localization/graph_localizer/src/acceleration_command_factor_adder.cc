@@ -109,10 +109,8 @@ bool AccelerationCommandFactorAdder::AddMeasurements(const gtsam::Vector3& initi
     const auto& next_acceleration_command = std::next(acceleration_command_it)->second;
     const double dt = next_acceleration_command.timestamp - acceleration_command.timestamp;
     angular_velocity += dt * acceleration_command.angular_acceleration;
-    const lm::ImuMeasurement imu_measurement(acceleration_command.linear_acceleration, angular_velocity,
-                                             next_acceleration_command.timestamp);
+    pim.integrateMeasurement(acceleration_command.linear_acceleration, angular_velocity, dt);
   }
-
   return true;
 }
 
