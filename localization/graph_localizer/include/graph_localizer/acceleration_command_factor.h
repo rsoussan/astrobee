@@ -19,9 +19,8 @@
 #ifndef GRAPH_LOCALIZER_ACCELERATION_COMMAND_FACTOR_H_
 #define GRAPH_LOCALIZER_ACCELERATION_COMMAND_FACTOR_H_
 
-#include <localization_measurements/acceleration_command.h>
-
 #include <gtsam/geometry/Pose3.h>
+#include <gtsam/navigation/CombinedImuFactor.h>
 #include <gtsam/navigation/NavState.h>
 #include <gtsam/navigation/ImuBias.h>
 #include <gtsam/nonlinear/NonlinearFactor.h>
@@ -36,26 +35,20 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
  public:
   AccelerationCommandFactor() {}
 
-  AccelerationCommandFactor(const localization_measurements::AccelerationCommand& acceleration_command, const double dt,
-                            const SharedNoiseModel& model, Key pose_a_key, Key velocity_a_key, Key imu_bias_a_key,
-                            Key pose_b_key, Key velocity_b_key)
+  AccelerationCommandFactor(const PreintegratedCombinedMeasurements& pim, const SharedNoiseModel& model, Key pose_a_key,
+                            Key velocity_a_key, Key imu_bias_a_key, Key pose_b_key, Key velocity_b_key)
       : Base(model, pose_a_key, velocity_a_key, imu_bias_a_key, pose_b_key, velocity_b_key),
-        acceleration_command_(acceleration_command),
-        dt_(dt) {}
+        combined_imu_factor_(Key(), Key(), Key(), Key(), Key(), Key(), pim) {}
 
   void print(const std::string& s = "", const KeyFormatter& keyFormatter = DefaultKeyFormatter) const override {
     std::cout << s << "AccelerationCommandFactor, z = ";
-    traits<localization_measurements::AccelerationCommand>::Print(acceleration_command_);
-    std::cout << " dt: " << dt_ << std::endl;
+    combined_imu_factor_.print("", keyFormatter);
     Base::print("", keyFormatter);
   }
 
   bool equals(const NonlinearFactor& p, double tol = 1e-9) const override {
     const This* e = dynamic_cast<const This*>(&p);
-    return e && Base::equals(p, tol) &&
-           traits<localization_measurements::AccelerationCommand>::Equals(this->acceleration_command(),
-                                                                          e->acceleration_command(), tol) &&
-           std::abs(dt_ - e->dt()) < tol;
+    return e && Base::equals(p, tol) && combined_imu_factor_.equals(e->combined_imu_factor(), tol);
   }
 
   Vector evaluateError(const Pose3& world_T_body_a, const Velocity3& world_F_world_v_body_a,
@@ -66,17 +59,9 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
                        boost::optional<Matrix&> d_e_d_biases_a = boost::none,
                        boost::optional<Matrix&> d_e_d_world_T_body_b = boost::none,
                        boost::optional<Matrix&> d_e_d_world_F_world_v_body_b = boost::none) const override {
-    const gtsam::Rot3 world_R_body_a = world_T_body_a.rotation();
-    const Vector3 measured_delta_velocity = world_R_body_a * acceleration_command_.linear_acceleration * dt_;
-    const Vector3 expected_delta_velocity = world_F_world_v_body_b - world_F_world_v_body_a;
-    const Vector3 error = measured_delta_velocity - expected_delta_velocity;
     // Calculate Jacobians
     if (d_e_d_world_T_body_a) {
-      gtsam::Matrix d_e_d_world_R_body_a;
-      world_R_body_a.rotate(acceleration_command_.linear_acceleration * dt_, d_e_d_world_R_body_a);
-      gtsam::Matrix d_world_R_body_a_d_world_T_body_a;
-      world_T_body_a.rotation(d_world_R_body_a_d_world_T_body_a);
-      *d_e_d_world_T_body_a = d_e_d_world_R_body_a * d_world_R_body_a_d_world_T_body_a;
+      //*d_e_d_world_T_body_a = d_e_d_world_R_body_a * d_world_R_body_a_d_world_T_body_a;
     }
     if (d_e_d_world_F_world_v_body_a) {
       *d_e_d_world_F_world_v_body_a = I_3x3;
@@ -91,31 +76,21 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
       *d_e_d_world_F_world_v_body_b = -1.0 * I_3x3;
     }
 
-    return error;
+    // return error;
+    return Vector();
   }
 
-  // Workaround to test factor Jacobians since boost::bind can't accept more than 9 arguments.
-  // evaluateError has 10 including the optional Jacobians, but these count towards the boost bind limit.
-  Vector testEvaluateError(const Pose3& world_T_body_a, const Velocity3& world_F_world_v_body_a,
-                           const imuBias::ConstantBias& imu_biases_a, const Pose3& world_T_body_b,
-                           const Velocity3& world_F_world_v_body_b) const {
-    return evaluateError(world_T_body_a, world_F_world_v_body_a, imu_biases_a, world_T_body_b, world_F_world_v_body_b);
-  }
-
-  const localization_measurements::AccelerationCommand& acceleration_command() const { return acceleration_command_; }
-  const double dt() const { return dt_; }
+  const CombinedImuFactor& combined_imu_factor() const { return combined_imu_factor_; }
 
  private:
   friend class boost::serialization::access;
   template <class ARCHIVE>
   void serialize(ARCHIVE& ar, const unsigned int /*version*/) {
     ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(Base);
-    ar& BOOST_SERIALIZATION_NVP(acceleration_command_);
-    ar& BOOST_SERIALIZATION_NVP(dt_);
+    ar& BOOST_SERIALIZATION_NVP(combined_imu_factor_);
   }
 
-  localization_measurements::AccelerationCommand acceleration_command_;
-  double dt_;
+  CombinedImuFactor combined_imu_factor_;
 
  public:
   GTSAM_MAKE_ALIGNED_OPERATOR_NEW
