@@ -63,6 +63,11 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
                        boost::optional<Matrix&> d_e_d_biases_a = boost::none,
                        boost::optional<Matrix&> d_e_d_world_T_body_b = boost::none,
                        boost::optional<Matrix&> d_e_d_world_F_world_v_body_b = boost::none) const override {
+    // TODO(rsoussan): pass imu_biases_b???????
+    const auto combined_imu_factor_error = combined_imu_factor_.evaluateError(
+      world_T_body_a, world_F_world_v_body_a, world_T_body_b, world_F_world_v_body_b, imu_biases_a, imu_biases_a,
+      d_e_d_world_T_body_a, d_e_d_world_F_world_v_body_a, d_e_d_world_T_body_b, d_e_d_world_F_world_v_body_b,
+      d_e_d_biases_a, boost::none);
     // Calculate Jacobians
     if (d_e_d_world_T_body_a) {
       //*d_e_d_world_T_body_a = d_e_d_world_R_body_a * d_world_R_body_a_d_world_T_body_a;
