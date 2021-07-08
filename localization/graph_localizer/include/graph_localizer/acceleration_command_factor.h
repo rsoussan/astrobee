@@ -35,9 +35,11 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
  public:
   AccelerationCommandFactor() {}
 
-  AccelerationCommandFactor(const PreintegratedCombinedMeasurements& pim, const SharedNoiseModel& model, Key pose_a_key,
-                            Key velocity_a_key, Key imu_bias_a_key, Key pose_b_key, Key velocity_b_key)
-      : Base(model, pose_a_key, velocity_a_key, imu_bias_a_key, pose_b_key, velocity_b_key),
+  AccelerationCommandFactor(const PreintegratedCombinedMeasurements& pim, Key pose_a_key, Key velocity_a_key,
+                            Key imu_bias_a_key, Key pose_b_key, Key velocity_b_key)
+      : Base(noiseModel::Gaussian::Covariance(pim.preintMeasCov()), pose_a_key, velocity_a_key, imu_bias_a_key,
+             pose_b_key, velocity_b_key),
+        // Use dummy keys for member variable combined_imu_factor_ since only the error function from this is being used
         combined_imu_factor_(Key(), Key(), Key(), Key(), Key(), Key(), pim) {}
 
   void print(const std::string& s = "", const KeyFormatter& keyFormatter = DefaultKeyFormatter) const override {
