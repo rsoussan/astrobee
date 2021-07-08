@@ -143,9 +143,6 @@ std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
     LogError("AddFactors: Failed to add acceleration commands.");
     return {};
   }
-  // TODO: get closest gyro bias, make bias with this and zero lin accel bias
-  // pim_->resetIntegrationAndSetBias(gyro_bias);
-  // add fcn to incrementally add measurements to pim! remove measureents afterwards!
 
   std::vector<go::FactorsToAdd> factors_to_add;
 

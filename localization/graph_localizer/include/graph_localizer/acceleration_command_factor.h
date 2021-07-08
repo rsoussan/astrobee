@@ -19,6 +19,8 @@
 #ifndef GRAPH_LOCALIZER_ACCELERATION_COMMAND_FACTOR_H_
 #define GRAPH_LOCALIZER_ACCELERATION_COMMAND_FACTOR_H_
 
+#include <graph_localizer/utilities.h>
+
 #include <gtsam/geometry/Pose3.h>
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include <gtsam/navigation/NavState.h>
@@ -35,10 +37,10 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
  public:
   AccelerationCommandFactor() {}
 
-  AccelerationCommandFactor(const PreintegratedCombinedMeasurements& pim, Key pose_a_key, Key velocity_a_key,
-                            Key imu_bias_a_key, Key pose_b_key, Key velocity_b_key)
-      : Base(noiseModel::Gaussian::Covariance(pim.preintMeasCov()), pose_a_key, velocity_a_key, imu_bias_a_key,
-             pose_b_key, velocity_b_key),
+  AccelerationCommandFactor(const PreintegratedCombinedMeasurements& pim, const double huber_k, Key pose_a_key,
+                            Key velocity_a_key, Key imu_bias_a_key, Key pose_b_key, Key velocity_b_key)
+      : Base(graph_localizer::Robust(noiseModel::Gaussian::Covariance(pim.preintMeasCov()), huber_k), pose_a_key,
+             velocity_a_key, imu_bias_a_key, pose_b_key, velocity_b_key),
         // Use dummy keys for member variable combined_imu_factor_ since only the error function from this is being used
         combined_imu_factor_(Key(), Key(), Key(), Key(), Key(), Key(), pim) {}
 
