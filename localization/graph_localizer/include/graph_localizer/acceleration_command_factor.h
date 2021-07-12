@@ -77,7 +77,7 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
     if (d_e_d_biases_a) {
       *d_e_d_biases_a = d_e_d_biases_a->block(0, 0, 9, 6);
       // Zero linear acceleration bias Jacobian
-      d_e_d_biases_a->block(0, 9, 9, 3) = Eigen::Matrix3d::Zero();
+      d_e_d_biases_a->block(0, 0, 9, 3) = Eigen::Matrix<double, 9, 3>::Zero();
     }
     if (d_e_d_world_T_body_b) {
       *d_e_d_world_T_body_b = d_e_d_world_T_body_b->block(0, 0, 9, 6);
