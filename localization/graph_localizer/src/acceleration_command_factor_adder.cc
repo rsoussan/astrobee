@@ -25,15 +25,6 @@
 
 #include <gtsam/inference/Symbol.h>
 
-/*namespace {
-localization_measurements::ImuMeasurement MakeImuMeasurement(const localization_measurements::AccelerationCommand&
-last_acceleration_command, const double elapsed_time){
-  // TODO: integrate angular acceleration command!!!! (A)
- return localization_measurements::ImuMeasurement(last_acceleration_command.linear_acceleration, angular_velocity_diff,
-last_acceleration_command.timestamp);
-}
-}*/
-
 namespace graph_localizer {
 namespace go = graph_optimizer;
 namespace ii = imu_integration;
@@ -154,8 +145,11 @@ std::vector<go::FactorsToAdd> AccelerationCommandFactorAdder::AddFactors(
   const go::KeyInfo pose_b_key_info(&sym::P, go::NodeUpdaterType::CombinedNavState, ending_timestamp);
   const go::KeyInfo velocity_b_key_info(&sym::V, go::NodeUpdaterType::CombinedNavState, ending_timestamp);
 
+  const auto noise_model =
+    Robust(gtsam::noiseModel::Gaussian::Covariance(pim_->preintMeasCov().block(0, 0, 9, 9)), params().huber_k);
+
   gtsam::AccelerationCommandFactor::shared_ptr acceleration_command_factor(
-    new gtsam::AccelerationCommandFactor(*pim_, params().huber_k, pose_a_key_info.UninitializedKey(),
+    new gtsam::AccelerationCommandFactor(*pim_, noise_model, pose_a_key_info.UninitializedKey(),
                                          velocity_a_key_info.UninitializedKey(), imu_bias_a_key_info.UninitializedKey(),
                                          pose_b_key_info.UninitializedKey(), velocity_b_key_info.UninitializedKey()));
   go::FactorsToAdd acceleration_command_factors_to_add;
