@@ -43,8 +43,9 @@ AccelerationCommandFactorAdder::AccelerationCommandFactorAdder(
   pim_params_->gyroscopeCovariance = params.gyro_sigma * params.gyro_sigma * gtsam::I_3x3;
   pim_params_->accelerometerCovariance = params.accel_sigma * params.accel_sigma * gtsam::I_3x3;
   pim_params_->integrationCovariance = params.integration_variance * gtsam::I_3x3;
-  // Set bias random walk covariances only for Gyro
-  pim_params_->biasAccCovariance = gtsam::Z_3x3;
+  // Set bias random walk covariances only for Gyro, use a very small but non-zero covariance for Accel
+  // to avoid numerical issues
+  pim_params_->biasAccCovariance = 1e-9 * gtsam::I_3x3;
   pim_params_->biasOmegaCovariance = params.gyro_bias_sigma * params.gyro_bias_sigma * gtsam::I_3x3;
   // Set bias covariance used for pim integration
   pim_params_->biasAccOmegaInt = params.bias_acc_omega_int * gtsam::I_6x6;
