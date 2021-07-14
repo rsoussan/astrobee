@@ -62,10 +62,13 @@ class AccelerationCommandFactor : public NoiseModelFactor5<Pose3, Velocity3, imu
                        boost::optional<Matrix&> d_e_d_biases_a = boost::none,
                        boost::optional<Matrix&> d_e_d_world_T_body_b = boost::none,
                        boost::optional<Matrix&> d_e_d_world_F_world_v_body_b = boost::none) const override {
+    // Use zero accel bias so that no first order correction is applied to prediction since
+    // the pim is set with 0 accel bias and we are not including/optimizing for accel bias here
+    const imuBias::ConstantBias imu_biases_a_zero_accel_bias(Vector3::Zero(), imu_biases_a.gyroscope());
     const auto combined_imu_factor_error = combined_imu_factor_.evaluateError(
-      world_T_body_a, world_F_world_v_body_a, world_T_body_b, world_F_world_v_body_b, imu_biases_a, imu_biases_a,
-      d_e_d_world_T_body_a, d_e_d_world_F_world_v_body_a, d_e_d_world_T_body_b, d_e_d_world_F_world_v_body_b,
-      d_e_d_biases_a, boost::none);
+      world_T_body_a, world_F_world_v_body_a, world_T_body_b, world_F_world_v_body_b, imu_biases_a_zero_accel_bias,
+      imu_biases_a_zero_accel_bias, d_e_d_world_T_body_a, d_e_d_world_F_world_v_body_a, d_e_d_world_T_body_b,
+      d_e_d_world_F_world_v_body_b, d_e_d_biases_a, boost::none);
     // Remove random walk bias from error function and Jacobians
     // Since error is originally size 15, new error is size 9
     if (d_e_d_world_T_body_a) {
