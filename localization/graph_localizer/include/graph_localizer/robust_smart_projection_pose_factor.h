@@ -76,6 +76,7 @@ class RobustSmartProjectionPoseFactor : public SmartProjectionPoseFactor<CALIBRA
     if (result.valid()) {
       this->computeJacobiansSVD(F, E0, b, cameras, *(this->point()));
     } else if (useForRotationOnly(result)) {  // Rotation only factor
+      std::cout << "rotation only!!!!" << std::endl;
       Unit3 backProjected = cameras[0].backprojectPointAtInfinity(this->measured().at(0));
       // Cheirality error can still occur with backprojection
       try {
@@ -89,10 +90,7 @@ class RobustSmartProjectionPoseFactor : public SmartProjectionPoseFactor<CALIBRA
     return createRegularJacobianFactorSVD<Dim, ZDim>(this->keys(), F, E0, b);
   }
 
-  bool useForRotationOnly(const gtsam::TriangulationResult& result) const {
-    // Use rotation only for all failure cases
-    return true;
-  }
+  bool useForRotationOnly(const gtsam::TriangulationResult& result) const { return rotation_only_fallback_; }
 
   double error(const Values& values) const override {
     if (this->active(values)) {

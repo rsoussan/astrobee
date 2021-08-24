@@ -429,13 +429,14 @@ bool GraphOptimizer::Update() {
     return false;
   }
 
+  gtsam::Values new_values;
   // Optimize
   gtsam::LevenbergMarquardtOptimizer optimizer(graph_, *values_, levenberg_marquardt_params_);
 
   graph_stats_->optimization_timer_.Start();
   // TODO(rsoussan): Indicate if failure occurs in state msg, perhaps using confidence value in msg
   try {
-    *values_ = optimizer.optimize();
+    new_values = optimizer.optimize();
   } catch (gtsam::IndeterminantLinearSystemException) {
     log(params_.fatal_failures, "Update: Graph optimization failed, indeterminant linear system, keeping old values.");
   } catch (gtsam::InvalidNoiseModel) {
@@ -448,6 +449,12 @@ bool GraphOptimizer::Update() {
     log(params_.fatal_failures, "Update: Graph optimization failed, keeping old values.");
   }
   graph_stats_->optimization_timer_.Stop();
+
+  if (!ValidGraph()) {
+    LogError("Update: Invalid graph after optimization, keeping old values.");
+    return false;
+  }
+  *values_ = new_values;
 
   // Calculate marginals after the first optimization iteration so covariances
   // can be used for first loc msg

@@ -372,7 +372,16 @@ bool GraphLocalizer::ValidGraph() const {
     go::NumFactors<gtsam::PointToHandrailEndpointFactor>(graph_factors()) +
     go::NumFactors<gtsam::PoseRotationFactor>(graph_factors()) +
     go::NumFactors<gtsam::BetweenFactor<gtsam::Pose3>>(graph_factors());
-  return num_valid_non_imu_measurement_factors > 0;
+  const bool valid_non_imu_factors = num_valid_non_imu_measurement_factors > 0;
+  // If graph doesn't have any valid smart factors and also has no valid standstill factors
+  // (pose and velocity between factors), assume invalid graph since a loc factor
+  // could cause a large jump in velocities or biases and lead to drift.
+  // TODO(rsoussan): Better way to check for num standstill factors?
+  const int num_smart_or_standstill_factors =
+    NumOFFactors(true) + go::NumFactors<gtsam::BetweenFactor<gtsam::Pose3>>(graph_factors());
+  const bool valid_smart_or_standstill_factors = num_smart_or_standstill_factors > 0;
+  if (!(valid_non_imu_factors && valid_smart_or_standstill_factors)) LogError("Invalid graph!!!!!");
+  return valid_non_imu_factors && valid_smart_or_standstill_factors;
 }
 
 bool GraphLocalizer::ReadyToAddFactors(const localization_common::Time timestamp) const {
