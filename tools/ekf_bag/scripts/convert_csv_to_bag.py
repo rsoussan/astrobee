@@ -109,19 +109,31 @@ class EkfLog(object):
       ekf_msg.gyro_bias.y = self.ekf['gby'][i]
       ekf_msg.gyro_bias.z = self.ekf['gbz'][i]
       bag.write('ekf_ekf_msg', ekf_msg)
-    bag.close()
-    
+
+def save_imu_data(input_bag, output_bag):
+  topics = ['/hw/imu']
+  for topic, msg, t in input_bag.read_messages(topics):
+    output_bag.write('/hw/imu', msg)
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
+  parser.add_argument('bagfile')
   parser.add_argument('txtfile')
   args = parser.parse_args()
+  if not os.path.isfile(args.bagfile):
+    print('Bag file ' + args.bagfile + ' does not exist.')
+    sys.exit()
+
   if not os.path.isfile(args.txtfile):
     print('txtfile ' + args.txtfile + ' does not exist.')
     sys.exit()
 
-  bagfile = os.path.splitext(args.txtfile)[0] + '_results.bag'
-  bag = rosbag.Bag(bagfile, 'w')
+  input_bag = rosbag.Bag(args.bagfile, 'r')
+  output_bagfile = os.path.splitext(args.txtfile)[0] + '_results.bag'
+  output_bag = rosbag.Bag(output_bagfile, 'w')
 
   log = EkfLog(args.txtfile)
-  log.save_poses(bag)
+  log.save_poses(output_bag)
+  save_imu_data(input_bag, output_bag)
+  output_bag.close()
