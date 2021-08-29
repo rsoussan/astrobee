@@ -530,7 +530,7 @@ def create_plots(bagfile,
                  output_csv_file='results.csv',
                  groundtruth_bagfile=None,
                  rmse_rel_start_time=0,
-                 rmse_rel_end_time=-1):
+                 rmse_rel_end_time=-1, ekf_bag=False):
   bag = rosbag.Bag(bagfile)
   groundtruth_bag = rosbag.Bag(groundtruth_bagfile) if groundtruth_bagfile else bag
   bag_start_time = bag.get_start_time()
@@ -545,7 +545,7 @@ def create_plots(bagfile,
   groundtruth_vec_of_poses = [sparse_mapping_poses]
   load_pose_msgs(groundtruth_vec_of_poses, groundtruth_bag, bag_start_time)
 
-  graph_localization_states = loc_states.LocStates('Graph Localization', '/graph_loc/state')
+  graph_localization_states = loc_states.LocStates('Graph Localization', '/graph_loc/state') if not ekf_bag else loc_states.LocStates('EKF Localization', 'ekf_ekf_msg')
   imu_augmented_graph_localization_states = loc_states.LocStates('Imu Augmented Graph Localization', '/gnc/ekf')
   vec_of_loc_states = [graph_localization_states, imu_augmented_graph_localization_states]
   load_loc_state_msgs(vec_of_loc_states, bag, bag_start_time)
