@@ -25,10 +25,13 @@ namespace graph_bag {
 ImuBiasTesterAdder::ImuBiasTesterAdder(const std::string& input_bag_name, const std::string& output_bag_name)
     : input_bag_(input_bag_name, rosbag::bagmode::Read), output_bag_(output_bag_name, rosbag::bagmode::Write) {}
 
-void ImuBiasTesterAdder::AddPredictions() {
+void ImuBiasTesterAdder::AddPredictions(const bool ekf_bag) {
+  std::string topic;
+  if (ekf_bag) topic = "ekf_ekf_msg";
+  else topic = TOPIC_GRAPH_LOC_STATE;
   rosbag::View view(input_bag_);
   for (const rosbag::MessageInstance msg : view) {
-    if (string_ends_with(msg.getTopic(), TOPIC_GRAPH_LOC_STATE)) {
+    if (string_ends_with(msg.getTopic(), topic)) {
       const ff_msgs::GraphState::ConstPtr localization_msg = msg.instantiate<ff_msgs::GraphState>();
       const auto imu_bias_tester_predicted_states =
         imu_bias_tester_wrapper_.LocalizationStateCallback(*localization_msg);

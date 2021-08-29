@@ -30,7 +30,7 @@ namespace graph_bag {
 class ImuBiasTesterAdder {
  public:
   ImuBiasTesterAdder(const std::string& input_bag_name, const std::string& output_bag_name);
-  void AddPredictions();
+  void AddPredictions(const bool ekf_bag);
 
  private:
   imu_bias_tester::ImuBiasTesterWrapper imu_bias_tester_wrapper_;

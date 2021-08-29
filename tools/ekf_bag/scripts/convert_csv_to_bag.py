@@ -21,7 +21,7 @@
 import rosbag
 import rospy
 from geometry_msgs.msg import PoseStamped 
-from ff_msgs.msg import EkfState
+from ff_msgs.msg import GraphState
 
 import argparse
 import csv
@@ -88,18 +88,20 @@ class EkfLog(object):
       msg.header.stamp = rospy.Time.from_sec(self.ekf['t'][i])
       bag.write('ekf_pose', msg)
 
-      ekf_msg = EkfState()
-      ekf_msg.header = msg.header
+      ekf_msg = GraphState()
+      ekf_msg.header.stamp = rospy.Time.from_sec(self.ekf['t'][i])
+      ekf_msg.header.frame_id = 'world'
+      ekf_msg.child_frame_id = 'body'
       ekf_msg.pose = msg.pose
       ekf_msg.velocity.x = self.ekf['vx'][i]
       ekf_msg.velocity.y = self.ekf['vy'][i]
       ekf_msg.velocity.z = self.ekf['vz'][i]
-      ekf_msg.omega.x = self.ekf['ox'][i]
-      ekf_msg.omega.y = self.ekf['oy'][i]
-      ekf_msg.omega.z = self.ekf['oz'][i]
-      ekf_msg.accel.x = self.ekf['ax'][i]
-      ekf_msg.accel.y = self.ekf['ay'][i]
-      ekf_msg.accel.z = self.ekf['az'][i]
+     # ekf_msg.omega.x = self.ekf['ox'][i]
+     # ekf_msg.omega.y = self.ekf['oy'][i]
+     # ekf_msg.omega.z = self.ekf['oz'][i]
+     # ekf_msg.accel.x = self.ekf['ax'][i]
+     # ekf_msg.accel.y = self.ekf['ay'][i]
+     # ekf_msg.accel.z = self.ekf['az'][i]
       ekf_msg.accel_bias.x = self.ekf['abx'][i]
       ekf_msg.accel_bias.y = self.ekf['aby'][i]
       ekf_msg.accel_bias.z = self.ekf['abz'][i]
