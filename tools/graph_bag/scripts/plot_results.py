@@ -564,7 +564,6 @@ def create_plots(bagfile,
     if has_imu_augmented_graph_localization_state:
       add_other_loc_plots(pdf, graph_localization_states, imu_augmented_graph_localization_states, sparse_mapping_poses,
                           ar_tag_poses)
-    return
     #else:
     #  add_other_loc_plots(pdf, graph_localization_states, graph_localization_states, sparse_mapping_poses,
     #                      ar_tag_poses)
@@ -572,16 +571,17 @@ def create_plots(bagfile,
                          graph_localization_states,
                          sparse_mapping_poses,
                          output_csv_file,
+                         atol=0.2,
                          rmse_rel_start_time=rmse_rel_start_time,
                          rmse_rel_end_time=rmse_rel_end_time)
-    plot_loc_state_stats(pdf,
-                         imu_augmented_graph_localization_states,
-                         sparse_mapping_poses,
-                         output_csv_file,
-                         'imu_augmented_',
-                         0.01,
-                         rmse_rel_start_time=rmse_rel_start_time,
-                         rmse_rel_end_time=rmse_rel_end_time)
+    #plot_loc_state_stats(pdf,
+    #                     imu_augmented_graph_localization_states,
+    #                     sparse_mapping_poses,
+    #                     output_csv_file,
+    #                     'imu_augmented_',
+    #                     0.01,
+    #                     rmse_rel_start_time=rmse_rel_start_time,
+    #                     rmse_rel_end_time=rmse_rel_end_time)
     if has_imu_bias_tester_poses:
       plot_loc_state_stats(pdf,
                            imu_bias_tester_poses,
