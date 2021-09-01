@@ -108,12 +108,12 @@ class EkfLog(object):
       ekf_msg.gyro_bias.x = self.ekf['gbx'][i]
       ekf_msg.gyro_bias.y = self.ekf['gby'][i]
       ekf_msg.gyro_bias.z = self.ekf['gbz'][i]
-      bag.write('ekf_ekf_msg', ekf_msg)
+      bag.write('ekf_ekf_msg', ekf_msg, ekf_msg.header.stamp)
 
 def save_imu_data(input_bag, output_bag):
   topics = ['/hw/imu']
   for topic, msg, t in input_bag.read_messages(topics):
-    output_bag.write('/hw/imu', msg)
+    output_bag.write('/hw/imu', msg, t) 
 
 
 if __name__ == '__main__':
