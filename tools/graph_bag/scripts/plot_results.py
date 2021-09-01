@@ -564,8 +564,10 @@ def create_plots(bagfile,
     if has_imu_augmented_graph_localization_state:
       add_other_loc_plots(pdf, graph_localization_states, imu_augmented_graph_localization_states, sparse_mapping_poses,
                           ar_tag_poses)
-    else:
-      add_other_loc_plots(pdf, graph_localization_states, graph_localization_states)
+    return
+    #else:
+    #  add_other_loc_plots(pdf, graph_localization_states, graph_localization_states, sparse_mapping_poses,
+    #                      ar_tag_poses)
     plot_loc_state_stats(pdf,
                          graph_localization_states,
                          sparse_mapping_poses,
