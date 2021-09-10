@@ -45,24 +45,25 @@ def add_graph_plots(pdf, sparse_mapping_poses, ekf_poses, graph_localization_sta
   colors = ['r', 'b', 'g']
   position_plotter = vector3d_plotter2d.Vector3dPlotter('Time (s)', 'Position (m)', 'AstroLoc Position',
                                                       True)
-  position_plotter.add_pose_position(sparse_mapping_poses, colors = ['b', 'r', 'g'])
-#  position_plotter.add_pose_position(sparse_mapping_poses,
-#                                     linestyle='None',
-#                                     marker='o',
-#                                     markeredgewidth=0.1,
-#                                     markersize=1.5)
-  position_plotter.add_pose_position(graph_localization_states)
+  position_plotter.add_pose_position(sparse_mapping_poses, color='r', linestyle='-')
+                                 #    color='r', 
+                                 #    linestyle='None',
+                                 #    marker='o',
+                                 #    markeredgewidth=0.1,
+                                 #    markersize=1.5)
+  position_plotter.add_pose_position(graph_localization_states, color='b', linestyle=(0, (5, 3)))
   position_plotter.plot(pdf)
 
   if ekf_poses.times:
-    ekf_position_plotter = vector3d_plotter2d.Vector3dPlotter('Time (s)', 'Position (m)', 'EKF Position',
+    ekf_position_plotter = vector3d_plotter2d.Vector3dPlotter('Time (s)', 'Position (m)', 'Previous Localizer Position',
                                                       True)
-    ekf_position_plotter.add_pose_position(sparse_mapping_poses,
-                                       linestyle='None',
-                                       marker='o',
-                                       markeredgewidth=0.1,
-                                       markersize=1.5)
-    ekf_position_plotter.add_pose_position(ekf_poses)
+    ekf_position_plotter.add_pose_position(sparse_mapping_poses, color='r', linestyle='-')
+                                   #    color='r',
+                                   #    linestyle='None',
+                                   #    marker='o',
+                                   #    markeredgewidth=0.1,
+                                   #    markersize=1.5)
+    ekf_position_plotter.add_pose_position(ekf_poses, color='b', linestyle=(0, (5, 3)))
     ekf_position_plotter.plot(pdf)
 
 def load_pose_msgs(vec_of_poses, bag, bag_start_time):
@@ -95,13 +96,13 @@ def create_plots(bagfile,
   groundtruth_bag = rosbag.Bag(groundtruth_bagfile) if groundtruth_bagfile else bag
   bag_start_time = bag.get_start_time()
 
-  graph_localization_states = loc_states.LocStates('AstroLoc', '/graph_loc/state')
+  graph_localization_states = loc_states.LocStates('Localizer', '/graph_loc/state')
   vec_of_loc_states = [graph_localization_states]
   load_loc_state_msgs(vec_of_loc_states, bag, bag_start_time)
-  sparse_mapping_poses = poses.Poses('Groundtruth', '/sparse_mapping/pose')
+  sparse_mapping_poses = poses.Poses('Ground truth', '/sparse_mapping/pose')
   groundtruth_vec_of_poses = [sparse_mapping_poses]
   load_pose_msgs(groundtruth_vec_of_poses, groundtruth_bag, bag_start_time)
-  ekf_poses = poses.Poses('EKF', 'ekf_pose')
+  ekf_poses = poses.Poses('Localizer', 'ekf_pose')
   vec_of_poses = [ekf_poses]
   # ekf times are using first ekf pose as start time
   # TODO(rsoussan): run ekf tool again, get start time for each bag!!!

@@ -27,6 +27,7 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
 def unwrap_in_degrees(angles):
+  print("unwrapping!")
   return np.rad2deg(np.unwrap(np.deg2rad(angles)))
 
 class Vector3dPlotter():
@@ -37,19 +38,21 @@ class Vector3dPlotter():
     self.title = title
     self.individual_plots = individual_plots
     self.y_vals_vec = []
+    self.color_vec = []
 
   def add_pose_position(self,
                         pose,
-                        colors=['r', 'b', 'g'],
+                        color='r', 
                         linestyle='-',
                         linewidth=1,
                         marker=None,
                         markeredgewidth=None,
                         markersize=1):
     position_plotter = Vector3dYVals(pose.pose_type, pose.times, pose.positions.xs, pose.positions.ys,
-                                     pose.positions.zs, ['Pos. (X)', 'Pos. (Y)', 'Pos. (Z)'], colors, linestyle,
+                                     pose.positions.zs, ['', 'Pos. (Y)', 'Pos. (Z)'], ['r', 'g', 'b'], linestyle,
                                      linewidth, marker, markeredgewidth, markersize)
     self.add_y_vals(position_plotter)
+    self.add_color(color)
 
   def add_pose_orientation(self,
                            pose,
@@ -67,6 +70,10 @@ class Vector3dPlotter():
 
   def add_y_vals(self, y_vals):
     self.y_vals_vec.append(y_vals)
+
+  def add_color(self, color):
+    self.color_vec.append(color)
+
 
 
   def set_axes_equal(self, ax):
@@ -100,14 +107,18 @@ class Vector3dPlotter():
   def plot(self, pdf, individual_plots=True):
     plt.figure()
     ax = plt.figure().add_subplot(111, projection='3d')
-    spacing = 10
-    ax.set_xlabel('x (m)', labelpad=spacing)
-    ax.set_ylabel('y (m)', labelpad=spacing)
+    spacing = 13
+    font_size =15
+    ax.set_xlabel('x (m)', labelpad=spacing, fontsize=font_size)
+    ax.set_ylabel('y (m)', labelpad=spacing, fontsize=font_size)
+    ax.axes.set_xlim3d(left=11, right=11.0) 
     ax.zaxis.set_rotate_label(False)  # disable automatic rotation
-    ax.set_zlabel('z (m)', labelpad=spacing)
+    ax.set_zlabel('z (m)', labelpad=spacing, fontsize=font_size)
     #ax.axis('equal')
+    color_index = 0
     for y_vals in self.y_vals_vec:
-      y_vals.full_plot(ax)
+      y_vals.full_plot(ax, self.color_vec[color_index])
+      color_index = color_index + 1
     i = 0
     for label in ax.get_xticklabels():
       i += 1
@@ -124,8 +135,12 @@ class Vector3dPlotter():
       if (i % 2 == 0):
         label.set_visible(False)
     #ax.set_xticks(ax.get_xticks()[::2])
-    plt.title(self.title)
-    plt.legend(prop={'size': 6})
+    #plt.title(self.title)
+    label_size = 15
+    ax.tick_params(axis='x', labelsize=label_size)
+    ax.tick_params(axis='y', labelsize=label_size)
+    ax.tick_params(axis='z', labelsize=label_size)
+    plt.legend(loc=2, prop={'size': 17})
     self.set_axes_equal(ax)
     pdf.savefig()
     plt.close()
@@ -201,15 +216,15 @@ class Vector3dYVals():
     self.markeredgewidth = markeredgewidth
     self.markersize = markersize
 
-  def full_plot(self, ax):
-    self.plot_2d(ax)
+  def full_plot(self, ax, color):
+    self.plot_2d(ax, color)
  
-  def plot_2d(self, ax):
+  def plot_2d(self, ax, color):
     ax.plot(self.x_vals,
             self.y_vals,
             self.z_vals,
             label=self.x_label,
-            color=self.x_color,
+            color=color,
             linestyle=self.linestyle,
             marker=self.marker,
             markeredgewidth=self.markeredgewidth,
