@@ -25,6 +25,8 @@ import velocities
 import rmse_utilities
 import utilities
 
+import csv
+
 import argparse
 import csv
 import os
@@ -35,23 +37,41 @@ matplotlib.use('pdf')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.image as mpimg
+from scipy import ndimage
 
 import geometry_msgs
 import math
 import rosbag
 
+def plot_poses(plt, poses, color):
+  scale = 105
+  x_offset =  1300
+  y_offset = 1270 
+  scaled_xs = [scale*-1.0*x for x in poses.positions.xs]
+  scaled_ys = [scale*y for y in poses.positions.ys]
+  theta = 0#-10.0*math.pi/180.0
+  # Apply rotation and swap axis
+  x_scale = 1
+  for i in range(len(scaled_xs)):
+    x_init = scaled_ys[i]
+    y_init = scaled_xs[i]
+    scaled_xs[i] = x_scale*(math.cos(theta)*x_init - math.sin(theta)*y_init) + x_offset
+    scaled_ys[i] = math.sin(theta)*x_init + math.cos(theta)*y_init + y_offset
+  plt.plot(scaled_xs, scaled_ys, color, linewidth=1, linestyle='-') 
+ 
 
-def create_overlay(pdf, poses_a, poses_b = None):
-  img = mpimg.imread('/home/rsoussan/paper_images/iss_module_birds_eye_trimmed.png')
+def create_overlay(pdf, poses_a_vec, poses_b_vec):
+  img = mpimg.imread('/home/rsoussan/paper_images/iss_module_birds_eye_trimmed_rotated.png')
   colors = ['r', 'b', 'g']
-  scale = 100
-  x_offset = -950
-  y_offset = 1300
-  scaled_xs = [scale*x + x_offset for x in poses_a.positions.xs]
-  scaled_ys = [scale*y + y_offset for y in poses_a.positions.ys]
   plt.figure()
   plt.imshow(img)
-  plt.plot(scaled_ys, scaled_xs, 'g', linewidth=1, linestyle='-') 
+  for poses_a in poses_a_vec:
+    plot_poses(plt, poses_a, 'r')
+  for poses_b in poses_b_vec:
+    plot_poses(plt, poses_b, 'g')
+  #plt.gca().set_aspect('equal', adjustable='box')
+  #plt.xlim(0, 1200)
+  #plt.ylim(0, 1200)
   #plt.axis('off')
   pdf.savefig()
   plt.close()
@@ -65,27 +85,31 @@ def load_loc_state_msgs(vec_of_loc_states, bag, bag_start_time):
         loc_states.add_loc_state(msg, bag_start_time)
         break
 
+def load_bags(bags_file, topic):
+  poses_vec = []
+  with open(bags_file) as param_csvfile:
+    reader = csv.reader(param_csvfile, delimiter=' ')
+    for row in reader:
+      bag = rosbag.Bag(row[0])
+      poses = loc_states.LocStates('Graph Localization', topic) 
+      load_loc_state_msgs([poses], bag, 0)
+      poses_vec.append(poses)
+      bag.close()
+  return poses_vec
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument('bagfile_a')
-  parser.add_argument('bagfile_b')
+  parser.add_argument('graph_bags')
+  parser.add_argument('ekf_bags')
   args = parser.parse_args()
-  if not os.path.isfile(args.bagfile_a):
-    print('Bag file ' + args.bagfile_a + ' does not exist.')
+  if not os.path.isfile(args.graph_bags):
+    print('Bag file ' + args.graph_bags + ' does not exist.')
     sys.exit()
-  if not os.path.isfile(args.bagfile_b):
-    print('Bag file ' + args.bagfile_b + ' does not exist.')
+  if not os.path.isfile(args.ekf_bags):
+    print('Bag file ' + args.ekf_bags + ' does not exist.')
     sys.exit()
 
-  bag_a = rosbag.Bag(args.bagfile_a)
-  bag_b = rosbag.Bag(args.bagfile_b)
-  graph_localization_states_a = loc_states.LocStates('Graph Localization', '/graph_loc/state') 
-  graph_localization_states_b = loc_states.LocStates('Graph Localization', '/graph_loc/state') 
-  load_loc_state_msgs([graph_localization_states_a], bag_a, 0)
-  load_loc_state_msgs([graph_localization_states_b], bag_b, 0)
-
-  bag_a.close()
-  bag_b.close()
-
+  graph_vec = load_bags(args.graph_bags, '/graph_loc/state')
+  ekf_vec = load_bags(args.ekf_bags, 'ekf_ekf_msg')
   with PdfPages("overlay.pdf") as pdf:
-    create_overlay(pdf, graph_localization_states_a) #, graph_localization_states_b)
+    create_overlay(pdf, graph_vec, ekf_vec) 
