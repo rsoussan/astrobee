@@ -96,7 +96,7 @@ def create_plots(bagfile,
   groundtruth_bag = rosbag.Bag(groundtruth_bagfile) if groundtruth_bagfile else bag
   bag_start_time = bag.get_start_time()
 
-  graph_localization_states = loc_states.LocStates('Localizer', '/graph_loc/state')
+  graph_localization_states = loc_states.LocStates('AstroLoc', '/graph_loc/state')
   vec_of_loc_states = [graph_localization_states]
   load_loc_state_msgs(vec_of_loc_states, bag, bag_start_time)
   sparse_mapping_poses = poses.Poses('Ground truth', '/sparse_mapping/pose')
@@ -106,20 +106,17 @@ def create_plots(bagfile,
   vec_of_poses = [ekf_poses]
   # ekf times are using first ekf pose as start time
   # TODO(rsoussan): run ekf tool again, get start time for each bag!!!
-  ekf_start_time = bag_start_time 
+  ekf_start_time = bag_start_time  
   print('t_bag: ' + str(bag_start_time))
   print('t_ekf: ' + str(ekf_start_time))
   load_pose_msgs(vec_of_poses, bag, bag_start_time - ekf_start_time)
   
-
+  print("len times: " + str(len(ekf_poses.times)))
   bag.close()
-  num_images = 20 
-  length = len(ekf_poses.times)
-  chunk = length/num_images
-  for it in range(0, num_images+1): 
-    val = it*chunk
-    if it == 0:
-      val = 1
+  gt_val = 0
+  for val in range(1, len(ekf_poses.times)): 
+    if val % 6 != 0:
+      continue
     loc_poses = poses.Poses('Previous Localizer', '')
     loc_poses.times = ekf_poses.times[0:val]
     loc_poses.positions.xs = ekf_poses.positions.xs[0:val]
@@ -134,7 +131,7 @@ def create_plots(bagfile,
     gt_time = sparse_mapping_poses.times[0] 
     gt_val = -1
     for time in sparse_mapping_poses.times:
-      gt_time_diff = time - gt_time 
+      gt_time_diff = time - gt_time - 15 
       gt_val += 1
       if gt_time_diff > loc_time_diff:
         break
@@ -145,12 +142,36 @@ def create_plots(bagfile,
     gt_poses.orientations.yaws = sparse_mapping_poses.orientations.yaws[0:gt_val]
     gt_poses.orientations.pitches = sparse_mapping_poses.orientations.pitches[0:gt_val]
     gt_poses.orientations.rolls = sparse_mapping_poses.orientations.rolls[0:gt_val]
-
-    filename = 'ekf_im_' + str(it).zfill(6) + '.png'
+    filename = 'ekf_im_' + str(val).zfill(6) + '.png'
     #with PdfPages(filename) as pdf:
     pdf = 0
-    add_graph_plots(pdf, gt_poses, loc_poses, graph_localization_states, filename)
-  os.system("ffmpeg -r 1 -i ekf_im_%06d.png -vcodec mpeg4 -y movie.mp4")
+    add_graph_plots(pdf, gt_poses, loc_poses, loc_poses, filename)
+  for gt_val2 in range(gt_val, len(sparse_mapping_poses.times)):
+    val = len(ekf_poses.times) -1
+    loc_poses = poses.Poses('Previous Localizer', '')
+    loc_poses.times = ekf_poses.times[0:val]
+    loc_poses.positions.xs = ekf_poses.positions.xs[0:val]
+    loc_poses.positions.ys = ekf_poses.positions.ys[0:val]
+    loc_poses.positions.zs = ekf_poses.positions.zs[0:val]
+    loc_poses.orientations.yaws = ekf_poses.orientations.yaws[0:val]
+    loc_poses.orientations.pitches = ekf_poses.orientations.pitches[0:val]
+    loc_poses.orientations.rolls = ekf_poses.orientations.rolls[0:val]
+    gt_poses = poses.Poses('Ground truth', '')
+    gt_poses.times = sparse_mapping_poses.times[0:gt_val2]
+    gt_poses.positions.xs = sparse_mapping_poses.positions.xs[0:gt_val2]
+    gt_poses.positions.ys = sparse_mapping_poses.positions.ys[0:gt_val2]
+    gt_poses.positions.zs = sparse_mapping_poses.positions.zs[0:gt_val2]
+    gt_poses.orientations.yaws = sparse_mapping_poses.orientations.yaws[0:gt_val2]
+    gt_poses.orientations.pitches = sparse_mapping_poses.orientations.pitches[0:gt_val2]
+    gt_poses.orientations.rolls = sparse_mapping_poses.orientations.rolls[0:gt_val2]
+
+    filename = 'ekf_im_' + str(val + gt_val2).zfill(6) + '.png'
+    #with PdfPages(filename) as pdf:
+    pdf = 0
+    add_graph_plots(pdf, gt_poses, loc_poses, loc_poses, filename)
+ 
+    
+  os.system("ffmpeg -r 6 -i ekf_im_%*.png -vcodec mpeg4 -y movie.mp4")
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
