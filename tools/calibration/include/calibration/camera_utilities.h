@@ -146,6 +146,60 @@ boost::optional<Eigen::Isometry3d> ReprojectionPoseEstimate(const std::vector<Ei
     return boost::none;
   }
 
+  // Rememver to return inlier indices instead of indices from ransacpnp2 used when remove this!!!
+  // test
+  {
+    std::vector<cv::Point2d> observations;
+    std::vector<cv::Point3d> landmarks;
+    std::vector<Eigen::Vector2d> distorted_pts;
+    const int num_inliers = initial_estimate_and_inliers->second.size();
+    for (int i = 0; i < num_inliers; ++i) {
+      // for (int i = num_inliers - 1; i >= 0; --i) {
+      const int inlier_index = initial_estimate_and_inliers->second[i];
+      const auto& image_point = image_points[inlier_index];
+      const auto& point_3d = points_3d[inlier_index];
+      distorted_pts.emplace_back(image_point);
+      // std::cout << "image pt: " << image_point.x() << ", " << image_point.y() << std::endl;
+      // std::cout << "3d pt: " << point_3d.x() << ", " << point3d.y() << ", " << point3d.z() << std::endl;
+      landmarks.emplace_back(cv::Point3d(point_3d.x(), point_3d.y(), point_3d.z()));
+      observations.emplace_back(cv::Point2d(image_point.x(), image_point.y()));
+    }
+    Eigen::Vector3d pos;
+    Eigen::Matrix3d rot;
+    camera::CameraParameters camera(Eigen::Vector2i(1280, 960), focal_lengths, principal_points, distortion);
+    cv::Mat r;
+    cv::Mat t;
+    P3PWithDistortion(landmarks, observations, camera, r, t, &pos, &rot);
+
+    Eigen::Isometry3d test = Eigen::Isometry3d::Identity();
+    test.translation() = pos;
+    test.linear() = rot;
+    LogError("Old p3p with new indices: " << std::endl << test.matrix());
+    if (old_estimate) LogError("Old estimate again: " << std::endl << old_estimate->matrix());
+    LogError("New initial estimate: " << std::endl << initial_estimate_and_inliers->first.matrix());
+
+    {
+      const DISTORTER distorter;
+      const std::vector<Eigen::Vector2d> undistorted_image_points =
+        distorter.Undistort(distorted_pts, intrinsics, distortion);
+
+      std::vector<cv::Point2d> undistorted_image_points_cv;
+      for (const auto& undistorted_image_point : undistorted_image_points) {
+        undistorted_image_points_cv.emplace_back(cv::Point2d(undistorted_image_point.x(), undistorted_image_point.y()));
+      }
+
+      cv::Mat intrinsics_cv;
+      cv::eigen2cv(intrinsics, intrinsics_cv);
+      cv::Mat rodrigues_rotation_cv(3, 1, cv::DataType<double>::type, cv::Scalar(0));
+      cv::Mat translation_cv(3, 1, cv::DataType<double>::type, cv::Scalar(0));
+      UndistortedPnP(undistorted_image_points_cv, landmarks, intrinsics_cv, params.ransac_pnp.pnp_method,
+                     rodrigues_rotation_cv, translation_cv);
+      const Eigen::Isometry3d pose_estimate = Isometry3d2(rodrigues_rotation_cv, translation_cv);
+      LogError("New initial estimate with new indices: " << std::endl << pose_estimate.matrix());
+    }
+    return boost::none;
+  }
+
   if (!old_estimate) return boost::none;
   Eigen::Matrix<double, 6, 1> pose_estimate_vector =
     // optimization_common::VectorFromIsometry3d(initial_estimate_and_inliers->first);
@@ -179,10 +233,9 @@ boost::optional<Eigen::Isometry3d> ReprojectionPoseEstimate(const std::vector<Ei
 
   LogError("New ReprojectionPoseEstimate: " << std::endl
                                             << optimization_common::Isometry3(pose_estimate_vector.data()).matrix());
-  // return optimization_common::Isometry3(pose_estimate_vector.data());
   // CreateReprojectionImage<DISTORTER>(image_points, points_3d, initial_estimate_and_inliers->second, intrinsics,
   //                                 distortion, initial_estimate_and_inliers->first, "new_reprojposeestimate");
-  return old_estimate;
+  return optimization_common::Isometry3(pose_estimate_vector.data());
 }
 
 template <typename DISTORTER>

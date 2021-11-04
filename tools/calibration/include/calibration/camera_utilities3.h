@@ -158,7 +158,9 @@ boost::optional<std::pair<Eigen::Isometry3d, std::vector<int>>> RansacPnP2(
   }
   std::cout << std::endl;
 
-  return std::make_pair(best_pose_estimate, inliers);
+  // put this back!!!
+  // return std::make_pair(best_pose_estimate, inliers);
+  return std::make_pair(best_pose_estimate, best_indices);
 }
 }  // namespace calibration
 #endif  // CALIBRATION_CAMERA_UTILITIES3_H_
