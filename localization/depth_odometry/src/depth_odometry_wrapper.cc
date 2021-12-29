@@ -99,9 +99,11 @@ std::vector<ff_msgs::DepthOdometry> DepthOdometryWrapper::ProcessDepthImageIfAva
 
   std::vector<ff_msgs::DepthOdometry> depth_odometry_msgs;
   for (const auto& depth_image_measurement : depth_image_measurements) {
+    LogError("DepthImageCallback measurement time: " << std::setprecision(15) << depth_image_measurement.timestamp);
     timer_.Start();
     auto sensor_F_source_T_target = depth_odometry_->DepthImageCallback(depth_image_measurement);
-    timer_.Stop();
+    timer_.StopAndLog();
+    LogError("Depth Odom time: " << timer_.last_value());
     if (sensor_F_source_T_target) {
       const lc::PoseWithCovariance body_F_source_T_target = lc::FrameChangeRelativePoseWithCovariance(
         sensor_F_source_T_target->pose_with_covariance, params_.body_T_haz_cam);

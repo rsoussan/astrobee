@@ -19,6 +19,7 @@
 #include <depth_odometry/point_to_plane_icp_depth_odometry.h>
 #include <localization_common/logger.h>
 #include <localization_common/utilities.h>
+#include <localization_common/timer.h>
 #include <point_cloud_common/utilities.h>
 
 namespace depth_odometry {
@@ -41,31 +42,50 @@ pcl::PointCloud<pcl::PointXYZINormal>::Ptr PointToPlaneICPDepthOdometry::Downsam
 
 boost::optional<PoseWithCovarianceAndCorrespondences> PointToPlaneICPDepthOdometry::DepthImageCallback(
   const lm::DepthImageMeasurement& depth_image_measurement) {
+  static lc::Timer p2pdo_prep_timer_("p2p do prep");
+  p2pdo_prep_timer_.Start();
+ 
   if (!previous_point_cloud_with_normals_ && !latest_point_cloud_with_normals_) {
     latest_point_cloud_with_normals_ =
       DownsampleAndFilterCloud(depth_image_measurement.depth_image.unfiltered_point_cloud());
     latest_timestamp_ = depth_image_measurement.timestamp;
+    LogError("DepthImageCallback: no measurements.");
     return boost::none;
   }
   const lc::Time timestamp = depth_image_measurement.timestamp;
   if (timestamp < latest_timestamp_) {
-    LogWarning("DepthImageCallback: Out of order measurement received.");
+    LogError("DepthImageCallback: Out of order measurement received.");
     return boost::none;
   }
 
   previous_point_cloud_with_normals_ = latest_point_cloud_with_normals_;
   previous_timestamp_ = latest_timestamp_;
+  static lc::Timer downsample_timer_("Downsample");
+  downsample_timer_.Start();
   latest_point_cloud_with_normals_ =
     DownsampleAndFilterCloud(depth_image_measurement.depth_image.unfiltered_point_cloud());
+  downsample_timer_.StopAndLog();
+  LogError("Downsampe time: " << downsample_timer_.last_value());
   latest_timestamp_ = timestamp;
 
   const double time_diff = latest_timestamp_ - previous_timestamp_;
   if (time_diff > params_.max_time_diff) {
-    LogWarning("DepthImageCallback: Time difference too large, time diff: " << time_diff);
+    LogError("DepthImageCallback: Time difference too large, time diff: " << time_diff);
     return boost::none;
   }
+  p2pdo_prep_timer_.StopAndLog();
+  LogError("p2pdo prep time: " << p2pdo_prep_timer_.last_value());
+ 
+  static lc::Timer icp_timer_("ICP");
+  icp_timer_.Start();
   const auto target_T_source =
     icp_.ComputeRelativeTransform(previous_point_cloud_with_normals_, latest_point_cloud_with_normals_);
+  icp_timer_.StopAndLog();
+  LogError("ICP time: " << icp_timer_.last_value());
+ 
+  static lc::Timer post_timer_("p2p do post");
+  post_timer_.Start();
+ 
   if (!target_T_source) {
     LogWarning("DepthImageCallback: Failed to get relative transform.");
     return boost::none;
@@ -84,7 +104,9 @@ boost::optional<PoseWithCovarianceAndCorrespondences> PointToPlaneICPDepthOdomet
     LogWarning("DepthImageCallback: Failed to get correspondences.");
     return boost::none;
   }
-
+  post_timer_.StopAndLog();
+  LogError("p2pdo post time: " << post_timer_.last_value());
+ 
   return PoseWithCovarianceAndCorrespondences(source_T_target, *correspondences, previous_timestamp_,
                                               latest_timestamp_);
 }
