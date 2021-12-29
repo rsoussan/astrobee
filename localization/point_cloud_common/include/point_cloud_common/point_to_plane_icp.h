@@ -36,7 +36,7 @@
 #include <point_cloud_common/transformation_estimation_symmetric_point_to_plane_lls.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-//#include <pcl/registration/icp.h>
+// #include <pcl/registration/icp.h>
 #include <point_cloud_common/icp.h>
 
 #include <vector>
@@ -96,7 +96,7 @@ boost::optional<localization_common::PoseWithCovariance> PointToPlaneICP<PointTy
   const Eigen::Isometry3d& initial_target_T_source_estimate) {
 static localization_common::Timer prep_timer_("p2picp prep");
   prep_timer_.Start();
- 
+
   pcl::IterativeClosestPointWithNormals2<PointType, PointType> icp;
 
   if (params_.symmetric_objective) {
@@ -120,17 +120,17 @@ static localization_common::Timer prep_timer_("p2picp prep");
   icp.setInputTarget(target_cloud_with_normals);
   icp.setMaximumIterations(params_.max_iterations);
   typename pcl::PointCloud<PointType>::Ptr result(new pcl::PointCloud<PointType>);
- prep_timer_.StopAndLog();
+  prep_timer_.StopAndLog();
   LogError("p2p prep time: " << prep_timer_.last_value());
 
 static localization_common::Timer icp_timer_("pcl_icp_align");
   icp_timer_.Start();
   icp.align(*result, initial_target_T_source_estimate.matrix().cast<float>());
- icp_timer_.StopAndLog();
+  icp_timer_.StopAndLog();
   LogError("pcl_icp_align time: " << icp_timer_.last_value());
 static localization_common::Timer post_timer_("p2p post");
   post_timer_.Start();
- 
+
   LogError("its: " << icp.nr_iterations_);
   if (!icp.hasConverged()) {
     LogError("Icp: Failed to converge.");
@@ -144,31 +144,30 @@ static localization_common::Timer fitness_timer_("p2p fitness");
     LogError("Icp: Fitness score too large: " << fitness_score << ".");
     return boost::none;
   }
- fitness_timer_.StopAndLog();
+  fitness_timer_.StopAndLog();
   LogError("p2p fitness time: " << fitness_timer_.last_value());
- 
 
   const Eigen::Isometry3d estimated_target_T_source(
     Eigen::Isometry3f(icp.getFinalTransformation().matrix()).cast<double>());
 static localization_common::Timer sav_correspondences_timer_("p2p sav_correspondences");
   sav_correspondences_timer_.Start();
- 
+
   SaveCorrespondences(icp, source_cloud_with_normals, result);
 sav_correspondences_timer_.StopAndLog();
   LogError("p2p sav_correspondences time: " << sav_correspondences_timer_.last_value());
- 
+
 static localization_common::Timer covariance_timer_("p2p covariance");
   covariance_timer_.Start();
   const auto covariance = PointToPlaneCovariance(correspondences_->source_points, correspondences_->target_normals,
                                                  estimated_target_T_source);
 covariance_timer_.StopAndLog();
   LogError("p2p covariance time: " << covariance_timer_.last_value());
- 
-   if (!covariance) {
+
+  if (!covariance) {
     LogError("Icp: Failed to get covariance.");
     return boost::none;
   }
- post_timer_.StopAndLog();
+  post_timer_.StopAndLog();
   LogError("p2p post time: " << post_timer_.last_value());
   return localization_common::PoseWithCovariance(estimated_target_T_source, *covariance);
 }
