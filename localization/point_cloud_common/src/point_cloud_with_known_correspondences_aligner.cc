@@ -109,14 +109,6 @@ boost::optional<lc::PoseWithCovariance> PointCloudWithKnownCorrespondencesAligne
   return Align(source_points, target_points, initial_target_T_source, source_normals, target_normals);
 }
 
-boost::optional<localization_common::PoseWithCovariance>
-PointCloudWithKnownCorrespondencesAligner::ComputeRelativeTransform(
-  const std::vector<Eigen::Vector3d>& source_points, const std::vector<Eigen::Vector3d>& target_points,
-  const Eigen::Isometry3d& initial_target_T_source_estimate) const {
-  return ComputeRelativeTransform(source_points, target_points, boost::none, boost::none,
-                                  initial_target_T_source_estimate);
-}
-
 boost::optional<lc::PoseCovariance> PointCloudWithKnownCorrespondencesAligner::Covariance(
   const double* const target_T_source_data, ceres::Problem& problem) const {
   ceres::Covariance::Options options;

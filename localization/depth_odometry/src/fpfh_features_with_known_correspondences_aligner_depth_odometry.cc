@@ -16,31 +16,31 @@
  * under the License.
  */
 
-#include <depth_odometry/point_to_plane_icp_depth_odometry.h>
+#include <depth_odometry/fpfh_features_with_known_correspondences_aligner_depth_odometry.h>
 #include <localization_common/logger.h>
 #include <localization_common/utilities.h>
+#include <point_cloud_common/correspondences_3d.h>
 #include <point_cloud_common/utilities.h>
+
+#include <pcl/registration/correspondence_estimation.h>
 
 namespace depth_odometry {
 namespace lc = localization_common;
 namespace lm = localization_measurements;
 namespace pc = point_cloud_common;
 
-PointToPlaneICPDepthOdometry::PointToPlaneICPDepthOdometry(const PointToPlaneICPDepthOdometryParams& params)
-    : params_(params), icp_(params.icp) {}
+FPFHFeaturesWithKnownCorrespondencesAlignerDepthOdometry::FPFHFeaturesWithKnownCorrespondencesAlignerDepthOdometry(
+  const FPFHFeaturesWithKnownCorrespondencesAlignerDepthOdometryParams& params)
+    : params_(params), aligner_(params.aligner) {}
 
-boost::optional<PoseWithCovarianceAndCorrespondences> PointToPlaneICPDepthOdometry::DepthImageCallback(
+boost::optional<PoseWithCovarianceAndCorrespondences>
+FPFHFeaturesWithKnownCorrespondencesAlignerDepthOdometry::DepthImageCallback(
   const lm::DepthImageMeasurement& depth_image_measurement) {
-  return DepthImageCallbackWithEstimate(depth_image_measurement);
-}
-
-boost::optional<PoseWithCovarianceAndCorrespondences> PointToPlaneICPDepthOdometry::DepthImageCallbackWithEstimate(
-  const localization_measurements::DepthImageMeasurement& depth_image_measurement,
-  const boost::optional<Eigen::Isometry3d&> target_T_source_initial_estimate) {
-  if (!previous_point_cloud_with_normals_ && !latest_point_cloud_with_normals_) {
+  if (!previous_fpfh_features_ && !latest_fpfh_features_) {
     latest_point_cloud_with_normals_ = pc::DownsampledFilteredCloudWithNormals<pcl::PointXYZI, pcl::PointXYZINormal>(
-      depth_image_measurement.depth_image.unfiltered_point_cloud(), params_.icp.search_radius, params_.downsample,
+      depth_image_measurement.depth_image.unfiltered_point_cloud(), params_.search_radius, params_.downsample,
       params_.downsample_leaf_size);
+    latest_fpfh_features_ = pc::EstimateHistogramFeatures(latest_point_cloud_with_normals_);
     latest_timestamp_ = depth_image_measurement.timestamp;
     return boost::none;
   }
@@ -51,11 +51,13 @@ boost::optional<PoseWithCovarianceAndCorrespondences> PointToPlaneICPDepthOdomet
   }
 
   previous_point_cloud_with_normals_ = latest_point_cloud_with_normals_;
+  previous_fpfh_features_ = latest_fpfh_features_;
   previous_timestamp_ = latest_timestamp_;
   latest_point_cloud_with_normals_ = pc::DownsampledFilteredCloudWithNormals<pcl::PointXYZI, pcl::PointXYZINormal>(
-    depth_image_measurement.depth_image.unfiltered_point_cloud(), params_.icp.search_radius, params_.downsample,
+    depth_image_measurement.depth_image.unfiltered_point_cloud(), params_.search_radius, params_.downsample,
     params_.downsample_leaf_size);
-  latest_timestamp_ = timestamp;
+  latest_fpfh_features_ = pc::EstimateHistogramFeatures(latest_point_cloud_with_normals_);
+  latest_timestamp_ = depth_image_measurement.timestamp;
 
   const double time_diff = latest_timestamp_ - previous_timestamp_;
   if (time_diff > params_.max_time_diff) {
@@ -63,20 +65,25 @@ boost::optional<PoseWithCovarianceAndCorrespondences> PointToPlaneICPDepthOdomet
     return boost::none;
   }
 
-  if (target_T_source_initial_estimate) {
-    pcl::transformPointCloudWithNormals(*previous_point_cloud_with_normals_, *previous_point_cloud_with_normals_,
-                                        target_T_source_initial_estimate->matrix());
-  }
-  auto target_T_source =
-    icp_.ComputeRelativeTransform(previous_point_cloud_with_normals_, latest_point_cloud_with_normals_);
-  if (!target_T_source) {
-    LogWarning("DepthImageCallback: Failed to get relative transform.");
+  pcl::registration::CorrespondenceEstimation<pcl::FPFHSignature33, pcl::FPFHSignature33> correspondence_estimator;
+  pcl::Correspondences pcl_correspondences;
+  correspondence_estimator.setInputSource(previous_fpfh_features_);
+  correspondence_estimator.setInputTarget(latest_fpfh_features_);
+  correspondence_estimator.determineCorrespondences(pcl_correspondences);
+  pc::Correspondences3d correspondences(pcl_correspondences, *previous_point_cloud_with_normals_,
+                                        *latest_point_cloud_with_normals_);
+
+  if (correspondences.target_points.size() < 4) {
+    LogError("DepthImageCallback: Too few points provided, need 4 but given " << correspondences.target_points.size()
+                                                                              << ".");
     return boost::none;
   }
 
-  if (target_T_source_initial_estimate) {
-    target_T_source->pose = target_T_source->pose * *target_T_source_initial_estimate;
-    // TODO(rsoussan): Frame change covariance!
+  const auto target_T_source =
+    aligner_.ComputeRelativeTransform(correspondences.source_points, correspondences.target_points);
+  if (!target_T_source) {
+    LogWarning("DepthImageCallback: Failed to get relative transform.");
+    return boost::none;
   }
 
   const auto source_T_target = lc::InvertPoseWithCovariance(*target_T_source);
@@ -87,13 +94,8 @@ boost::optional<PoseWithCovarianceAndCorrespondences> PointToPlaneICPDepthOdomet
     return boost::none;
   }
 
-  const auto correspondences = icp_.correspondences();
-  if (!correspondences) {
-    LogWarning("DepthImageCallback: Failed to get correspondences.");
-    return boost::none;
-  }
-
-  return PoseWithCovarianceAndCorrespondences(source_T_target, *correspondences, previous_timestamp_,
-                                              latest_timestamp_);
+  return PoseWithCovarianceAndCorrespondences(
+    source_T_target, lm::DepthCorrespondences(correspondences.source_points, correspondences.target_points),
+    previous_timestamp_, latest_timestamp_);
 }
 }  // namespace depth_odometry

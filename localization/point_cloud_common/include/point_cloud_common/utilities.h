@@ -40,6 +40,11 @@ template <typename PointType, typename PointWithNormalType>
 void EstimateNormals(const typename pcl::PointCloud<PointType>::Ptr cloud, const double search_radius,
                      pcl::PointCloud<PointWithNormalType>& cloud_with_normals);
 
+template <typename PointType, typename PointWithNormalType>
+typename pcl::PointCloud<PointWithNormalType>::Ptr DownsampledFilteredCloudWithNormals(
+  const typename pcl::PointCloud<PointType>::Ptr& cloud, const double search_radius = 0.04,
+  const bool downsample = true, const double leaf_size = 0.02);
+
 Eigen::Matrix4f RansacIA(const pcl::PointCloud<pcl::PointXYZINormal>::Ptr source_cloud,
                          const pcl::PointCloud<pcl::PointXYZINormal>::Ptr target_cloud);
 
@@ -216,6 +221,17 @@ void EstimateNormals(const typename pcl::PointCloud<PointType>::Ptr cloud, const
   pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>);
   ne.compute(*cloud_normals);
   pcl::concatenateFields(*cloud, *cloud_normals, cloud_with_normals);
+}
+
+template <typename PointType, typename PointWithNormalType>
+typename pcl::PointCloud<PointWithNormalType>::Ptr DownsampledFilteredCloudWithNormals(
+  const typename pcl::PointCloud<PointType>::Ptr& cloud, const double search_radius, const bool downsample,
+  const double leaf_size) {
+  if (downsample) {
+    const auto downsampled_cloud = DownsamplePointCloud<PointType>(cloud, leaf_size);
+    return FilteredPointCloudWithNormals<PointType, PointWithNormalType>(downsampled_cloud, search_radius);
+  }
+  return FilteredPointCloudWithNormals<PointType, PointWithNormalType>(cloud, search_radius);
 }
 
 template <typename PointType, typename PointWithNormalType>

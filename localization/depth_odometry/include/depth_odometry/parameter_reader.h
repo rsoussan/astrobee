@@ -21,15 +21,18 @@
 #include <config_reader/config_reader.h>
 #include <depth_odometry/depth_odometry_params.h>
 #include <depth_odometry/depth_odometry_wrapper_params.h>
-#include <depth_odometry/point_to_plane_icp_depth_odometry_params.h>
+#include <depth_odometry/fpfh_features_with_known_correspondences_aligner_depth_odometry_params.h>
 #include <depth_odometry/image_features_with_known_correspondences_aligner_depth_odometry_params.h>
+#include <depth_odometry/point_to_plane_icp_depth_odometry_params.h>
 
 namespace depth_odometry {
 void LoadDepthOdometryParams(config_reader::ConfigReader& config, DepthOdometryParams& params);
 void LoadDepthOdometryWrapperParams(config_reader::ConfigReader& config, DepthOdometryWrapperParams& params);
-void LoadPointToPlaneICPDepthOdometryParams(config_reader::ConfigReader& config,
-                                            PointToPlaneICPDepthOdometryParams& params);
+void LoadFPFHFeaturesWithKnownCorrespondencesAlignerDepthOdometryParams(
+  config_reader::ConfigReader& config, FPFHFeaturesWithKnownCorrespondencesAlignerDepthOdometryParams& params);
 void LoadImageFeaturesWithKnownCorrespondencesAlignerDepthOdometryParams(
   config_reader::ConfigReader& config, ImageFeaturesWithKnownCorrespondencesAlignerDepthOdometryParams& params);
+void LoadPointToPlaneICPDepthOdometryParams(config_reader::ConfigReader& config,
+                                            PointToPlaneICPDepthOdometryParams& params);
 }  // namespace depth_odometry
 #endif  // DEPTH_ODOMETRY_PARAMETER_READER_H_

@@ -22,7 +22,7 @@
 #include <localization_common/pose_with_covariance.h>
 #include <localization_common/time.h>
 #include <localization_common/utilities.h>
-#include <point_cloud_common/icp_correspondences.h>
+#include <point_cloud_common/correspondences_3d.h>
 #include <point_cloud_common/point_to_plane_icp_params.h>
 #include <point_cloud_common/utilities.h>
 
@@ -48,7 +48,7 @@ class PointToPlaneICP {
     const typename pcl::PointCloud<PointType>::Ptr source_cloud_with_normals,
     const typename pcl::PointCloud<PointType>::Ptr target_cloud_with_normals,
     const Eigen::Isometry3d& initial_target_T_source_estimate = Eigen::Isometry3d::Identity());
-  const boost::optional<ICPCorrespondences>& correspondences() const;
+  const boost::optional<Correspondences3d>& correspondences() const;
 
  private:
   boost::optional<localization_common::PoseWithCovariance> RunPointToPlaneICP(
@@ -66,7 +66,7 @@ class PointToPlaneICP {
   void SaveCorrespondences(const pcl::IterativeClosestPointWithNormals<PointType, PointType>& icp,
                            const typename pcl::PointCloud<PointType>::Ptr source_cloud,
                            const typename pcl::PointCloud<PointType>::Ptr source_cloud_transformed);
-  boost::optional<ICPCorrespondences> correspondences_;
+  boost::optional<Correspondences3d> correspondences_;
   PointToPlaneICPParams params_;
 };
 
@@ -190,21 +190,11 @@ void PointToPlaneICP<PointType>::SaveCorrespondences(
   icp.correspondence_estimation_->determineCorrespondences(pcl_correspondences, icp.corr_dist_threshold_);
   const auto& target_cloud = icp.target_;
   FilterCorrespondences(*source_cloud, *target_cloud, pcl_correspondences);
-  std::vector<Eigen::Vector3d> source_points;
-  std::vector<Eigen::Vector3d> target_points;
-  std::vector<Eigen::Vector3d> target_normals;
-  for (const auto& correspondence : pcl_correspondences) {
-    const auto& pcl_source_point = (*source_cloud)[correspondence.index_query];
-    const auto& pcl_target_point = (*target_cloud)[correspondence.index_match];
-    source_points.emplace_back(Vector3d(pcl_source_point));
-    target_points.emplace_back(Vector3d(pcl_target_point));
-    target_normals.emplace_back(NormalVector3d(pcl_target_point));
-  }
-  correspondences_ = ICPCorrespondences(source_points, target_points, target_normals);
+  correspondences_ = Correspondences3d(pcl_correspondences, *source_cloud, *target_cloud);
 }
 
 template <typename PointType>
-const boost::optional<ICPCorrespondences>& PointToPlaneICP<PointType>::correspondences() const {
+const boost::optional<Correspondences3d>& PointToPlaneICP<PointType>::correspondences() const {
   return correspondences_;
 }
 }  // namespace point_cloud_common

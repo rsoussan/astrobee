@@ -16,6 +16,8 @@
  * under the License.
  */
 #include <depth_odometry/depth_odometry_wrapper.h>
+#include <depth_odometry/fpfh_features_with_known_correspondences_aligner_depth_odometry.h>
+#include <depth_odometry/fpfh_features_with_known_correspondences_aligner_depth_odometry_params.h>
 #include <depth_odometry/image_features_with_known_correspondences_aligner_depth_odometry.h>
 #include <depth_odometry/image_features_with_known_correspondences_aligner_depth_odometry_params.h>
 #include <depth_odometry/parameter_reader.h>
@@ -55,6 +57,8 @@ void DepthOdometryWrapper::Initialize(const DepthOdometryWrapperParams& params) 
     depth_odometry_.reset(new PointToPlaneICPDepthOdometry(params.icp));
   } else if (params_.method == "image_feature") {
     depth_odometry_.reset(new ImageFeaturesWithKnownCorrespondencesAlignerDepthOdometry(params.image_features));
+  } else if (params_.method == "fpfh") {
+    depth_odometry_.reset(new FPFHFeaturesWithKnownCorrespondencesAlignerDepthOdometry(params.fpfh_features));
   } else {
     LogFatal("DepthOdometryWrapper: Invalid depth odometry method selected.");
   }

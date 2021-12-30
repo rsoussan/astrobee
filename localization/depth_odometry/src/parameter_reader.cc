@@ -32,8 +32,9 @@ void LoadDepthOdometryWrapperParams(config_reader::ConfigReader& config, DepthOd
   params.method = mc::LoadString(config, "depth_odometry_method");
   params.body_T_haz_cam = msg_conversions::LoadEigenTransform(config, "haz_cam_transform");
   params.haz_cam_A_haz_depth = Eigen::Affine3d::Identity();
-  LoadPointToPlaneICPDepthOdometryParams(config, params.icp);
+  LoadFPFHFeaturesWithKnownCorrespondencesAlignerDepthOdometryParams(config, params.fpfh_features);
   LoadImageFeaturesWithKnownCorrespondencesAlignerDepthOdometryParams(config, params.image_features);
+  LoadPointToPlaneICPDepthOdometryParams(config, params.icp);
 }
 
 void LoadDepthOdometryParams(config_reader::ConfigReader& config, DepthOdometryParams& params) {
@@ -47,6 +48,15 @@ void LoadPointToPlaneICPDepthOdometryParams(config_reader::ConfigReader& config,
   pc::LoadPointToPlaneICPParams(config, params.icp);
   params.downsample = mc::LoadBool(config, "downsample");
   params.downsample_leaf_size = mc::LoadDouble(config, "downsample_leaf_size");
+  LoadDepthOdometryParams(config, params);
+}
+
+void LoadFPFHFeaturesWithKnownCorrespondencesAlignerDepthOdometryParams(
+  config_reader::ConfigReader& config, FPFHFeaturesWithKnownCorrespondencesAlignerDepthOdometryParams& params) {
+  pc::LoadPointCloudWithKnownCorrespondencesAlignerParams(config, params.aligner);
+  params.downsample = mc::LoadBool(config, "downsample");
+  params.downsample_leaf_size = mc::LoadDouble(config, "downsample_leaf_size");
+  params.search_radius = mc::LoadDouble(config, "search_radius");
   LoadDepthOdometryParams(config, params);
 }
 
