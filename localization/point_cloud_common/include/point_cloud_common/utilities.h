@@ -49,7 +49,7 @@ Eigen::Matrix4f RansacIA(const pcl::PointCloud<pcl::PointXYZINormal>::Ptr source
                          const pcl::PointCloud<pcl::PointXYZINormal>::Ptr target_cloud);
 
 pcl::PointCloud<pcl::FPFHSignature33>::Ptr EstimateHistogramFeatures(
-  const pcl::PointCloud<pcl::PointXYZINormal>::Ptr cloud_with_normals);
+  const pcl::PointCloud<pcl::PointXYZINormal>::Ptr cloud_with_normals, const bool use_keypoints = true);
 
 Eigen::Matrix<double, 1, 6> PointToPlaneJacobian(const gtsam::Point3& source_point, const gtsam::Vector3& normal,
                                                  const gtsam::Pose3& target_T_source);

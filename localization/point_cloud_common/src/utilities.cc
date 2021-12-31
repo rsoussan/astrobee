@@ -27,6 +27,7 @@
 #include <pcl/features/impl/normal_3d.hpp>
 #include <pcl/features/impl/fpfh.hpp>
 #include <pcl/kdtree/impl/kdtree_flann.hpp>
+#include <pcl/keypoints/iss_3d.h>
 #include <pcl/registration/ia_ransac.h>
 #include <pcl/search/impl/search.hpp>
 #include <pcl/search/impl/organized.hpp>
@@ -36,14 +37,35 @@ namespace point_cloud_common {
 namespace lc = localization_common;
 
 pcl::PointCloud<pcl::FPFHSignature33>::Ptr EstimateHistogramFeatures(
-  const pcl::PointCloud<pcl::PointXYZINormal>::Ptr cloud_with_normals) {
+  const pcl::PointCloud<pcl::PointXYZINormal>::Ptr cloud_with_normals, const bool use_keypoints) {
+  // TODO(rsoussan): Allow for kdtree to be passed as arg
+  pcl::search::KdTree<pcl::PointXYZINormal>::Ptr kd_tree(new pcl::search::KdTree<pcl::PointXYZINormal>);
   pcl::FPFHEstimation<pcl::PointXYZINormal, pcl::PointXYZINormal, pcl::FPFHSignature33> feature_estimator;
+  // TODO(rsoussan): Also support narf keypoints
+  if (use_keypoints) {
+    // TODO(rsoussan): Compute this using point cloud
+    const double cloud_resolution = 0.008;
+    pcl::PointCloud<pcl::PointXYZINormal> keypoints;
+    pcl::ISSKeypoint3D<pcl::PointXYZINormal, pcl::PointXYZINormal> iss_detector;
+    iss_detector.setSearchMethod(kd_tree);
+    // Values taken from pcl::ISSKeypoint3D example code
+    iss_detector.setSalientRadius(6 * cloud_resolution);
+    iss_detector.setNonMaxRadius(4 * cloud_resolution);
+    iss_detector.setThreshold21(0.975);
+    iss_detector.setThreshold32(0.975);
+    iss_detector.setMinNeighbors(5);
+    iss_detector.setNumberOfThreads(1);
+    iss_detector.setInputCloud(cloud_with_normals);
+    iss_detector.compute(keypoints);
+    pcl::PointIndicesConstPtr keypoints_indices = iss_detector.getKeypointsIndices();
+    feature_estimator.setIndices(keypoints_indices);
+    LogDebug("EstimateHistogramFeatures: Keypoints: " << keypoints.size());
+  }
   feature_estimator.setInputCloud(cloud_with_normals);
   feature_estimator.setInputNormals(cloud_with_normals);
-  // TODO(rsoussan): Pass in kd tree from normal estimation?
-  pcl::search::KdTree<pcl::PointXYZINormal>::Ptr kd_tree(new pcl::search::KdTree<pcl::PointXYZINormal>);
   feature_estimator.setSearchMethod(kd_tree);
   // pcl: IMPORTANT: the radius used here has to be larger than the radius used to estimate the surface normals!!!
+  // TODO(rsoussan): Set this using cloud resolution and potentially a provided scale parameter
   feature_estimator.setRadiusSearch(0.05);  // 0.2??
   pcl::PointCloud<pcl::FPFHSignature33>::Ptr features(new pcl::PointCloud<pcl::FPFHSignature33>());
   feature_estimator.compute(*features);

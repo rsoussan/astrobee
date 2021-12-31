@@ -72,7 +72,7 @@ FPFHFeaturesWithKnownCorrespondencesAlignerDepthOdometry::DepthImageCallback(
   correspondence_estimator.determineCorrespondences(pcl_correspondences);
   pc::Correspondences3d correspondences(pcl_correspondences, *previous_point_cloud_with_normals_,
                                         *latest_point_cloud_with_normals_);
-
+  LogDebug("DepthImageCallback: Correspondences: " << correspondences.size());
   if (correspondences.target_points.size() < 4) {
     LogError("DepthImageCallback: Too few points provided, need 4 but given " << correspondences.target_points.size()
                                                                               << ".");
