@@ -40,6 +40,7 @@ FPFHFeaturesWithKnownCorrespondencesAlignerDepthOdometry::DepthImageCallback(
     latest_point_cloud_with_normals_ = pc::DownsampledFilteredCloudWithNormals<pcl::PointXYZI, pcl::PointXYZINormal>(
       depth_image_measurement.depth_image.unfiltered_point_cloud(), params_.search_radius, params_.downsample,
       params_.downsample_leaf_size);
+    // TODO(rsoussan): Allow for other types of features than just fpfh
     latest_fpfh_features_ = pc::EstimateHistogramFeatures(latest_point_cloud_with_normals_);
     latest_timestamp_ = depth_image_measurement.timestamp;
     return boost::none;
@@ -78,6 +79,8 @@ FPFHFeaturesWithKnownCorrespondencesAlignerDepthOdometry::DepthImageCallback(
                                                                               << ".");
     return boost::none;
   }
+
+  // TODO(rsoussan): Test correspondence rejection methods
 
   const auto target_T_source =
     aligner_.ComputeRelativeTransform(correspondences.source_points, correspondences.target_points);
