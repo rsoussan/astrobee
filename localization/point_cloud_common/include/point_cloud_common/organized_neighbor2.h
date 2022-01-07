@@ -42,6 +42,7 @@
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/search/kdtree.h>
 #include <pcl/search/search.h>
 #include <pcl/common/eigen.h>
 
@@ -50,6 +51,8 @@
 #include <vector>
 
 // Modified version of pcl organized neighbor to enable preseting the camera intrinsics matrix.
+// Inherits from KdTree instead of pcl::Search because pcl ICP (and all pcl Registration classes)
+// requires a KdTree as the search method.
 namespace pcl {
 namespace search {
 /** \brief OrganizedNeighbor is a class for optimized nearest neigbhor search in organized point clouds.
@@ -57,7 +60,7 @@ namespace search {
  * \ingroup search
  */
 template <typename PointT>
-class OrganizedNeighbor2 : public pcl::search::Search<PointT> {
+class OrganizedNeighbor2 : public pcl::search::KdTree<PointT> {
  public:
   // public typedefs
   typedef pcl::PointCloud<PointT> PointCloud;
@@ -77,8 +80,7 @@ class OrganizedNeighbor2 : public pcl::search::Search<PointT> {
    * \param[in] sorted_results whether the results should be return sorted in ascending order on the distances or not.
    *        This applies only for radius search, since knn always returns sorted resutls
    */
-  explicit OrganizedNeighbor2(bool sorted_results = false)
-      : Search<PointT>("OrganizedNeighbor2", sorted_results), mask_() {}
+  explicit OrganizedNeighbor2(bool sorted_results = false) : KdTree<PointT>(sorted_results), mask_() {}
 
   /** \brief Empty deconstructor. */
   virtual ~OrganizedNeighbor2() {}

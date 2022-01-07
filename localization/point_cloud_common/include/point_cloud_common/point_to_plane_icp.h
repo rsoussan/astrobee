@@ -23,6 +23,8 @@
 #include <localization_common/time.h>
 #include <localization_common/utilities.h>
 #include <point_cloud_common/icp_correspondences.h>
+#include <point_cloud_common/organized_neighbor2.h>
+#include <point_cloud_common/organized_neighbor2_impl.h>
 #include <point_cloud_common/point_to_plane_icp_params.h>
 #include <point_cloud_common/utilities.h>
 
@@ -94,6 +96,12 @@ boost::optional<localization_common::PoseWithCovariance> PointToPlaneICP<PointTy
   const typename pcl::PointCloud<PointType>::Ptr target_cloud_with_normals,
   const Eigen::Isometry3d& initial_target_T_source_estimate) {
   pcl::IterativeClosestPointWithNormals<PointType, PointType> icp;
+
+  if (params_.use_organized_search) {
+    auto organized_search = boost::make_shared<pcl::search::OrganizedNeighbor2<PointType>>();
+    organized_search->setIntrinsicsMatrix(params_.intrinsics_matrix);
+    icp.setSearchMethodTarget(organized_search);
+  }
 
   if (params_.symmetric_objective) {
     auto symmetric_transformation_estimation =
