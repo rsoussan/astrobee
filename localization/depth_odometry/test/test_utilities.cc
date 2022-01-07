@@ -219,6 +219,7 @@ PointToPlaneICPDepthOdometryParams DefaultPointToPlaneICPDepthOdometryParams() {
   params.use_normal_space_sampling = false;
   params.bins_per_axis = 15;
   params.num_samples = 3300;
+  params.use_organized_search = false;
   DefaultDepthOdometryParams(params);
   return params;
 }

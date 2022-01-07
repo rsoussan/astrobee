@@ -69,6 +69,9 @@ void LoadPointToPlaneICPDepthOdometryParams(config_reader::ConfigReader& config,
   params.use_normal_space_sampling = mc::LoadBool(config, "use_normal_space_sampling");
   params.bins_per_axis = mc::LoadInt(config, "bins_per_axis");
   params.num_samples = mc::LoadInt(config, "num_samples");
+  params.use_organized_search = mc::LoadBool(config, "use_organized_search");
+  const camera::CameraParameters cam_params(&config, "haz_cam");
+  params.intrinsics_matrix = cam_params.GetIntrinsicMatrix<camera::DISTORTED>();
   LoadDepthOdometryParams(config, params);
 }
 

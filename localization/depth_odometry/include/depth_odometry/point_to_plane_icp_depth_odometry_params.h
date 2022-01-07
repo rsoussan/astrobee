@@ -23,6 +23,8 @@
 
 #include <pcl/features/integral_image_normal.h>
 
+#include <Eigen/Core>
+
 namespace depth_odometry {
 struct PointToPlaneICPDepthOdometryParams : public DepthOdometryParams {
   point_cloud_common::PointToPlaneICPParams icp;
@@ -38,6 +40,9 @@ struct PointToPlaneICPDepthOdometryParams : public DepthOdometryParams {
   bool use_normal_space_sampling;
   int bins_per_axis;
   int num_samples;
+  // Organized search
+  bool use_organized_search;
+  Eigen::Matrix3d intrinsics_matrix;
 };
 }  // namespace depth_odometry
 
