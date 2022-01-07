@@ -18,6 +18,8 @@
 #ifndef POINT_CLOUD_COMMON_POINT_TO_PLANE_ICP_PARAMS_H_
 #define POINT_CLOUD_COMMON_POINT_TO_PLANE_ICP_PARAMS_H_
 
+#include <Eigen/Core>
+
 namespace point_cloud_common {
 struct PointToPlaneICPParams {
   double search_radius;
@@ -35,6 +37,9 @@ struct PointToPlaneICPParams {
   int num_coarse_to_fine_levels;
   double coarse_to_fine_final_leaf_size;
   bool downsample_last_coarse_to_fine_iteration;
+  // Organized search
+  bool use_organized_search;
+  Eigen::Matrix3d intrinsics_matrix;
 };
 }  // namespace point_cloud_common
 

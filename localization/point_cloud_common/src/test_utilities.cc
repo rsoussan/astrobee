@@ -115,6 +115,7 @@ PointToPlaneICPParams DefaultPointToPlaneICPParams() {
   params.num_coarse_to_fine_levels = 2;
   params.coarse_to_fine_final_leaf_size = 0.02;
   params.downsample_last_coarse_to_fine_iteration = true;
+  params.use_organized_search = false;
   return params;
 }
 

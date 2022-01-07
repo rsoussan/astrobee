@@ -23,6 +23,7 @@ add_compile_options(-std=c++14)
 
 ## Find catkin macros and libraries
 find_package(catkin2 REQUIRED COMPONENTS
+  camera
   ff_util
   localization_common 
   msg_conversions 
@@ -40,7 +41,7 @@ find_package(pcl_conversions REQUIRED)
 catkin_package(
   INCLUDE_DIRS include ${CERES_INCLUDE_DIRS} ${GTSAM_INCLUDE_DIR} ${PCL_INCLUDE_DIRS} ${pcl_conversions_INCLUDE_DIRS} 
   LIBRARIES ${PROJECT_NAME} ${CERES_LIBRARIES} ${PCL_LIBRARIES} ${GTSAM_LIBRARIES} 
-  CATKIN_DEPENDS roscpp ff_msgs ff_util localization_common msg_conversions optimization_common 
+  CATKIN_DEPENDS roscpp camera ff_msgs ff_util localization_common msg_conversions optimization_common 
   DEPENDS gtsam pcl 
 )
 

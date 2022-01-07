@@ -16,6 +16,7 @@
  * under the License.
  */
 
+#include <camera/camera_params.h>
 #include <point_cloud_common/parameter_reader.h>
 #include <localization_common/logger.h>
 #include <msg_conversions/msg_conversions.h>
@@ -40,6 +41,9 @@ void LoadPointToPlaneICPParams(config_reader::ConfigReader& config, PointToPlane
   params.num_coarse_to_fine_levels = mc::LoadInt(config, "num_coarse_to_fine_levels");
   params.coarse_to_fine_final_leaf_size = mc::LoadDouble(config, "coarse_to_fine_final_leaf_size");
   params.downsample_last_coarse_to_fine_iteration = mc::LoadBool(config, "downsample_last_coarse_to_fine_iteration");
+  params.use_organized_search = mc::LoadBool(config, "use_organized_search");
+  const camera::CameraParameters cam_params(&config, "haz_cam");
+  params.intrinsics_matrix = cam_params.GetIntrinsicMatrix<camera::DISTORTED>();
 }
 
 void LoadPointCloudWithKnownCorrespondencesAlignerParams(config_reader::ConfigReader& config,
