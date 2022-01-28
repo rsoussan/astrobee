@@ -55,7 +55,7 @@ include_directories(
 add_library(${PROJECT_NAME}
   src/graph_optimizer.cc
   src/graph_stats.cc
-  src/graph_values.cc
+  src/nodes.cc
   src/parameter_reader.cc
   src/utilities.cc
 )
@@ -64,11 +64,11 @@ target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
-  add_rostest_gtest(test_graph_values
-    test/test_graph_values.test
-    test/test_graph_values.cc
+  add_rostest_gtest(test_nodes
+    test/test_nodes.test
+    test/test_nodes.cc
   )
-  target_link_libraries(test_graph_values
+  target_link_libraries(test_nodes
     ${PROJECT_NAME} ${catkin_LIBRARIES} 
   )
 endif() 

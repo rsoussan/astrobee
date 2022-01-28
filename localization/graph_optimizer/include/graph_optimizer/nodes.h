@@ -16,8 +16,8 @@
  * under the License.
  */
 
-#ifndef GRAPH_OPTIMIZER_GRAPH_VALUES_H_
-#define GRAPH_OPTIMIZER_GRAPH_VALUES_H_
+#ifndef GRAPH_OPTIMIZER_NODES_H_
+#define GRAPH_OPTIMIZER_NODES_H_
 
 #include <localization_common/logger.h>
 
@@ -26,9 +26,9 @@
 #include <boost/optional.hpp>
 
 namespace graph_optimizer {
-class GraphValues {
+class Nodes {
  public:
-  GraphValues(std::shared_ptr<gtsam::Values> values = std::shared_ptr<gtsam::Values>(new gtsam::Values()));
+  Nodes(std::shared_ptr<gtsam::Values> values = std::shared_ptr<gtsam::Values>(new gtsam::Values()));
 
   template <typename ValueType>
   boost::optional<ValueType> Get(const gtsam::Key& key) const;
@@ -57,7 +57,7 @@ class GraphValues {
 
 // Implementation
 template <typename ValueType>
-boost::optional<ValueType> GraphValues::Get(const gtsam::Key& key) const {
+boost::optional<ValueType> Nodes::Get(const gtsam::Key& key) const {
   try {
     return values_->at<ValueType>(key);
   } catch (...) {
@@ -66,11 +66,11 @@ boost::optional<ValueType> GraphValues::Get(const gtsam::Key& key) const {
 }
 
 template <typename ValueType>
-bool GraphValues::Add(const gtsam::Key& key, const ValueType& value) {
+bool Nodes::Add(const gtsam::Key& key, const ValueType& value) {
   if (Contains(key)) return false;
   values_->insert(key, value);
   return true;
 }
 }  // namespace graph_optimizer
 
-#endif  // GRAPH_OPTIMIZER_GRAPH_VALUES_H_
+#endif  // GRAPH_OPTIMIZER_NODES_H_

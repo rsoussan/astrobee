@@ -16,10 +16,10 @@
  * under the License.
  */
 
-#ifndef GRAPH_OPTIMIZER_TIMESTAMPED_GRAPH_VALUES_H_
-#define GRAPH_OPTIMIZER_TIMESTAMPED_GRAPH_VALUES_H_
+#ifndef GRAPH_OPTIMIZER_TIMESTAMPED_NODES_H_
+#define GRAPH_OPTIMIZER_TIMESTAMPED_NODES_H_
 
-#include <graph_optimizer/graph_values.h>
+#include <graph_optimizer/nodes.h>
 #include <graph_optimizer/key_info.h>
 #include <localization_common/time.h>
 #include <localization_measurements/feature_point.h>
@@ -30,10 +30,10 @@
 #include <boost/optional.hpp>
 
 namespace graph_optimizer {
-class TimestampedGraphValues : public GraphValues {
+class TimestampedNodes : public Nodes {
  public:
-  TimestampedGraphValues(std::shared_ptr<gtsam::Values> values = std::shared_ptr<gtsam::Values>(new gtsam::Values()))
-      : GraphValues(values) {}
+  TimestampedNodes(std::shared_ptr<gtsam::Values> values = std::shared_ptr<gtsam::Values>(new gtsam::Values()))
+      : Nodes(values) {}
 
   // Returns the oldest time that will be in graph values once the window is slid using params
   virtual boost::optional<localization_common::Time> SlideWindowNewOldestTime() const = 0;
@@ -55,9 +55,9 @@ class TimestampedGraphValues : public GraphValues {
   friend class boost::serialization::access;
   template <class ARCHIVE>
   void serialize(ARCHIVE& ar, const unsigned int /*version*/) {
-    ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(GraphValues);
+    ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(Nodes);
   }
 };
 }  // namespace graph_optimizer
 
-#endif  // GRAPH_OPTIMIZER_TIMESTAMPED_GRAPH_VALUES_H_
+#endif  // GRAPH_OPTIMIZER_TIMESTAMPED_NODES_H_

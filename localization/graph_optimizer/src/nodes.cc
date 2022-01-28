@@ -15,18 +15,18 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-
-#ifndef GRAPH_OPTIMIZER_IDD_GRAPH_VALUES_H_
-#define GRAPH_OPTIMIZER_IDD_GRAPH_VALUES_H_
-
-#include <graph_optimizer/graph_values.h>
+#include <graph_optimizer/nodes.h>
 
 namespace graph_optimizer {
-class IddGraphValues : public GraphValues {
- public:
-  IddGraphValues(std::shared_ptr<gtsam::Values> values = std::shared_ptr<gtsam::Values>(new gtsam::Values()))
-      : GraphValues(std::move(values)) {}
-};
-}  // namespace graph_optimizer
+Nodes::Nodes(std::shared_ptr<gtsam::Values> values) : values_(std::move(values)) {}
 
-#endif  // GRAPH_OPTIMIZER_IDD_GRAPH_VALUES_H_
+bool Nodes::Contains(const gtsam::Key& key) const { return values_->exists(key); }
+
+bool Nodes::Remove(const gtsam::Key& key) {
+  if (!Contains(key)) return false;
+  values_->erase(key);
+  return true;
+}
+
+size_t Nodes::size() const { return values_->size(); }
+}  // namespace graph_optimizer

@@ -16,5 +16,5 @@
 <!-- permissions and limitations under the License.                          -->
 
 <launch>
-  <test pkg="graph_optimizer" type="test_graph_values" test-name="test_graph_values" />
+  <test pkg="graph_optimizer" type="test_nodes" test-name="test_nodes" />
 </launch>
