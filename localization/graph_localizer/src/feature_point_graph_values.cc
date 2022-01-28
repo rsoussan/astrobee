@@ -62,7 +62,8 @@ bool FeaturePointGraphValues::AddFeature(const lm::FeatureId id, const gtsam::Po
   }
 
   feature_id_key_map_.emplace(id, key);
-  values().insert(key, feature_point);
+  // TODO(rsoussan): Put back with updated version!
+  // values().insert(key, feature_point);
   return true;
 }
 
@@ -97,7 +98,8 @@ void FeaturePointGraphValues::RemoveOldFeatures(const gtsam::KeyVector& old_keys
   for (const auto& key : old_keys) {
     // TODO(rsoussan): test this
     if (gtsam::Symbol(key).chr() != 'F') continue;
-    values().erase(key);
+    // TODO(rsoussan): Put back with updated version!
+    // values().erase(key);
     for (auto feature_id_key_it = feature_id_key_map_.begin(); feature_id_key_it != feature_id_key_map_.end();) {
       if (feature_id_key_it->second == key) {
         feature_id_key_it = feature_id_key_map_.erase(feature_id_key_it);

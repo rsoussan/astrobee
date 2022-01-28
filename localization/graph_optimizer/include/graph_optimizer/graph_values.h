@@ -28,22 +28,21 @@
 namespace graph_optimizer {
 class GraphValues {
  public:
-  GraphValues(std::shared_ptr<gtsam::Values> values = std::shared_ptr<gtsam::Values>(new gtsam::Values()))
-      : values_(std::move(values)) {}
+  GraphValues(std::shared_ptr<gtsam::Values> values = std::shared_ptr<gtsam::Values>(new gtsam::Values()));
 
   template <typename ValueType>
-  boost::optional<ValueType> at(const gtsam::Key& key) const {
-    if (!values_->exists(key)) {
-      LogError("at: Key not present in values.");
-      return boost::none;
-    }
+  boost::optional<ValueType> Get(const gtsam::Key& key) const;
 
-    return values_->at<ValueType>(key);
-  }
+  template <typename ValueType>
+  bool Add(const gtsam::Key& key, const ValueType& value);
+
+  bool Remove(const gtsam::Key& key);
+
+  bool Contains(const gtsam::Key& key) const;
+
+  size_t size() const;
 
   const gtsam::Values& values() const { return *values_; }
-
-  gtsam::Values& values() { return *values_; }
 
  private:
   // Serialization function
@@ -55,6 +54,24 @@ class GraphValues {
 
   std::shared_ptr<gtsam::Values> values_;
 };
+
+// Implementation
+template <typename ValueType>
+boost::optional<ValueType> GraphValues::Get(const gtsam::Key& key) const {
+  if (!values_->exists(key)) {
+    LogError("Get: Key not present in values.");
+    return boost::none;
+  }
+
+  return values_->at<ValueType>(key);
+}
+
+template <typename ValueType>
+bool GraphValues::Add(const gtsam::Key& key, const ValueType& value) {
+  if (Contains(key)) return false;
+  values_->insert(key, value);
+  return true;
+}
 }  // namespace graph_optimizer
 
 #endif  // GRAPH_OPTIMIZER_GRAPH_VALUES_H_
