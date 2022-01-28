@@ -19,7 +19,7 @@
 #ifndef GRAPH_LOCALIZER_FEATURE_POINT_GRAPH_VALUES_H_
 #define GRAPH_LOCALIZER_FEATURE_POINT_GRAPH_VALUES_H_
 
-#include <graph_optimizer/graph_values.h>
+#include <graph_optimizer/idd_graph_values.h>
 #include <localization_common/logger.h>
 #include <localization_common/time.h>
 #include <localization_measurements/feature_point.h>
@@ -38,9 +38,7 @@
 
 namespace graph_localizer {
 namespace sym = gtsam::symbol_shorthand;
-// TODO(rsoussan): Make seperate base class for static graph values so don't have to return boost::none
-// for so many virtual fcns
-class FeaturePointGraphValues : public graph_optimizer::GraphValues {
+class FeaturePointGraphValues : public graph_optimizer::IddGraphValues {
  public:
   FeaturePointGraphValues(std::shared_ptr<gtsam::Values> values = std::shared_ptr<gtsam::Values>(new gtsam::Values()));
 

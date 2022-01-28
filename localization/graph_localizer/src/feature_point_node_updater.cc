@@ -52,7 +52,7 @@ void FeaturePointNodeUpdater::UpdatePointPriors(const gtsam::Marginals& marginal
                                                 gtsam::NonlinearFactorGraph& factors) {
   const auto feature_keys = feature_point_graph_values_->FeatureKeys();
   for (const auto& feature_key : feature_keys) {
-    const auto world_t_point = feature_point_graph_values_->at<gtsam::Point3>(feature_key);
+    const auto world_t_point = feature_point_graph_values_->Get<gtsam::Point3>(feature_key);
     if (!world_t_point) {
       LogError("UpdatePointPriors: Failed to get world_t_point.");
       continue;
