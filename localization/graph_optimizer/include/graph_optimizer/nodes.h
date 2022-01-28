@@ -31,12 +31,12 @@ class Nodes {
  public:
   Nodes(std::shared_ptr<gtsam::Values> values = std::shared_ptr<gtsam::Values>(new gtsam::Values()));
 
-  template <typename ValueType>
-  boost::optional<ValueType> Get(const gtsam::Key& key) const;
+  template <typename NodeType>
+  boost::optional<NodeType> Get(const gtsam::Key& key) const;
 
-  // Returns key for newly added value
-  template <typename ValueType>
-  gtsam::Key Add(const ValueType& value);
+  // Returns key for newly added node
+  template <typename NodeType>
+  gtsam::Key Add(const NodeType& node);
 
   bool Remove(const gtsam::Key& key);
 
@@ -56,20 +56,20 @@ class Nodes {
 };
 
 // Implementation
-template <typename ValueType>
-boost::optional<ValueType> Nodes::Get(const gtsam::Key& key) const {
+template <typename NodeType>
+boost::optional<NodeType> Nodes::Get(const gtsam::Key& key) const {
   try {
-    return values_->at<ValueType>(key);
+    return values_->at<NodeType>(key);
   } catch (...) {
     return boost::none;
   }
 }
 
-template <typename ValueType>
-gtsam::Key Nodes::Add(const ValueType& value) {
+template <typename NodeType>
+gtsam::Key Nodes::Add(const NodeType& node) {
   // Since latest_key_ is always incremented when a new key is added,
   // we don't need to worry about it already being in values_.
-  values_->insert(++latest_key_, value);
+  values_->insert(++latest_key_, node);
   return latest_key_;
 }
 
