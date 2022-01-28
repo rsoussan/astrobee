@@ -58,7 +58,7 @@ bool ProjectionGraphActionCompleter::TriangulateNewPoint(go::FactorsToAdd& facto
       LogError("TriangulateNewPoint: Failed to cast to projection factor.");
       return false;
     }
-    const auto world_T_body = graph_values_->at<gtsam::Pose3>(projection_factor->key1());
+    const auto world_T_body = graph_values_->Get<gtsam::Pose3>(projection_factor->key1());
     if (!world_T_body) {
       LogError("TriangulateNewPoint: Failed to get pose.");
       return false;

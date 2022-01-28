@@ -22,9 +22,10 @@
 #include <graph_optimizer/graph_values.h>
 
 namespace graph_optimizer {
-class IddGraphValues : public graph_optimizer::GraphValues {
+class IddGraphValues : public GraphValues {
  public:
-  IddGraphValues(std::shared_ptr<gtsam::Values> values = std::shared_ptr<gtsam::Values>(new gtsam::Values()));
+  IddGraphValues(std::shared_ptr<gtsam::Values> values = std::shared_ptr<gtsam::Values>(new gtsam::Values()))
+      : GraphValues(std::move(values)) {}
 };
 }  // namespace graph_optimizer
 

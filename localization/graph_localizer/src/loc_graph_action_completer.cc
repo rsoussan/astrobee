@@ -53,7 +53,7 @@ bool LocGraphActionCompleter::DoAction(go::FactorsToAdd& factors_to_add, gtsam::
     pose_key = projection_factor->key();
     world_T_cam = projection_factor->world_T_cam();
 
-    const auto world_T_body = graph_values_->at<gtsam::Pose3>(projection_factor->key());
+    const auto world_T_body = graph_values_->Get<gtsam::Pose3>(projection_factor->key());
     if (!world_T_body) {
       LogError("MapProjectionNoiseScaling: Failed to get pose.");
       return false;

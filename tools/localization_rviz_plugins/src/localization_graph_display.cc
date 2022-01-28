@@ -254,7 +254,7 @@ void LocalizationGraphDisplay::addLocProjectionVisual(
   cv_bridge::CvImage loc_projection_factor_image;
   loc_projection_factor_image.encoding = sensor_msgs::image_encodings::RGB8;
   loc_projection_factor_image.image = image.clone();  // cv::Mat(image.rows, image.cols, CV_8UC3, cv::Scalar(0, 0, 0));
-  const auto world_T_body = graph_values.at<gtsam::Pose3>(latest_loc_projection_factors.front()->key());
+  const auto world_T_body = graph_values.Get<gtsam::Pose3>(latest_loc_projection_factors.front()->key());
   if (!world_T_body) {
     LogError("addLocProjectionVisual: Failed to get world_T_body.");
     return;
@@ -422,7 +422,7 @@ void LocalizationGraphDisplay::addSmartFactorProjectionVisual(
 
 void LocalizationGraphDisplay::addImuVisual(const graph_localizer::GraphLocalizer& graph_localizer,
                                             const gtsam::CombinedImuFactor* const imu_factor) {
-  const auto world_T_body = graph_localizer.combined_nav_state_graph_values().at<gtsam::Pose3>(imu_factor->key1());
+  const auto world_T_body = graph_localizer.combined_nav_state_graph_values().Get<gtsam::Pose3>(imu_factor->key1());
   if (!world_T_body) {
     LogError("addImuVisual: Failed to get world_T_body.");
     return;

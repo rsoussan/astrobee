@@ -352,7 +352,7 @@ bool CombinedNavStateNodeUpdater::SplitOldImuFactorAndAddCombinedNavState(const 
     return false;
   }
 
-  const auto lower_bound_bias = graph_values.at<gtsam::imuBias::ConstantBias>(sym::B(*lower_bound_key_index));
+  const auto lower_bound_bias = graph_values.Get<gtsam::imuBias::ConstantBias>(sym::B(*lower_bound_key_index));
   if (!lower_bound_bias) {
     LogError("SplitOldImuFactorAndAddCombinedNavState: Failed to get lower bound bias.");
     return false;

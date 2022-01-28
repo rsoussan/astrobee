@@ -471,13 +471,13 @@ int GraphLocalizer::NumProjectionFactors(const bool check_valid) const {
     if (projection_factor) {
       if (check_valid) {
         const auto world_t_point =
-          feature_point_node_updater_->feature_point_graph_values().at<gtsam::Point3>(projection_factor->key2());
+          feature_point_node_updater_->feature_point_graph_values().Get<gtsam::Point3>(projection_factor->key2());
         if (!world_t_point) {
           LogError("NumProjectionFactors: Failed to get point.");
           continue;
         }
         const auto world_T_body =
-          combined_nav_state_node_updater_->graph_values().at<gtsam::Pose3>(projection_factor->key1());
+          combined_nav_state_node_updater_->graph_values().Get<gtsam::Pose3>(projection_factor->key1());
         if (!world_T_body) {
           LogError("NumProjectionFactors: Failed to get pose.");
           continue;

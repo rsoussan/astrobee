@@ -58,13 +58,13 @@ std::unique_ptr<rviz::Axes> axisFromPose(const gtsam::Pose3& pose, const double 
 
 boost::optional<lc::CombinedNavState> firstCombinedNavState(const graph_localizer::GraphLocalizer& graph_localizer,
                                                             const gtsam::CombinedImuFactor* const imu_factor) {
-  const auto pose = graph_localizer.combined_nav_state_graph_values().at<gtsam::Pose3>(imu_factor->key1());
+  const auto pose = graph_localizer.combined_nav_state_graph_values().Get<gtsam::Pose3>(imu_factor->key1());
   if (!pose) {
     LogError("pimPredict: Failed to get pose.");
     return boost::none;
   }
 
-  const auto velocity = graph_localizer.combined_nav_state_graph_values().at<gtsam::Velocity3>(imu_factor->key2());
+  const auto velocity = graph_localizer.combined_nav_state_graph_values().Get<gtsam::Velocity3>(imu_factor->key2());
   if (!velocity) {
     LogError("pimPredict: Failed to get velocity.");
     return boost::none;
@@ -72,7 +72,7 @@ boost::optional<lc::CombinedNavState> firstCombinedNavState(const graph_localize
 
   // TODO(rsoussan): is this correct bias to use???
   const auto bias =
-    graph_localizer.combined_nav_state_graph_values().at<gtsam::imuBias::ConstantBias>(imu_factor->key5());
+    graph_localizer.combined_nav_state_graph_values().Get<gtsam::imuBias::ConstantBias>(imu_factor->key5());
   if (!bias) {
     LogError("pimPredict: Failed to get bias.");
     return boost::none;
