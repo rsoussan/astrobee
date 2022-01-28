@@ -21,6 +21,7 @@
 
 #include <localization_common/logger.h>
 
+#include <gtsam/base/serialization.h>
 #include <gtsam/nonlinear/Values.h>
 
 #include <boost/optional.hpp>
@@ -45,12 +46,9 @@ class Nodes {
   const gtsam::Values& values() const { return *values_; }
 
  private:
-  // Serialization function
   friend class boost::serialization::access;
   template <class ARCHIVE>
-  void serialize(ARCHIVE& ar, const unsigned int /*version*/) {
-    ar& BOOST_SERIALIZATION_NVP(values_);
-  }
+  void serialize(ARCHIVE& ar, const unsigned int /*version*/);
 
   std::shared_ptr<gtsam::Values> values_;
 };
@@ -71,6 +69,12 @@ bool Nodes::Add(const gtsam::Key& key, const ValueType& value) {
   values_->insert(key, value);
   return true;
 }
+
+template <class ARCHIVE>
+void Nodes::serialize(ARCHIVE& ar, const unsigned int /*version*/) {
+  ar& BOOST_SERIALIZATION_NVP(values_);
+}
+
 }  // namespace graph_optimizer
 
 #endif  // GRAPH_OPTIMIZER_NODES_H_

@@ -25,7 +25,7 @@
 namespace go = graph_optimizer;
 namespace lc = localization_common;
 
-TEST(NodesTester, Test) {
+TEST(NodesTester, AddRemove) {
   go::Nodes nodes;
   EXPECT_EQ(nodes.size(), 0);
 
@@ -91,6 +91,13 @@ TEST(NodesTester, Test) {
     const auto bad_val = nodes.Get<double>(7);
     EXPECT_TRUE(bad_val == boost::none);
   }
+}
+
+TEST(NodesTester, Serialization) {
+  const go::Nodes nodes;
+  const auto serialized_nodes = gtsam::serializeBinary(nodes);
+  go::Nodes deserialized_nodes;
+  gtsam::deserializeBinary(serialized_nodes, deserialized_nodes);
 }
 
 // Run all the tests that were declared with TEST()
