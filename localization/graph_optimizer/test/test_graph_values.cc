@@ -31,26 +31,66 @@ TEST(GraphValuesTester, Test) {
 
   // Add element
   const double element_1 = 100.3;
+  graph_values.Add(1, element_1);
+  EXPECT_TRUE(graph_values.Contains(1));
+  EXPECT_FALSE(graph_values.Contains(2));
+  EXPECT_EQ(graph_values.size(), 1);
   {
-    graph_values.Add(1, element_1);
-    EXPECT_TRUE(graph_values.Contains(1));
-    EXPECT_FALSE(graph_values.Contains(2));
-    EXPECT_EQ(graph_values.size(), 1);
+    const auto bad_key_val = graph_values.Get<double>(2);
+    EXPECT_TRUE(bad_key_val == boost::none);
+    const auto bad_type_val = graph_values.Get<int>(2);
+    EXPECT_TRUE(bad_type_val == boost::none);
+    const auto good_val = graph_values.Get<double>(1);
+    ASSERT_TRUE(good_val != boost::none);
+    EXPECT_EQ(good_val, element_1);
   }
-
-  // TODO(rsoussan): test get!
 
   // Add element
   const double element_2 = 37.1;
+  graph_values.Add(7, element_2);
+  EXPECT_TRUE(graph_values.Contains(1));
+  EXPECT_TRUE(graph_values.Contains(7));
+  EXPECT_FALSE(graph_values.Contains(300));
+  EXPECT_EQ(graph_values.size(), 2);
   {
-    graph_values.Add(7, element_2);
-    EXPECT_TRUE(graph_values.Contains(1));
-    EXPECT_TRUE(graph_values.Contains(7));
-    EXPECT_FALSE(graph_values.Contains(300));
-    EXPECT_EQ(graph_values.size(), 2);
+    const auto bad_key_val = graph_values.Get<double>(3);
+    EXPECT_TRUE(bad_key_val == boost::none);
+    const auto bad_type_val = graph_values.Get<int>(7);
+    EXPECT_TRUE(bad_type_val == boost::none);
+    const auto good_val = graph_values.Get<double>(1);
+    ASSERT_TRUE(good_val != boost::none);
+    EXPECT_EQ(good_val, element_1);
+  }
+  {
+    const auto good_val = graph_values.Get<double>(7);
+    ASSERT_TRUE(good_val != boost::none);
+    EXPECT_EQ(good_val, element_2);
   }
 
-  // TODO(rsoussan): test get! test remove!
+  // Remove
+  EXPECT_TRUE(graph_values.Remove(1));
+  EXPECT_FALSE(graph_values.Contains(1));
+  EXPECT_TRUE(graph_values.Contains(7));
+  EXPECT_EQ(graph_values.size(), 1);
+  {
+    const auto good_val = graph_values.Get<double>(7);
+    ASSERT_TRUE(good_val != boost::none);
+    EXPECT_EQ(good_val, element_2);
+  }
+
+  // Bad Remove
+  EXPECT_FALSE(graph_values.Remove(1));
+  EXPECT_FALSE(graph_values.Remove(100));
+
+  // Remove
+  EXPECT_TRUE(graph_values.Remove(7));
+  EXPECT_FALSE(graph_values.Contains(1));
+  EXPECT_FALSE(graph_values.Contains(7));
+  EXPECT_EQ(graph_values.size(), 0);
+  {
+    const auto bad_val = graph_values.Get<double>(7);
+    EXPECT_TRUE(bad_val == boost::none);
+  }
 }
 
 // Run all the tests that were declared with TEST()

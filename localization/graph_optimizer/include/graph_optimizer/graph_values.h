@@ -58,12 +58,11 @@ class GraphValues {
 // Implementation
 template <typename ValueType>
 boost::optional<ValueType> GraphValues::Get(const gtsam::Key& key) const {
-  if (!values_->exists(key)) {
-    LogError("Get: Key not present in values.");
+  try {
+    return values_->at<ValueType>(key);
+  } catch (...) {
     return boost::none;
   }
-
-  return values_->at<ValueType>(key);
 }
 
 template <typename ValueType>
