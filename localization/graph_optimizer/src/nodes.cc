@@ -18,7 +18,7 @@
 #include <graph_optimizer/nodes.h>
 
 namespace graph_optimizer {
-Nodes::Nodes(std::shared_ptr<gtsam::Values> values) : values_(std::move(values)) {}
+Nodes::Nodes(std::shared_ptr<gtsam::Values> values) : values_(std::move(values)), latest_key_(0) {}
 
 bool Nodes::Contains(const gtsam::Key& key) const { return values_->exists(key); }
 

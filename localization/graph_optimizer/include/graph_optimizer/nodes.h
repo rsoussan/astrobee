@@ -34,8 +34,9 @@ class Nodes {
   template <typename ValueType>
   boost::optional<ValueType> Get(const gtsam::Key& key) const;
 
+  // Returns key for newly added value
   template <typename ValueType>
-  bool Add(const gtsam::Key& key, const ValueType& value);
+  gtsam::Key Add(const ValueType& value);
 
   bool Remove(const gtsam::Key& key);
 
@@ -51,6 +52,7 @@ class Nodes {
   void serialize(ARCHIVE& ar, const unsigned int /*version*/);
 
   std::shared_ptr<gtsam::Values> values_;
+  gtsam::Key latest_key_;
 };
 
 // Implementation
@@ -64,17 +66,18 @@ boost::optional<ValueType> Nodes::Get(const gtsam::Key& key) const {
 }
 
 template <typename ValueType>
-bool Nodes::Add(const gtsam::Key& key, const ValueType& value) {
-  if (Contains(key)) return false;
-  values_->insert(key, value);
-  return true;
+gtsam::Key Nodes::Add(const ValueType& value) {
+  // Since latest_key_ is always incremented when a new key is added,
+  // we don't need to worry about it already being in values_.
+  values_->insert(++latest_key_, value);
+  return latest_key_;
 }
 
 template <class ARCHIVE>
 void Nodes::serialize(ARCHIVE& ar, const unsigned int /*version*/) {
   ar& BOOST_SERIALIZATION_NVP(values_);
+  ar& BOOST_SERIALIZATION_NVP(latest_key_);
 }
-
 }  // namespace graph_optimizer
 
 #endif  // GRAPH_OPTIMIZER_NODES_H_

@@ -31,8 +31,8 @@ TEST(NodesTester, AddRemove) {
 
   // Add element
   const double element_1 = 100.3;
-  nodes.Add(1, element_1);
-  EXPECT_TRUE(nodes.Contains(1));
+  const auto key_1 = nodes.Add(element_1);
+  EXPECT_TRUE(nodes.Contains(key_1));
   EXPECT_FALSE(nodes.Contains(2));
   EXPECT_EQ(nodes.size(), 1);
   {
@@ -40,55 +40,55 @@ TEST(NodesTester, AddRemove) {
     EXPECT_TRUE(bad_key_val == boost::none);
     const auto bad_type_val = nodes.Get<int>(2);
     EXPECT_TRUE(bad_type_val == boost::none);
-    const auto good_val = nodes.Get<double>(1);
+    const auto good_val = nodes.Get<double>(key_1);
     ASSERT_TRUE(good_val != boost::none);
     EXPECT_EQ(good_val, element_1);
   }
 
   // Add element
   const double element_2 = 37.1;
-  nodes.Add(7, element_2);
-  EXPECT_TRUE(nodes.Contains(1));
-  EXPECT_TRUE(nodes.Contains(7));
+  const auto key_2 = nodes.Add(element_2);
+  EXPECT_TRUE(nodes.Contains(key_1));
+  EXPECT_TRUE(nodes.Contains(key_2));
   EXPECT_FALSE(nodes.Contains(300));
   EXPECT_EQ(nodes.size(), 2);
   {
     const auto bad_key_val = nodes.Get<double>(3);
     EXPECT_TRUE(bad_key_val == boost::none);
-    const auto bad_type_val = nodes.Get<int>(7);
+    const auto bad_type_val = nodes.Get<int>(key_2);
     EXPECT_TRUE(bad_type_val == boost::none);
-    const auto good_val = nodes.Get<double>(1);
+    const auto good_val = nodes.Get<double>(key_1);
     ASSERT_TRUE(good_val != boost::none);
     EXPECT_EQ(good_val, element_1);
   }
   {
-    const auto good_val = nodes.Get<double>(7);
+    const auto good_val = nodes.Get<double>(key_2);
     ASSERT_TRUE(good_val != boost::none);
     EXPECT_EQ(good_val, element_2);
   }
 
   // Remove
-  EXPECT_TRUE(nodes.Remove(1));
-  EXPECT_FALSE(nodes.Contains(1));
-  EXPECT_TRUE(nodes.Contains(7));
+  EXPECT_TRUE(nodes.Remove(key_1));
+  EXPECT_FALSE(nodes.Contains(key_1));
+  EXPECT_TRUE(nodes.Contains(key_2));
   EXPECT_EQ(nodes.size(), 1);
   {
-    const auto good_val = nodes.Get<double>(7);
+    const auto good_val = nodes.Get<double>(key_2);
     ASSERT_TRUE(good_val != boost::none);
     EXPECT_EQ(good_val, element_2);
   }
 
   // Bad Remove
-  EXPECT_FALSE(nodes.Remove(1));
+  EXPECT_FALSE(nodes.Remove(key_1));
   EXPECT_FALSE(nodes.Remove(100));
 
   // Remove
-  EXPECT_TRUE(nodes.Remove(7));
-  EXPECT_FALSE(nodes.Contains(1));
-  EXPECT_FALSE(nodes.Contains(7));
+  EXPECT_TRUE(nodes.Remove(key_2));
+  EXPECT_FALSE(nodes.Contains(key_1));
+  EXPECT_FALSE(nodes.Contains(key_2));
   EXPECT_EQ(nodes.size(), 0);
   {
-    const auto bad_val = nodes.Get<double>(7);
+    const auto bad_val = nodes.Get<double>(key_2);
     EXPECT_TRUE(bad_val == boost::none);
   }
 }
