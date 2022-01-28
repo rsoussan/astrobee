@@ -33,12 +33,16 @@ template <typename NodeType>
 class TimestampedNodes {
  public:
   explicit TimestampedNodes(std::shared_ptr<Nodes> nodes);
+  // For serialization only
+  TimestampedNodes() {}
 
-  gtsam::Key Add(const localization_common::Time timestamp, const NodeType& node);
+  bool Add(const localization_common::Time timestamp, const NodeType& node);
 
   bool Remove(const localization_common::Time timestamp);
 
   boost::optional<NodeType> Get(const localization_common::Time timestamp) const;
+
+  size_t size() const;
 
   /*  // Returns the oldest time that will be in graph values once the window is slid using params
     virtual boost::optional<localization_common::Time> SlideWindowNewOldestTime() const = 0;
@@ -90,8 +94,13 @@ bool TimestampedNodes<NodeType>::Remove(const localization_common::Time timestam
 template <typename NodeType>
 boost::optional<NodeType> TimestampedNodes<NodeType>::Get(const localization_common::Time timestamp) const {
   if (!Contains(timestamp)) return boost::none;
-  const auto key = timestamp_key_map_[timestamp];
+  const auto key = timestamp_key_map_.at(timestamp);
   return nodes_->Get<NodeType>(key);
+}
+
+template <typename NodeType>
+size_t TimestampedNodes<NodeType>::size() const {
+  return timestamp_key_map_.size();
 }
 
 template <typename NodeType>
