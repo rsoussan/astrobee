@@ -17,6 +17,7 @@
  */
 
 #include <graph_localizer/feature_point_graph_values.h>
+#include <graph_optimizer/key_info.h>
 #include <localization_common/logger.h>
 
 #include <gtsam/base/Vector.h>
@@ -31,17 +32,6 @@ namespace lc = localization_common;
 namespace lm = localization_measurements;
 FeaturePointGraphValues::FeaturePointGraphValues(std::shared_ptr<gtsam::Values> values)
     : go::GraphValues(std::move(values)), feature_key_index_(0) {}
-
-boost::optional<gtsam::Key> FeaturePointGraphValues::GetKey(go::KeyCreatorFunction key_creator_function,
-                                                            const localization_common::Time timestamp) const {
-  return boost::none;
-}
-
-boost::optional<lc::Time> FeaturePointGraphValues::OldestTimestamp() const { return boost::none; }
-
-boost::optional<lc::Time> FeaturePointGraphValues::LatestTimestamp() const { return boost::none; }
-
-boost::optional<lc::Time> FeaturePointGraphValues::SlideWindowNewOldestTime() const { return boost::none; }
 
 bool FeaturePointGraphValues::HasFeature(const lm::FeatureId id) const { return (feature_id_key_map_.count(id) > 0); }
 

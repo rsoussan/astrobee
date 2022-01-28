@@ -44,20 +44,8 @@ class FeaturePointGraphValues : public graph_optimizer::GraphValues {
  public:
   FeaturePointGraphValues(std::shared_ptr<gtsam::Values> values = std::shared_ptr<gtsam::Values>(new gtsam::Values()));
 
-  // Returns the oldest time that will be in graph values once the window is slid using params
-  boost::optional<localization_common::Time> SlideWindowNewOldestTime() const final;
-
   gtsam::KeyVector OldKeys(const localization_common::Time oldest_allowed_time,
-                           const gtsam::NonlinearFactorGraph& graph) const final;
-
-  boost::optional<gtsam::Key> GetKey(graph_optimizer::KeyCreatorFunction key_creator_function,
-                                     const localization_common::Time timestamp) const final;
-
-  boost::optional<localization_common::Time> OldestTimestamp() const final;
-
-  boost::optional<localization_common::Time> LatestTimestamp() const final;
-
-  gtsam::KeyVector OldFeatureKeys(const gtsam::NonlinearFactorGraph& factors) const;
+                           const gtsam::NonlinearFactorGraph& graph) const;
 
   void RemoveOldFeatures(const gtsam::KeyVector& old_feature_keys);
 

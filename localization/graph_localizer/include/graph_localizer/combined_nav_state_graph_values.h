@@ -19,7 +19,7 @@
 #ifndef GRAPH_LOCALIZER_COMBINED_NAV_STATE_GRAPH_VALUES_H_
 #define GRAPH_LOCALIZER_COMBINED_NAV_STATE_GRAPH_VALUES_H_
 
-#include <graph_optimizer/graph_values.h>
+#include <graph_optimizer/timestamped_graph_values.h>
 #include <graph_localizer/combined_nav_state_graph_values_params.h>
 #include <localization_common/combined_nav_state.h>
 #include <localization_common/logger.h>
@@ -40,7 +40,8 @@
 
 namespace graph_localizer {
 namespace sym = gtsam::symbol_shorthand;
-class CombinedNavStateGraphValues : public graph_optimizer::GraphValues {
+// TODO(rsoussan): Move much of this functionality to TimestampedGraphValues, don't use key index here
+class CombinedNavStateGraphValues : public graph_optimizer::TimestampedGraphValues {
  public:
   CombinedNavStateGraphValues(
     const CombinedNavStateGraphValuesParams& params = CombinedNavStateGraphValuesParams(),
@@ -126,7 +127,7 @@ class CombinedNavStateGraphValues : public graph_optimizer::GraphValues {
   friend class boost::serialization::access;
   template <class ARCHIVE>
   void serialize(ARCHIVE& ar, const unsigned int /*version*/) {
-    ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(graph_optimizer::GraphValues);
+    ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(graph_optimizer::TimestampedGraphValues);
     ar& BOOST_SERIALIZATION_NVP(timestamp_key_index_map_);
     ar& BOOST_SERIALIZATION_NVP(params_);
   }

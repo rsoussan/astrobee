@@ -54,7 +54,6 @@ include_directories(
 # Declare C++ libraries
 add_library(${PROJECT_NAME}
   src/graph_optimizer.cc
-  src/graph_values.cc
   src/utilities.cc
   src/graph_stats.cc
   src/parameter_reader.cc

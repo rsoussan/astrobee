@@ -80,9 +80,8 @@ go::NodeUpdaterType FeaturePointNodeUpdater::type() const { return go::NodeUpdat
 
 bool FeaturePointNodeUpdater::Update(const lc::Time timestamp, gtsam::NonlinearFactorGraph& factors) { return true; }
 
-boost::optional<lc::Time> FeaturePointNodeUpdater::SlideWindowNewOldestTime() const {
-  return feature_point_graph_values_->SlideWindowNewOldestTime();
-}
+// TODO(rsoussan): Remove these timestamped functions when IddNodeUpdater created!
+boost::optional<lc::Time> FeaturePointNodeUpdater::SlideWindowNewOldestTime() const { return boost::none; }
 
 gtsam::KeyVector FeaturePointNodeUpdater::OldKeys(const localization_common::Time oldest_allowed_time,
                                                   const gtsam::NonlinearFactorGraph& graph) const {
@@ -91,16 +90,12 @@ gtsam::KeyVector FeaturePointNodeUpdater::OldKeys(const localization_common::Tim
 
 boost::optional<gtsam::Key> FeaturePointNodeUpdater::GetKey(go::KeyCreatorFunction key_creator_function,
                                                             const localization_common::Time timestamp) const {
-  return feature_point_graph_values_->GetKey(key_creator_function, timestamp);
+  return boost::none;
 }
 
-boost::optional<localization_common::Time> FeaturePointNodeUpdater::OldestTimestamp() const {
-  return feature_point_graph_values_->OldestTimestamp();
-}
+boost::optional<localization_common::Time> FeaturePointNodeUpdater::OldestTimestamp() const { return boost::none; }
 
-boost::optional<localization_common::Time> FeaturePointNodeUpdater::LatestTimestamp() const {
-  return feature_point_graph_values_->LatestTimestamp();
-}
+boost::optional<localization_common::Time> FeaturePointNodeUpdater::LatestTimestamp() const { return boost::none; }
 
 int FeaturePointNodeUpdater::NumFeatures() const { return feature_point_graph_values_->NumFeatures(); }
 
