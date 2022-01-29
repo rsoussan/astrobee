@@ -50,7 +50,11 @@ class TimestampedNodes {
 
   boost::optional<localization_common::Time> OldestTimestamp() const;
 
+  boost::optional<NodeType> OldestNode() const;
+
   boost::optional<localization_common::Time> LatestTimestamp() const;
+
+  boost::optional<NodeType> LatestNode() const;
 
   std::pair<boost::optional<localization_common::Time>, boost::optional<localization_common::Time>>
   LowerAndUpperBoundTimestamp(const localization_common::Time timestamp) const;
@@ -64,24 +68,9 @@ class TimestampedNodes {
 
   double Duration() const;
 
-  /*  // Returns the oldest time that will be in graph values once the window is slid using params
-    virtual boost::optional<localization_common::Time> SlideWindowNewOldestTime() const = 0;
-
-    virtual gtsam::KeyVector OldKeys(const localization_common::Time oldest_allowed_time,
-                                     const gtsam::NonlinearFactorGraph& graph) const = 0;
-
-    virtual boost::optional<gtsam::Key> GetKey(KeyCreatorFunction key_creator_function,
-                                               const localization_common::Time timestamp) const = 0;
-
-    // TODO(rsoussan): Move implementations from CombinedNavSTateGraphValues to here, make generic, store timestamp map
-    // here
-    virtual boost::optional<localization_common::Time> OldestTimestamp() const = 0;
-
-    virtual boost::optional<localization_common::Time> LatestTimestamp() const = 0;*/
-
- private:
   bool Contains(const localization_common::Time timestamp) const;
 
+ private:
   friend class boost::serialization::access;
   template <class ARCHIVE>
   void serialize(ARCHIVE& ar, const unsigned int /*version*/);
@@ -138,12 +127,26 @@ boost::optional<localization_common::Time> TimestampedNodes<NodeType>::OldestTim
 }
 
 template <typename NodeType>
+boost::optional<NodeType> TimestampedNodes<NodeType>::OldestNode() const {
+  const auto oldest_timestamp = OldestTimestamp();
+  if (!oldest_timestamp) return boost::none;
+  return Get(*oldest_timestamp);
+}
+
+template <typename NodeType>
 boost::optional<localization_common::Time> TimestampedNodes<NodeType>::LatestTimestamp() const {
   if (empty()) {
     LogDebug("LatestTimestamp: No timestamps available.");
     return boost::none;
   }
   return timestamp_key_map_.crbegin()->first;
+}
+
+template <typename NodeType>
+boost::optional<NodeType> TimestampedNodes<NodeType>::LatestNode() const {
+  const auto latest_timestamp = LatestTimestamp();
+  if (!latest_timestamp) return boost::none;
+  return Get(*latest_timestamp);
 }
 
 template <typename NodeType>
