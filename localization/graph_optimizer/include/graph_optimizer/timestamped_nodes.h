@@ -27,6 +27,8 @@
 #include <boost/optional.hpp>
 
 #include <map>
+#include <utility>
+#include <vector>
 
 namespace graph_optimizer {
 template <typename NodeType>
@@ -43,6 +45,24 @@ class TimestampedNodes {
   boost::optional<NodeType> Get(const localization_common::Time timestamp) const;
 
   size_t size() const;
+
+  bool empty() const;
+
+  boost::optional<localization_common::Time> OldestTimestamp() const;
+
+  boost::optional<localization_common::Time> LatestTimestamp() const;
+
+  std::pair<boost::optional<localization_common::Time>, boost::optional<localization_common::Time>>
+  LowerAndUpperBoundTimestamp(const localization_common::Time timestamp) const;
+
+  boost::optional<localization_common::Time> ClosestTimestamp(const localization_common::Time timestamp) const;
+
+  boost::optional<localization_common::Time> LowerBoundOrEqualTimestamp(
+    const localization_common::Time timestamp) const;
+
+  std::vector<localization_common::Time> Timestamps() const;
+
+  double Duration() const;
 
   /*  // Returns the oldest time that will be in graph values once the window is slid using params
     virtual boost::optional<localization_common::Time> SlideWindowNewOldestTime() const = 0;
@@ -101,6 +121,115 @@ boost::optional<NodeType> TimestampedNodes<NodeType>::Get(const localization_com
 template <typename NodeType>
 size_t TimestampedNodes<NodeType>::size() const {
   return timestamp_key_map_.size();
+}
+
+template <typename NodeType>
+bool TimestampedNodes<NodeType>::empty() const {
+  return timestamp_key_map_.empty();
+}
+
+template <typename NodeType>
+boost::optional<localization_common::Time> TimestampedNodes<NodeType>::OldestTimestamp() const {
+  if (empty()) {
+    LogDebug("OldestTimestamp: No timestamps available.");
+    return boost::none;
+  }
+  return timestamp_key_map_.cbegin()->first;
+}
+
+template <typename NodeType>
+boost::optional<localization_common::Time> TimestampedNodes<NodeType>::LatestTimestamp() const {
+  if (empty()) {
+    LogDebug("LatestTimestamp: No timestamps available.");
+    return boost::none;
+  }
+  return timestamp_key_map_.crbegin()->first;
+}
+
+template <typename NodeType>
+std::pair<boost::optional<localization_common::Time>, boost::optional<localization_common::Time>>
+TimestampedNodes<NodeType>::LowerAndUpperBoundTimestamp(const localization_common::Time timestamp) const {
+  if (empty()) {
+    LogDebug("LowerAndUpperBoundTimestamp: No timestamps available.");
+    return {boost::none, boost::none};
+  }
+
+  // lower bound returns first it >= query, call this upper bound
+  const auto upper_bound_it = timestamp_key_map_.lower_bound(timestamp);
+  if (upper_bound_it == timestamp_key_map_.cend()) {
+    LogDebug("LowerAndUpperBoundTimestamp: No upper bound timestamp exists.");
+    const localization_common::Time lower_bound_time = (timestamp_key_map_.crbegin())->first;
+    return {boost::optional<localization_common::Time>(lower_bound_time), boost::none};
+  } else if (upper_bound_it == timestamp_key_map_.cbegin()) {
+    LogDebug("LowerAndUpperBoundTimestamp: No lower bound timestamp exists.");
+    return {boost::none, boost::optional<localization_common::Time>(upper_bound_it->first)};
+  }
+  const auto lower_bound_it = std::prev(upper_bound_it);
+
+  return {lower_bound_it->first, upper_bound_it->first};
+}
+
+template <typename NodeType>
+boost::optional<localization_common::Time> TimestampedNodes<NodeType>::LowerBoundOrEqualTimestamp(
+  const localization_common::Time timestamp) const {
+  const auto lower_and_upper_bound_timestamp = LowerAndUpperBoundTimestamp(timestamp);
+  if (!lower_and_upper_bound_timestamp.first && !lower_and_upper_bound_timestamp.second) {
+    LogDebug("LowerBoundOrEqualTimestamp: Failed to get lower or upper bound timestamps.");
+    return boost::none;
+  }
+
+  // Only return upper bound timestamp if it is equal to timestamp
+  if (lower_and_upper_bound_timestamp.second && *(lower_and_upper_bound_timestamp.second) == timestamp) {
+    return lower_and_upper_bound_timestamp.second;
+  }
+
+  return lower_and_upper_bound_timestamp.first;
+}
+
+template <typename NodeType>
+std::vector<localization_common::Time> TimestampedNodes<NodeType>::Timestamps() const {
+  std::vector<localization_common::Time> timestamps;
+  for (const auto& timestamp_key_pair : timestamp_key_map_) {
+    timestamps.emplace_back(timestamp_key_pair.first);
+  }
+  return timestamps;
+}
+
+template <typename NodeType>
+double TimestampedNodes<NodeType>::Duration() const {
+  if (empty()) return 0;
+  return (*LatestTimestamp() - *OldestTimestamp());
+}
+
+template <typename NodeType>
+boost::optional<localization_common::Time> TimestampedNodes<NodeType>::ClosestTimestamp(
+  const localization_common::Time timestamp) const {
+  if (empty()) {
+    LogDebug("ClosestTimestamp: No nodes available.");
+    return boost::none;
+  }
+
+  const auto lower_and_upper_bound_timestamp = LowerAndUpperBoundTimestamp(timestamp);
+  if (!lower_and_upper_bound_timestamp.first && !lower_and_upper_bound_timestamp.second) {
+    LogDebug("ClosestTimestamp: Failed to get lower or upper bound timestamp.");
+    return boost::none;
+  }
+
+  localization_common::Time closest_timestamp;
+  if (!lower_and_upper_bound_timestamp.first) {
+    closest_timestamp = *(lower_and_upper_bound_timestamp.second);
+  } else if (!lower_and_upper_bound_timestamp.second) {
+    closest_timestamp = *(lower_and_upper_bound_timestamp.first);
+  } else {
+    const localization_common::Time lower_bound_timestamp = *(lower_and_upper_bound_timestamp.first);
+    const localization_common::Time upper_bound_timestamp = *(lower_and_upper_bound_timestamp.second);
+    const double upper_bound_dt = std::abs(timestamp - upper_bound_timestamp);
+    const double lower_bound_dt = std::abs(timestamp - lower_bound_timestamp);
+    closest_timestamp = (upper_bound_dt < lower_bound_dt) ? upper_bound_timestamp : lower_bound_timestamp;
+  }
+
+  LogDebug("ClosestTimestamp: dt is " << std::abs(timestamp - closest_timestamp));
+  return closest_timestamp;
 }
 
 template <typename NodeType>
