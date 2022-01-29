@@ -56,9 +56,11 @@ class TimestampedNodes {
 
   boost::optional<NodeType> LatestNode() const;
 
+  // Return lower and upper bounds.  Equal values are set as upper bound only.
   std::pair<boost::optional<localization_common::Time>, boost::optional<localization_common::Time>>
   LowerAndUpperBoundTimestamps(const localization_common::Time timestamp) const;
 
+  // Return lower and upper bounds.  Equal values are set as upper bound only.
   std::pair<boost::optional<NodeType>, boost::optional<NodeType>> LowerAndUpperBoundNodes(
     const localization_common::Time timestamp) const;
 
@@ -183,8 +185,17 @@ template <typename NodeType>
 std::pair<boost::optional<NodeType>, boost::optional<NodeType>> TimestampedNodes<NodeType>::LowerAndUpperBoundNodes(
   const localization_common::Time timestamp) const {
   const auto lower_and_upper_bound_timestamps = LowerAndUpperBoundTimestamps(timestamp);
-  if (!lower_and_upper_bound_timestamps) return boost::none;
-  return {Get(lower_and_upper_bound_timestamps->first), Get(lower_and_upper_bound_timestamps->second)};
+  boost::optional<NodeType> lower_bound;
+  if (!lower_and_upper_bound_timestamps.first)
+    lower_bound = boost::none;
+  else
+    lower_bound = Get(*(lower_and_upper_bound_timestamps.first));
+  boost::optional<NodeType> upper_bound;
+  if (!lower_and_upper_bound_timestamps.second)
+    upper_bound = boost::none;
+  else
+    upper_bound = Get(*(lower_and_upper_bound_timestamps.second));
+  return {lower_bound, upper_bound};
 }
 
 template <typename NodeType>
@@ -205,7 +216,8 @@ boost::optional<localization_common::Time> TimestampedNodes<NodeType>::LowerBoun
 }
 
 template <typename NodeType>
-boost::optional<NodeType> LowerBoundOrEqualNode(const localization_common::Time timestamp) const {
+boost::optional<NodeType> TimestampedNodes<NodeType>::LowerBoundOrEqualNode(
+  const localization_common::Time timestamp) const {
   const auto lower_bound_or_equal_timestamp = LowerBoundOrEqualTimestamp();
   if (!lower_bound_or_equal_timestamp) return boost::none;
   return Get(*lower_bound_or_equal_timestamp);
@@ -257,7 +269,7 @@ boost::optional<localization_common::Time> TimestampedNodes<NodeType>::ClosestTi
 }
 
 template <typename NodeType>
-boost::optional<NodeType> ClosestNode(const localization_common::Time timestamp) const {
+boost::optional<NodeType> TimestampedNodes<NodeType>::ClosestNode(const localization_common::Time timestamp) const {
   const auto closest_timestamp = ClosestTimestamp(timestamp);
   if (!closest_timestamp) return boost::none;
   return Get(*closest_timestamp);

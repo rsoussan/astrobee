@@ -208,6 +208,115 @@ TEST(TimestampedNodesTester, OldestLatest) {
   }
 }
 
+TEST(TimestampedNodesTester, LowerAndUpperBounds) {
+  std::shared_ptr<go::Nodes> nodes(new go::Nodes());
+  go::TimestampedNodes<double> timestamped_nodes(nodes);
+  // No elements
+  {
+    const auto lower_and_upper_bound_timestamps = timestamped_nodes.LowerAndUpperBoundTimestamps(1.0);
+    EXPECT_TRUE(lower_and_upper_bound_timestamps.first == boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_timestamps.second == boost::none);
+    const auto lower_and_upper_bound_nodes = timestamped_nodes.LowerAndUpperBoundNodes(1.0);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.first == boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.second == boost::none);
+  }
+  const double node_1 = -77.0;
+  const localization_common::Time timestamp_1 = 37.0;
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_1, node_1));
+  // 1 element below
+  {
+    const auto lower_and_upper_bound_timestamps = timestamped_nodes.LowerAndUpperBoundTimestamps(10.0);
+    EXPECT_TRUE(lower_and_upper_bound_timestamps.first == boost::none);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.second != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.second), timestamp_1);
+    const auto lower_and_upper_bound_nodes = timestamped_nodes.LowerAndUpperBoundNodes(1.0);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.first == boost::none);
+    ASSERT_TRUE(lower_and_upper_bound_nodes.second != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_nodes.second), node_1);
+  }
+  // 1 element above
+  {
+    const auto lower_and_upper_bound_timestamps = timestamped_nodes.LowerAndUpperBoundTimestamps(57.3);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.first != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.first), timestamp_1);
+    EXPECT_TRUE(lower_and_upper_bound_timestamps.second == boost::none);
+    const auto lower_and_upper_bound_nodes = timestamped_nodes.LowerAndUpperBoundNodes(57.3);
+    ASSERT_TRUE(lower_and_upper_bound_nodes.first != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_nodes.first), node_1);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.second == boost::none);
+  }
+  // 1 element equal
+  {
+    const auto lower_and_upper_bound_timestamps = timestamped_nodes.LowerAndUpperBoundTimestamps(timestamp_1);
+    EXPECT_TRUE(lower_and_upper_bound_timestamps.first == boost::none);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.second != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.second), timestamp_1);
+    const auto lower_and_upper_bound_nodes = timestamped_nodes.LowerAndUpperBoundNodes(timestamp_1);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.first == boost::none);
+    ASSERT_TRUE(lower_and_upper_bound_nodes.second != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_nodes.second), node_1);
+  }
+
+  /*
+    // 2 elements
+    const double node_2 = 555.2;
+    const localization_common::Time timestamp_2 = 1.11;
+    ASSERT_TRUE(timestamped_nodes.Add(timestamp_2, node_2));
+    {
+      // Query below
+      EXPECT_TRUE(timestamped_nodes.LowerAndUpperBoundTimestamps(0.1) == boost::none);
+      EXPECT_TRUE(timestamped_nodes.LowerAndUpperBoundNodes(0.1) == boost::none);
+      // Query middle
+      const auto lower_and_upper_bound_timestamps = timestamped_nodes.LowerAndUpperBoundTimestamps(20.1);
+      ASSERT_TRUE(lower_and_upper_bound_timestamps);
+      EXPECT_EQ(lower_and_upper_bound_timestamps->first, timestamp_2);
+      EXPECT_EQ(lower_and_upper_bound_timestamps->second, timestamp_1);
+      const auto lower_and_upper_bound_nodes = timestamped_nodes.LowerAndUpperBoundNodes(20.1);
+      ASSERT_TRUE(lower_and_upper_bound_nodes);
+      EXPECT_EQ(lower_and_upper_bound_nodes->first, node_2);
+      EXPECT_EQ(lower_and_upper_bound_nodes->second, node_1);
+      // Query above
+      EXPECT_TRUE(timestamped_nodes.LowerAndUpperBoundTimestamps(39) == boost::none);
+      EXPECT_TRUE(timestamped_nodes.LowerAndUpperBoundNodes(39) == boost::none);
+    }
+
+    // 3 elements
+    const double node_3 = 1.3;
+    const localization_common::Time timestamp_3 = 12.3;
+    ASSERT_TRUE(timestamped_nodes.Add(timestamp_3, node_3));
+    {
+      // Query below
+      EXPECT_TRUE(timestamped_nodes.LowerAndUpperBoundTimestamps(1.0) == boost::none);
+      EXPECT_TRUE(timestamped_nodes.LowerAndUpperBoundNodes(1.0) == boost::none);
+      // Query middle 1
+      {
+        const auto lower_and_upper_bound_timestamps = timestamped_nodes.LowerAndUpperBoundTimestamps(11.1);
+        ASSERT_TRUE(lower_and_upper_bound_timestamps);
+        EXPECT_EQ(lower_and_upper_bound_timestamps->first, timestamp_2);
+        EXPECT_EQ(lower_and_upper_bound_timestamps->second, timestamp_3);
+        const auto lower_and_upper_bound_nodes = timestamped_nodes.LowerAndUpperBoundNodes(11.1);
+        ASSERT_TRUE(lower_and_upper_bound_nodes);
+        EXPECT_EQ(lower_and_upper_bound_nodes->first, node_2);
+        EXPECT_EQ(lower_and_upper_bound_nodes->second, node_3);
+      }
+      // Query middle 2
+      {
+        const auto lower_and_upper_bound_timestamps = timestamped_nodes.LowerAndUpperBoundTimestamps(17.1);
+        ASSERT_TRUE(lower_and_upper_bound_timestamps);
+        EXPECT_EQ(lower_and_upper_bound_timestamps->first, timestamp_3);
+        EXPECT_EQ(lower_and_upper_bound_timestamps->second, timestamp_1);
+        const auto lower_and_upper_bound_nodes = timestamped_nodes.LowerAndUpperBoundNodes(17.1);
+        ASSERT_TRUE(lower_and_upper_bound_nodes);
+        EXPECT_EQ(lower_and_upper_bound_nodes->first, node_3);
+        EXPECT_EQ(lower_and_upper_bound_nodes->second, node_1);
+      }
+
+      // Query above
+      EXPECT_TRUE(timestamped_nodes.LowerAndUpperBoundTimestamps(3000) == boost::none);
+      EXPECT_TRUE(timestamped_nodes.LowerAndUpperBoundNodes(3000) == boost::none);
+    }*/
+}
+
 TEST(TimestampedNodesTester, Serialization) {
   const go::TimestampedNodes<double> nodes;
   const auto serialized_nodes = gtsam::serializeBinary(nodes);
