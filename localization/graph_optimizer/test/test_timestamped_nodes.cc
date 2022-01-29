@@ -25,7 +25,7 @@
 namespace go = graph_optimizer;
 namespace lc = localization_common;
 
-TEST(TimestampedNodesTester, AddRemove) {
+TEST(TimestampedNodesTester, AddRemoveContainsEmptySize) {
   std::shared_ptr<go::Nodes> nodes(new go::Nodes());
   go::TimestampedNodes<double> timestamped_nodes(nodes);
   EXPECT_EQ(timestamped_nodes.size(), 0);
@@ -42,6 +42,7 @@ TEST(TimestampedNodesTester, AddRemove) {
     const auto accessed_node = timestamped_nodes.Get(timestamp_1);
     ASSERT_TRUE(accessed_node != boost::none);
     EXPECT_EQ(*accessed_node, node_1);
+    EXPECT_TRUE(timestamped_nodes.Contains(timestamp_1));
   }
 
   // Add element 2
@@ -55,14 +56,19 @@ TEST(TimestampedNodesTester, AddRemove) {
     const auto accessed_node_1 = timestamped_nodes.Get(timestamp_1);
     ASSERT_TRUE(accessed_node_1 != boost::none);
     EXPECT_EQ(*accessed_node_1, node_1);
+    EXPECT_TRUE(timestamped_nodes.Contains(timestamp_1));
     const auto accessed_node_2 = timestamped_nodes.Get(timestamp_2);
     ASSERT_TRUE(accessed_node_2 != boost::none);
     EXPECT_EQ(*accessed_node_2, node_2);
+    EXPECT_TRUE(timestamped_nodes.Contains(timestamp_2));
   }
 
   // Remove element 1
   EXPECT_TRUE(timestamped_nodes.Remove(timestamp_1));
   EXPECT_TRUE(timestamped_nodes.Get(timestamp_1) == boost::none);
+  EXPECT_FALSE(timestamped_nodes.Contains(timestamp_1));
+  EXPECT_TRUE(timestamped_nodes.Get(timestamp_2) != boost::none);
+  EXPECT_TRUE(timestamped_nodes.Contains(timestamp_2));
   EXPECT_TRUE(timestamped_nodes.Get(timestamp_2) != boost::none);
   EXPECT_EQ(timestamped_nodes.size(), 1);
   EXPECT_FALSE(timestamped_nodes.empty());
@@ -79,7 +85,9 @@ TEST(TimestampedNodesTester, AddRemove) {
   // Remove element 2
   EXPECT_TRUE(timestamped_nodes.Remove(timestamp_2));
   EXPECT_TRUE(timestamped_nodes.Get(timestamp_1) == boost::none);
+  EXPECT_FALSE(timestamped_nodes.Contains(timestamp_1));
   EXPECT_TRUE(timestamped_nodes.Get(timestamp_2) == boost::none);
+  EXPECT_FALSE(timestamped_nodes.Contains(timestamp_2));
   EXPECT_EQ(timestamped_nodes.size(), 0);
   EXPECT_TRUE(timestamped_nodes.empty());
   {
