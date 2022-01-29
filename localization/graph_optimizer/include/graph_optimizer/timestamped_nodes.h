@@ -57,12 +57,19 @@ class TimestampedNodes {
   boost::optional<NodeType> LatestNode() const;
 
   std::pair<boost::optional<localization_common::Time>, boost::optional<localization_common::Time>>
-  LowerAndUpperBoundTimestamp(const localization_common::Time timestamp) const;
+  LowerAndUpperBoundTimestamps(const localization_common::Time timestamp) const;
+
+  std::pair<boost::optional<NodeType>, boost::optional<NodeType>> LowerAndUpperBoundNodes(
+    const localization_common::Time timestamp) const;
 
   boost::optional<localization_common::Time> ClosestTimestamp(const localization_common::Time timestamp) const;
 
+  boost::optional<NodeType> ClosestNode(const localization_common::Time timestamp) const;
+
   boost::optional<localization_common::Time> LowerBoundOrEqualTimestamp(
     const localization_common::Time timestamp) const;
+
+  boost::optional<NodeType> LowerBoundOrEqualNode(const localization_common::Time timestamp) const;
 
   std::vector<localization_common::Time> Timestamps() const;
 
@@ -151,20 +158,20 @@ boost::optional<NodeType> TimestampedNodes<NodeType>::LatestNode() const {
 
 template <typename NodeType>
 std::pair<boost::optional<localization_common::Time>, boost::optional<localization_common::Time>>
-TimestampedNodes<NodeType>::LowerAndUpperBoundTimestamp(const localization_common::Time timestamp) const {
+TimestampedNodes<NodeType>::LowerAndUpperBoundTimestamps(const localization_common::Time timestamp) const {
   if (empty()) {
-    LogDebug("LowerAndUpperBoundTimestamp: No timestamps available.");
+    LogDebug("LowerAndUpperBoundTimestamps: No timestamps available.");
     return {boost::none, boost::none};
   }
 
   // lower bound returns first it >= query, call this upper bound
   const auto upper_bound_it = timestamp_key_map_.lower_bound(timestamp);
   if (upper_bound_it == timestamp_key_map_.cend()) {
-    LogDebug("LowerAndUpperBoundTimestamp: No upper bound timestamp exists.");
+    LogDebug("LowerAndUpperBoundTimestamps: No upper bound timestamp exists.");
     const localization_common::Time lower_bound_time = (timestamp_key_map_.crbegin())->first;
     return {boost::optional<localization_common::Time>(lower_bound_time), boost::none};
   } else if (upper_bound_it == timestamp_key_map_.cbegin()) {
-    LogDebug("LowerAndUpperBoundTimestamp: No lower bound timestamp exists.");
+    LogDebug("LowerAndUpperBoundTimestamps: No lower bound timestamp exists.");
     return {boost::none, boost::optional<localization_common::Time>(upper_bound_it->first)};
   }
   const auto lower_bound_it = std::prev(upper_bound_it);
@@ -173,9 +180,17 @@ TimestampedNodes<NodeType>::LowerAndUpperBoundTimestamp(const localization_commo
 }
 
 template <typename NodeType>
+std::pair<boost::optional<NodeType>, boost::optional<NodeType>> TimestampedNodes<NodeType>::LowerAndUpperBoundNodes(
+  const localization_common::Time timestamp) const {
+  const auto lower_and_upper_bound_timestamps = LowerAndUpperBoundTimestamps(timestamp);
+  if (!lower_and_upper_bound_timestamps) return boost::none;
+  return {Get(lower_and_upper_bound_timestamps->first), Get(lower_and_upper_bound_timestamps->second)};
+}
+
+template <typename NodeType>
 boost::optional<localization_common::Time> TimestampedNodes<NodeType>::LowerBoundOrEqualTimestamp(
   const localization_common::Time timestamp) const {
-  const auto lower_and_upper_bound_timestamp = LowerAndUpperBoundTimestamp(timestamp);
+  const auto lower_and_upper_bound_timestamp = LowerAndUpperBoundTimestamps(timestamp);
   if (!lower_and_upper_bound_timestamp.first && !lower_and_upper_bound_timestamp.second) {
     LogDebug("LowerBoundOrEqualTimestamp: Failed to get lower or upper bound timestamps.");
     return boost::none;
@@ -187,6 +202,13 @@ boost::optional<localization_common::Time> TimestampedNodes<NodeType>::LowerBoun
   }
 
   return lower_and_upper_bound_timestamp.first;
+}
+
+template <typename NodeType>
+boost::optional<NodeType> LowerBoundOrEqualNode(const localization_common::Time timestamp) const {
+  const auto lower_bound_or_equal_timestamp = LowerBoundOrEqualTimestamp();
+  if (!lower_bound_or_equal_timestamp) return boost::none;
+  return Get(*lower_bound_or_equal_timestamp);
 }
 
 template <typename NodeType>
@@ -212,7 +234,7 @@ boost::optional<localization_common::Time> TimestampedNodes<NodeType>::ClosestTi
     return boost::none;
   }
 
-  const auto lower_and_upper_bound_timestamp = LowerAndUpperBoundTimestamp(timestamp);
+  const auto lower_and_upper_bound_timestamp = LowerAndUpperBoundTimestamps(timestamp);
   if (!lower_and_upper_bound_timestamp.first && !lower_and_upper_bound_timestamp.second) {
     LogDebug("ClosestTimestamp: Failed to get lower or upper bound timestamp.");
     return boost::none;
@@ -231,8 +253,14 @@ boost::optional<localization_common::Time> TimestampedNodes<NodeType>::ClosestTi
     closest_timestamp = (upper_bound_dt < lower_bound_dt) ? upper_bound_timestamp : lower_bound_timestamp;
   }
 
-  LogDebug("ClosestTimestamp: dt is " << std::abs(timestamp - closest_timestamp));
   return closest_timestamp;
+}
+
+template <typename NodeType>
+boost::optional<NodeType> ClosestNode(const localization_common::Time timestamp) const {
+  const auto closest_timestamp = ClosestTimestamp(timestamp);
+  if (!closest_timestamp) return boost::none;
+  return Get(*closest_timestamp);
 }
 
 template <typename NodeType>
