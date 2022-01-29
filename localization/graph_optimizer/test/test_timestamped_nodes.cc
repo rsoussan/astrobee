@@ -110,18 +110,59 @@ TEST(TimestampedNodesTester, OldestLatest) {
     ASSERT_TRUE(latest_timestamp != boost::none);
     EXPECT_EQ(*latest_timestamp, timestamp_1);
   }
-  // TODO(rsoussan): add 2nd elem, add oldest/latest node fcns
-  // remove elem, remove elem
-  /*  // 2 elements
-    {
-      const auto oldest_timestamp = timestamped_nodes.OldestTimestamp();
-      ASSERT_TRUE(oldest_timestamp != boost::none);
-      EXPECT_EQ(*oldest_timestamp, timestamp_1);
-      const auto latest_timestamp = timestamped_nodes.LatestTimestamp();
-      ASSERT_TRUE(latest_timestamp != boost::none);
-      EXPECT_EQ(*latest_timestamp, timestamp_1);
-    }
-  */
+  // 2 elements
+  const double element_2 = 100.3;
+  const localization_common::Time timestamp_2 = 3.3;
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_2, element_2));
+  {
+    const auto oldest_timestamp = timestamped_nodes.OldestTimestamp();
+    ASSERT_TRUE(oldest_timestamp != boost::none);
+    EXPECT_EQ(*oldest_timestamp, timestamp_1);
+    const auto latest_timestamp = timestamped_nodes.LatestTimestamp();
+    ASSERT_TRUE(latest_timestamp != boost::none);
+    EXPECT_EQ(*latest_timestamp, timestamp_2);
+  }
+
+  // 3 elements
+  const double element_3 = 2100.3;
+  const localization_common::Time timestamp_3 = 19.3;
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_3, element_3));
+  {
+    const auto oldest_timestamp = timestamped_nodes.OldestTimestamp();
+    ASSERT_TRUE(oldest_timestamp != boost::none);
+    EXPECT_EQ(*oldest_timestamp, timestamp_1);
+    const auto latest_timestamp = timestamped_nodes.LatestTimestamp();
+    ASSERT_TRUE(latest_timestamp != boost::none);
+    EXPECT_EQ(*latest_timestamp, timestamp_3);
+  }
+
+  ASSERT_TRUE(timestamped_nodes.Remove(timestamp_1));
+  {
+    const auto oldest_timestamp = timestamped_nodes.OldestTimestamp();
+    ASSERT_TRUE(oldest_timestamp != boost::none);
+    EXPECT_EQ(*oldest_timestamp, timestamp_2);
+    const auto latest_timestamp = timestamped_nodes.LatestTimestamp();
+    ASSERT_TRUE(latest_timestamp != boost::none);
+    EXPECT_EQ(*latest_timestamp, timestamp_3);
+  }
+
+  ASSERT_TRUE(timestamped_nodes.Remove(timestamp_3));
+  {
+    const auto oldest_timestamp = timestamped_nodes.OldestTimestamp();
+    ASSERT_TRUE(oldest_timestamp != boost::none);
+    EXPECT_EQ(*oldest_timestamp, timestamp_2);
+    const auto latest_timestamp = timestamped_nodes.LatestTimestamp();
+    ASSERT_TRUE(latest_timestamp != boost::none);
+    EXPECT_EQ(*latest_timestamp, timestamp_2);
+  }
+
+  ASSERT_TRUE(timestamped_nodes.Remove(timestamp_2));
+  {
+    EXPECT_TRUE(timestamped_nodes.OldestTimestamp() == boost::none);
+    //    EXPECT_TRUE(timestamped_nodes.OldestNode() == boost::none);
+    EXPECT_TRUE(timestamped_nodes.LatestTimestamp() == boost::none);
+    //    EXPECT_TRUE(timestamped_nodes.LatestNode() == boost::none);
+  }
 }
 
 TEST(TimestampedNodesTester, Serialization) {
