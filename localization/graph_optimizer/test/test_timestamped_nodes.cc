@@ -455,6 +455,18 @@ TEST(TimestampedNodesTester, Closest) {
   EXPECT_EQ(*equal_node, node_2);
 }
 
+TEST(TimestampedNodesTester, Duration) {
+  std::shared_ptr<go::Nodes> nodes(new go::Nodes());
+  go::TimestampedNodes<double> timestamped_nodes(nodes);
+  EXPECT_EQ(timestamped_nodes.Duration(), 0);
+  ASSERT_TRUE(timestamped_nodes.Add(1.0, 1));
+  EXPECT_EQ(timestamped_nodes.Duration(), 0);
+  ASSERT_TRUE(timestamped_nodes.Add(2.0, 2));
+  EXPECT_NEAR(timestamped_nodes.Duration(), 1, 1e-6);
+  ASSERT_TRUE(timestamped_nodes.Add(3.0, 3));
+  EXPECT_NEAR(timestamped_nodes.Duration(), 2, 1e-6);
+}
+
 TEST(TimestampedNodesTester, Serialization) {
   const go::TimestampedNodes<double> nodes;
   const auto serialized_nodes = gtsam::serializeBinary(nodes);
