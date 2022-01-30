@@ -218,7 +218,7 @@ boost::optional<localization_common::Time> TimestampedNodes<NodeType>::LowerBoun
 template <typename NodeType>
 boost::optional<NodeType> TimestampedNodes<NodeType>::LowerBoundOrEqualNode(
   const localization_common::Time timestamp) const {
-  const auto lower_bound_or_equal_timestamp = LowerBoundOrEqualTimestamp();
+  const auto lower_bound_or_equal_timestamp = LowerBoundOrEqualTimestamp(timestamp);
   if (!lower_bound_or_equal_timestamp) return boost::none;
   return Get(*lower_bound_or_equal_timestamp);
 }
