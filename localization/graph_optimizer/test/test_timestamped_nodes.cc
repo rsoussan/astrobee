@@ -398,6 +398,63 @@ TEST(TimestampedNodesTester, LowerBoundOrEqual) {
   EXPECT_EQ(*equal_node, node_2);
 }
 
+TEST(TimestampedNodesTester, Closest) {
+  std::shared_ptr<go::Nodes> nodes(new go::Nodes());
+  go::TimestampedNodes<double> timestamped_nodes(nodes);
+  const double node_1 = 1.23;
+  const localization_common::Time timestamp_1 = 3.1;
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_1, node_1));
+  const double node_2 = 2.22;
+  const localization_common::Time timestamp_2 = 5.78;
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_2, node_2));
+  const double node_3 = 3.98;
+  const localization_common::Time timestamp_3 = 7.88;
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_3, node_3));
+  const auto below_lowest_timestamp = timestamped_nodes.ClosestTimestamp(1.23);
+  ASSERT_TRUE(below_lowest_timestamp != boost::none);
+  EXPECT_EQ(*below_lowest_timestamp, timestamp_1);
+  const auto above_lowest_timestamp = timestamped_nodes.ClosestTimestamp(4.11);
+  ASSERT_TRUE(above_lowest_timestamp != boost::none);
+  EXPECT_EQ(*above_lowest_timestamp, timestamp_1);
+  const auto below_middle_timestamp = timestamped_nodes.ClosestTimestamp(5.61);
+  ASSERT_TRUE(below_middle_timestamp != boost::none);
+  EXPECT_EQ(*below_middle_timestamp, timestamp_2);
+  const auto above_middle_timestamp = timestamped_nodes.ClosestTimestamp(6.61);
+  ASSERT_TRUE(above_middle_timestamp != boost::none);
+  EXPECT_EQ(*above_middle_timestamp, timestamp_2);
+  const auto below_upper_timestamp = timestamped_nodes.ClosestTimestamp(7.61);
+  ASSERT_TRUE(below_upper_timestamp != boost::none);
+  EXPECT_EQ(*below_upper_timestamp, timestamp_3);
+  const auto above_upper_timestamp = timestamped_nodes.ClosestTimestamp(8.61);
+  ASSERT_TRUE(above_upper_timestamp != boost::none);
+  EXPECT_EQ(*above_upper_timestamp, timestamp_3);
+  const auto equal_timestamp = timestamped_nodes.ClosestTimestamp(timestamp_2);
+  ASSERT_TRUE(equal_timestamp != boost::none);
+  EXPECT_EQ(*equal_timestamp, timestamp_2);
+
+  const auto below_lowest_node = timestamped_nodes.ClosestNode(1.23);
+  EXPECT_TRUE(below_lowest_node != boost::none);
+  EXPECT_EQ(*below_lowest_node, node_1);
+  const auto above_lowest_node = timestamped_nodes.ClosestNode(4.11);
+  ASSERT_TRUE(above_lowest_node != boost::none);
+  EXPECT_EQ(*above_lowest_node, node_1);
+  const auto below_middle_node = timestamped_nodes.ClosestNode(5.61);
+  ASSERT_TRUE(below_middle_node != boost::none);
+  EXPECT_EQ(*below_middle_node, node_2);
+  const auto above_middle_node = timestamped_nodes.ClosestNode(6.61);
+  ASSERT_TRUE(above_middle_node != boost::none);
+  EXPECT_EQ(*above_middle_node, node_2);
+  const auto below_upper_node = timestamped_nodes.ClosestNode(7.61);
+  ASSERT_TRUE(below_upper_node != boost::none);
+  EXPECT_EQ(*below_upper_node, node_3);
+  const auto above_upper_node = timestamped_nodes.ClosestNode(8.61);
+  ASSERT_TRUE(above_upper_node != boost::none);
+  EXPECT_EQ(*above_upper_node, node_3);
+  const auto equal_node = timestamped_nodes.ClosestNode(timestamp_2);
+  ASSERT_TRUE(equal_node != boost::none);
+  EXPECT_EQ(*equal_node, node_2);
+}
+
 TEST(TimestampedNodesTester, Serialization) {
   const go::TimestampedNodes<double> nodes;
   const auto serialized_nodes = gtsam::serializeBinary(nodes);
