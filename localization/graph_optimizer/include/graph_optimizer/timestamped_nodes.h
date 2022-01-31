@@ -73,6 +73,10 @@ class TimestampedNodes {
 
   boost::optional<NodeType> LowerBoundOrEqualNode(const localization_common::Time timestamp) const;
 
+  std::vector<localization_common::Time> OldTimestamps(const localization_common::Time oldest_allowed_timestamp) const;
+
+  std::vector<NodeType> OldNodes(const localization_common::Time oldest_allowed_timestamp) const;
+
   gtsam::KeyVector OldKeys(const localization_common::Time timestamp) const;
 
   std::vector<localization_common::Time> Timestamps() const;
@@ -271,13 +275,38 @@ boost::optional<localization_common::Time> TimestampedNodes<NodeType>::ClosestTi
 }
 
 template <typename NodeType>
-gtsam::KeyVector TimestampedNodes<NodeType>::OldKeys(const localization_common::Time oldest_allowed_timestamp) const {
-  gtsam::KeyVector old_keys;
+std::vector<localization_common::Time> TimestampedNodes<NodeType>::OldTimestamps(
+  const localization_common::Time oldest_allowed_timestamp) const {
+  std::vector<localization_common::Time> old_timestamps;
   for (const auto& timestamp_key_pair : timestamp_key_map_) {
     if (timestamp_key_pair.first >= oldest_allowed_timestamp) break;
-    old_keys.emplace_back(timestamp_key_pair.second);
+    old_timestamps.emplace_back(timestamp_key_pair.first);
   }
 
+  return old_timestamps;
+}
+
+template <typename NodeType>
+std::vector<NodeType> TimestampedNodes<NodeType>::OldNodes(
+  const localization_common::Time oldest_allowed_timestamp) const {
+  const auto old_timestamps = OldTimestamps(oldest_allowed_timestamp);
+  std::vector<NodeType> old_nodes;
+  for (const auto old_timestamp : old_timestamps) {
+    const auto old_node = Get(old_timestamp);
+    if (!old_node) {
+      LogError("OldNodes: Failed to get node for timestamp " << std::setprecision(15) << old_timestamp);
+      continue;
+    }
+    old_nodes.emplace_back(*old_node);
+  }
+  return old_nodes;
+}
+
+template <typename NodeType>
+gtsam::KeyVector TimestampedNodes<NodeType>::OldKeys(const localization_common::Time oldest_allowed_timestamp) const {
+  const auto old_timestamps = OldTimestamps(oldest_allowed_timestamp);
+  gtsam::KeyVector old_keys;
+  for (const auto old_timestamp : old_timestamps) old_keys.emplace_back(timestamp_key_map_.at(old_timestamp));
   return old_keys;
 }
 

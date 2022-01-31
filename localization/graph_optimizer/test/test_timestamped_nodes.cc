@@ -455,36 +455,80 @@ TEST(TimestampedNodesTester, Closest) {
   EXPECT_EQ(*equal_node, node_2);
 }
 
-TEST(TimestampedNodesTester, OldKeys) {
+TEST(TimestampedNodesTester, OldKeysTimestampsAndNodes) {
   std::shared_ptr<go::Nodes> nodes(new go::Nodes());
   go::TimestampedNodes<double> timestamped_nodes(nodes);
   const double t0 = 0;
+  const double n0 = lc::RandomDouble();
   const double t1 = 1;
+  const double n1 = lc::RandomDouble();
   const double t2 = 2;
+  const double n2 = lc::RandomDouble();
   const double t3 = 3;
-  ASSERT_TRUE(timestamped_nodes.Add(t0, t0));
-  ASSERT_TRUE(timestamped_nodes.Add(t1, t1));
-  ASSERT_TRUE(timestamped_nodes.Add(t2, t2));
-  ASSERT_TRUE(timestamped_nodes.Add(t3, t3));
+  const double n3 = lc::RandomDouble();
+  ASSERT_TRUE(timestamped_nodes.Add(t0, n0));
+  ASSERT_TRUE(timestamped_nodes.Add(t1, n1));
+  ASSERT_TRUE(timestamped_nodes.Add(t2, n2));
+  ASSERT_TRUE(timestamped_nodes.Add(t3, n3));
   {
     const auto old_keys = timestamped_nodes.OldKeys(0);
     EXPECT_EQ(old_keys.size(), 0);
+    const auto old_nodes = timestamped_nodes.OldNodes(0);
+    EXPECT_EQ(old_nodes.size(), 0);
+    const auto old_timestamps = timestamped_nodes.OldTimestamps(0);
+    EXPECT_EQ(old_timestamps.size(), 0);
   }
   {
     const auto old_keys = timestamped_nodes.OldKeys(0.1);
     EXPECT_EQ(old_keys.size(), 1);
+    const auto old_nodes = timestamped_nodes.OldNodes(0.1);
+    ASSERT_EQ(old_nodes.size(), 1);
+    EXPECT_EQ(old_nodes[0], n0);
+    const auto old_timestamps = timestamped_nodes.OldTimestamps(0.1);
+    ASSERT_EQ(old_timestamps.size(), 1);
+    EXPECT_EQ(old_timestamps[0], t0);
   }
   {
     const auto old_keys = timestamped_nodes.OldKeys(1.7);
     EXPECT_EQ(old_keys.size(), 2);
+    const auto old_nodes = timestamped_nodes.OldNodes(1.7);
+    ASSERT_EQ(old_nodes.size(), 2);
+    EXPECT_EQ(old_nodes[0], n0);
+    EXPECT_EQ(old_nodes[1], n1);
+    const auto old_timestamps = timestamped_nodes.OldTimestamps(1.7);
+    ASSERT_EQ(old_timestamps.size(), 2);
+    EXPECT_EQ(old_timestamps[0], t0);
+    EXPECT_EQ(old_timestamps[1], t1);
   }
   {
     const auto old_keys = timestamped_nodes.OldKeys(2.333);
     EXPECT_EQ(old_keys.size(), 3);
+    const auto old_nodes = timestamped_nodes.OldNodes(2.333);
+    ASSERT_EQ(old_nodes.size(), 3);
+    EXPECT_EQ(old_nodes[0], n0);
+    EXPECT_EQ(old_nodes[1], n1);
+    EXPECT_EQ(old_nodes[2], n2);
+    const auto old_timestamps = timestamped_nodes.OldTimestamps(2.333);
+    ASSERT_EQ(old_timestamps.size(), 3);
+    EXPECT_EQ(old_timestamps[0], t0);
+    EXPECT_EQ(old_timestamps[1], t1);
+    EXPECT_EQ(old_timestamps[2], t2);
   }
   {
     const auto old_keys = timestamped_nodes.OldKeys(1999);
     EXPECT_EQ(old_keys.size(), 4);
+    const auto old_nodes = timestamped_nodes.OldNodes(1999);
+    ASSERT_EQ(old_nodes.size(), 4);
+    EXPECT_EQ(old_nodes[0], n0);
+    EXPECT_EQ(old_nodes[1], n1);
+    EXPECT_EQ(old_nodes[2], n2);
+    EXPECT_EQ(old_nodes[3], n3);
+    const auto old_timestamps = timestamped_nodes.OldTimestamps(1999);
+    ASSERT_EQ(old_timestamps.size(), 4);
+    EXPECT_EQ(old_timestamps[0], t0);
+    EXPECT_EQ(old_timestamps[1], t1);
+    EXPECT_EQ(old_timestamps[2], t2);
+    EXPECT_EQ(old_timestamps[3], t3);
   }
 }
 
