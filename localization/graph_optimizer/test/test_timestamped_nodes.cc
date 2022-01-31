@@ -455,6 +455,39 @@ TEST(TimestampedNodesTester, Closest) {
   EXPECT_EQ(*equal_node, node_2);
 }
 
+TEST(TimestampedNodesTester, OldKeys) {
+  std::shared_ptr<go::Nodes> nodes(new go::Nodes());
+  go::TimestampedNodes<double> timestamped_nodes(nodes);
+  const double t0 = 0;
+  const double t1 = 1;
+  const double t2 = 2;
+  const double t3 = 3;
+  ASSERT_TRUE(timestamped_nodes.Add(t0, t0));
+  ASSERT_TRUE(timestamped_nodes.Add(t1, t1));
+  ASSERT_TRUE(timestamped_nodes.Add(t2, t2));
+  ASSERT_TRUE(timestamped_nodes.Add(t3, t3));
+  {
+    const auto old_keys = timestamped_nodes.OldKeys(0);
+    EXPECT_EQ(old_keys.size(), 0);
+  }
+  {
+    const auto old_keys = timestamped_nodes.OldKeys(0.1);
+    EXPECT_EQ(old_keys.size(), 1);
+  }
+  {
+    const auto old_keys = timestamped_nodes.OldKeys(1.7);
+    EXPECT_EQ(old_keys.size(), 2);
+  }
+  {
+    const auto old_keys = timestamped_nodes.OldKeys(2.333);
+    EXPECT_EQ(old_keys.size(), 3);
+  }
+  {
+    const auto old_keys = timestamped_nodes.OldKeys(1999);
+    EXPECT_EQ(old_keys.size(), 4);
+  }
+}
+
 TEST(TimestampedNodesTester, Duration) {
   std::shared_ptr<go::Nodes> nodes(new go::Nodes());
   go::TimestampedNodes<double> timestamped_nodes(nodes);

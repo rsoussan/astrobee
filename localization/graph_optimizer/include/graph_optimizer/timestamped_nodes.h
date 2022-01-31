@@ -73,6 +73,8 @@ class TimestampedNodes {
 
   boost::optional<NodeType> LowerBoundOrEqualNode(const localization_common::Time timestamp) const;
 
+  gtsam::KeyVector OldKeys(const localization_common::Time timestamp) const;
+
   std::vector<localization_common::Time> Timestamps() const;
 
   double Duration() const;
@@ -266,6 +268,17 @@ boost::optional<localization_common::Time> TimestampedNodes<NodeType>::ClosestTi
   }
 
   return closest_timestamp;
+}
+
+template <typename NodeType>
+gtsam::KeyVector TimestampedNodes<NodeType>::OldKeys(const localization_common::Time oldest_allowed_timestamp) const {
+  gtsam::KeyVector old_keys;
+  for (const auto& timestamp_key_pair : timestamp_key_map_) {
+    if (timestamp_key_pair.first >= oldest_allowed_timestamp) break;
+    old_keys.emplace_back(timestamp_key_pair.second);
+  }
+
+  return old_keys;
 }
 
 template <typename NodeType>
