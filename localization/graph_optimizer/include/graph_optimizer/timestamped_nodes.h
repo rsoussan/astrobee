@@ -79,6 +79,8 @@ class TimestampedNodes {
 
   gtsam::KeyVector OldKeys(const localization_common::Time timestamp) const;
 
+  int RemoveOldNodes(const localization_common::Time oldest_allowed_timestamp);
+
   std::vector<localization_common::Time> Timestamps() const;
 
   double Duration() const;
@@ -308,6 +310,15 @@ gtsam::KeyVector TimestampedNodes<NodeType>::OldKeys(const localization_common::
   gtsam::KeyVector old_keys;
   for (const auto old_timestamp : old_timestamps) old_keys.emplace_back(timestamp_key_map_.at(old_timestamp));
   return old_keys;
+}
+
+template <typename NodeType>
+int TimestampedNodes<NodeType>::RemoveOldNodes(const localization_common::Time oldest_allowed_timestamp) {
+  const auto old_timestamps = OldTimestamps(oldest_allowed_timestamp);
+  int num_removed_nodes = 0;
+  for (const auto old_timestamp : old_timestamps)
+    if (Remove(old_timestamp)) ++num_removed_nodes;
+  return num_removed_nodes;
 }
 
 template <typename NodeType>

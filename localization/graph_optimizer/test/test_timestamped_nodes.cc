@@ -546,6 +546,116 @@ TEST(TimestampedNodesTester, OldKeysTimestampsAndNodes) {
   }
 }
 
+TEST(TimestampedNodesTester, RemoveOldNodes) {
+  {
+    std::shared_ptr<go::Nodes> nodes(new go::Nodes());
+    go::TimestampedNodes<double> timestamped_nodes(nodes);
+    const double t0 = 0;
+    const double n0 = lc::RandomDouble();
+    const double t1 = 1.001;
+    const double n1 = lc::RandomDouble();
+    const double t2 = 2.100;
+    const double n2 = lc::RandomDouble();
+    const double t3 = 3.0222;
+    const double n3 = lc::RandomDouble();
+    ASSERT_TRUE(timestamped_nodes.Add(t0, n0));
+    ASSERT_TRUE(timestamped_nodes.Add(t1, n1));
+    ASSERT_TRUE(timestamped_nodes.Add(t2, n2));
+    ASSERT_TRUE(timestamped_nodes.Add(t3, n3));
+    const int num_nodes_removed = timestamped_nodes.RemoveOldNodes(0);
+    EXPECT_EQ(num_nodes_removed, 0);
+    EXPECT_EQ(timestamped_nodes.size(), 4);
+  }
+
+  {
+    std::shared_ptr<go::Nodes> nodes(new go::Nodes());
+    go::TimestampedNodes<double> timestamped_nodes(nodes);
+    const double t0 = 0;
+    const double n0 = lc::RandomDouble();
+    const double t1 = 1.001;
+    const double n1 = lc::RandomDouble();
+    const double t2 = 2.100;
+    const double n2 = lc::RandomDouble();
+    const double t3 = 3.0222;
+    const double n3 = lc::RandomDouble();
+    ASSERT_TRUE(timestamped_nodes.Add(t0, n0));
+    ASSERT_TRUE(timestamped_nodes.Add(t1, n1));
+    ASSERT_TRUE(timestamped_nodes.Add(t2, n2));
+    ASSERT_TRUE(timestamped_nodes.Add(t3, n3));
+    const int num_nodes_removed = timestamped_nodes.RemoveOldNodes(0.1);
+    EXPECT_EQ(num_nodes_removed, 1);
+    EXPECT_EQ(timestamped_nodes.size(), 3);
+    const auto timestamps = timestamped_nodes.Timestamps();
+    EXPECT_EQ(timestamps[0], t1);
+    EXPECT_EQ(timestamps[1], t2);
+    EXPECT_EQ(timestamps[2], t3);
+  }
+  {
+    std::shared_ptr<go::Nodes> nodes(new go::Nodes());
+    go::TimestampedNodes<double> timestamped_nodes(nodes);
+    const double t0 = 0;
+    const double n0 = lc::RandomDouble();
+    const double t1 = 1.001;
+    const double n1 = lc::RandomDouble();
+    const double t2 = 2.100;
+    const double n2 = lc::RandomDouble();
+    const double t3 = 3.0222;
+    const double n3 = lc::RandomDouble();
+    ASSERT_TRUE(timestamped_nodes.Add(t0, n0));
+    ASSERT_TRUE(timestamped_nodes.Add(t1, n1));
+    ASSERT_TRUE(timestamped_nodes.Add(t2, n2));
+    ASSERT_TRUE(timestamped_nodes.Add(t3, n3));
+    const int num_nodes_removed = timestamped_nodes.RemoveOldNodes(1.334);
+    EXPECT_EQ(num_nodes_removed, 2);
+    EXPECT_EQ(timestamped_nodes.size(), 2);
+    const auto timestamps = timestamped_nodes.Timestamps();
+    EXPECT_EQ(timestamps[0], t2);
+    EXPECT_EQ(timestamps[1], t3);
+  }
+
+  {
+    std::shared_ptr<go::Nodes> nodes(new go::Nodes());
+    go::TimestampedNodes<double> timestamped_nodes(nodes);
+    const double t0 = 0;
+    const double n0 = lc::RandomDouble();
+    const double t1 = 1.001;
+    const double n1 = lc::RandomDouble();
+    const double t2 = 2.100;
+    const double n2 = lc::RandomDouble();
+    const double t3 = 3.0222;
+    const double n3 = lc::RandomDouble();
+    ASSERT_TRUE(timestamped_nodes.Add(t0, n0));
+    ASSERT_TRUE(timestamped_nodes.Add(t1, n1));
+    ASSERT_TRUE(timestamped_nodes.Add(t2, n2));
+    ASSERT_TRUE(timestamped_nodes.Add(t3, n3));
+    const int num_nodes_removed = timestamped_nodes.RemoveOldNodes(2.78);
+    EXPECT_EQ(num_nodes_removed, 3);
+    EXPECT_EQ(timestamped_nodes.size(), 1);
+    const auto timestamps = timestamped_nodes.Timestamps();
+    EXPECT_EQ(timestamps[0], t3);
+  }
+
+  {
+    std::shared_ptr<go::Nodes> nodes(new go::Nodes());
+    go::TimestampedNodes<double> timestamped_nodes(nodes);
+    const double t0 = 0;
+    const double n0 = lc::RandomDouble();
+    const double t1 = 1.001;
+    const double n1 = lc::RandomDouble();
+    const double t2 = 2.100;
+    const double n2 = lc::RandomDouble();
+    const double t3 = 3.0222;
+    const double n3 = lc::RandomDouble();
+    ASSERT_TRUE(timestamped_nodes.Add(t0, n0));
+    ASSERT_TRUE(timestamped_nodes.Add(t1, n1));
+    ASSERT_TRUE(timestamped_nodes.Add(t2, n2));
+    ASSERT_TRUE(timestamped_nodes.Add(t3, n3));
+    const int num_nodes_removed = timestamped_nodes.RemoveOldNodes(1923.78);
+    EXPECT_EQ(num_nodes_removed, 4);
+    EXPECT_EQ(timestamped_nodes.size(), 0);
+  }
+}
+
 TEST(TimestampedNodesTester, Duration) {
   std::shared_ptr<go::Nodes> nodes(new go::Nodes());
   go::TimestampedNodes<double> timestamped_nodes(nodes);
