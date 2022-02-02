@@ -65,7 +65,7 @@ class CombinedNavStateNodes {
 
   gtsam::KeyVector OldKeys(const localization_common::Time oldest_allowed_time) const;
 
-  bool Empty() const;
+  bool empty() const;
 
  private:
   bool Remove(const localization_common::Time timestamp);

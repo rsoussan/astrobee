@@ -27,12 +27,33 @@ namespace gl = graph_localizer;
 namespace go = graph_optimizer;
 namespace lc = localization_common;
 
-TEST(CombinedNavStateNodesTester, Add) {
+TEST(CombinedNavStateNodesTester, AddGet) {
   std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
   gl::CombinedNavStateNodes nodes(graph_nodes);
-  const lc::Time t0(0);
-  const auto n0 = lc::RandomCombinedNavState(t0);
+  EXPECT_TRUE(nodes.empty());
+  EXPECT_EQ(nodes.size(), 0);
+
+  // Add random node 0
+  const auto n0 = lc::RandomCombinedNavState();
   nodes.Add(n0);
+  EXPECT_FALSE(nodes.empty());
+  EXPECT_EQ(nodes.size(), 1);
+  {
+    const auto node = nodes.Get(n0.timestamp());
+    ASSERT_TRUE(node != boost::none);
+    EXPECT_TRUE(node->Equals(n0));
+  }
+
+  // Add random node 1
+  const auto n1 = lc::RandomCombinedNavState();
+  nodes.Add(n1);
+  EXPECT_FALSE(nodes.empty());
+  EXPECT_EQ(nodes.size(), 2);
+  {
+    const auto node = nodes.Get(n1.timestamp());
+    ASSERT_TRUE(node != boost::none);
+    EXPECT_TRUE(node->Equals(n1));
+  }
 }
 
 // Run all the tests that were declared with TEST()

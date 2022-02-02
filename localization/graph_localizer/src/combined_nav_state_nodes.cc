@@ -77,7 +77,7 @@ std::pair<boost::optional<lc::Time>, boost::optional<lc::Time>> CombinedNavState
   return pose_nodes_.LowerAndUpperBoundTimestamps(timestamp);
 }
 
-bool CombinedNavStateNodes::Empty() const { return pose_nodes_.empty(); }
+bool CombinedNavStateNodes::empty() const { return pose_nodes_.empty(); }
 
 double CombinedNavStateNodes::Duration() const { return pose_nodes_.Duration(); }
 
