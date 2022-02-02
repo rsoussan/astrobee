@@ -499,23 +499,22 @@ TEST(CombinedNavStateNodesTester, OldKeysTimestampsAndNodes) {
   }
 }
 
-/*
 TEST(CombinedNavStateNodesTester, RemoveOldNodes) {
   {
     std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
     gl::CombinedNavStateNodes nodes(graph_nodes);
     const double t0 = 0;
-    const auto n0 = lc::RandomCombinedNavState(t);
+    const auto n0 = lc::RandomCombinedNavState(t0);
     const double t1 = 1.001;
-    const auto n1 = lc::RandomCombinedNavState(t);
+    const auto n1 = lc::RandomCombinedNavState(t1);
     const double t2 = 2.100;
-    const auto n2 = lc::RandomCombinedNavState(t);
+    const auto n2 = lc::RandomCombinedNavState(t2);
     const double t3 = 3.0222;
-    const auto n3 = lc::RandomCombinedNavState(t);
-    ASSERT_TRUE(nodes.Add(t0, n0));
-    ASSERT_TRUE(nodes.Add(t1, n1));
-    ASSERT_TRUE(nodes.Add(t2, n2));
-    ASSERT_TRUE(nodes.Add(t3, n3));
+    const auto n3 = lc::RandomCombinedNavState(t3);
+    ASSERT_TRUE(nodes.Add(n0));
+    ASSERT_TRUE(nodes.Add(n1));
+    ASSERT_TRUE(nodes.Add(n2));
+    ASSERT_TRUE(nodes.Add(n3));
     const int num_nodes_removed = nodes.RemoveOldNodes(0);
     EXPECT_EQ(num_nodes_removed, 0);
     EXPECT_EQ(nodes.size(), 4);
@@ -525,17 +524,17 @@ TEST(CombinedNavStateNodesTester, RemoveOldNodes) {
     std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
     gl::CombinedNavStateNodes nodes(graph_nodes);
     const double t0 = 0;
-    const auto n0 = lc::RandomCombinedNavState(t);
+    const auto n0 = lc::RandomCombinedNavState(t0);
     const double t1 = 1.001;
-    const auto n1 = lc::RandomCombinedNavState(t);
+    const auto n1 = lc::RandomCombinedNavState(t1);
     const double t2 = 2.100;
-    const auto n2 = lc::RandomCombinedNavState(t);
+    const auto n2 = lc::RandomCombinedNavState(t2);
     const double t3 = 3.0222;
-    const auto n3 = lc::RandomCombinedNavState(t);
-    ASSERT_TRUE(nodes.Add(t0, n0));
-    ASSERT_TRUE(nodes.Add(t1, n1));
-    ASSERT_TRUE(nodes.Add(t2, n2));
-    ASSERT_TRUE(nodes.Add(t3, n3));
+    const auto n3 = lc::RandomCombinedNavState(t3);
+    ASSERT_TRUE(nodes.Add(n0));
+    ASSERT_TRUE(nodes.Add(n1));
+    ASSERT_TRUE(nodes.Add(n2));
+    ASSERT_TRUE(nodes.Add(n3));
     const int num_nodes_removed = nodes.RemoveOldNodes(0.1);
     EXPECT_EQ(num_nodes_removed, 1);
     EXPECT_EQ(nodes.size(), 3);
@@ -548,17 +547,17 @@ TEST(CombinedNavStateNodesTester, RemoveOldNodes) {
     std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
     gl::CombinedNavStateNodes nodes(graph_nodes);
     const double t0 = 0;
-    const auto n0 = lc::RandomCombinedNavState(t);
+    const auto n0 = lc::RandomCombinedNavState(t0);
     const double t1 = 1.001;
-    const auto n1 = lc::RandomCombinedNavState(t);
+    const auto n1 = lc::RandomCombinedNavState(t1);
     const double t2 = 2.100;
-    const auto n2 = lc::RandomCombinedNavState(t);
+    const auto n2 = lc::RandomCombinedNavState(t2);
     const double t3 = 3.0222;
-    const auto n3 = lc::RandomCombinedNavState(t);
-    ASSERT_TRUE(nodes.Add(t0, n0));
-    ASSERT_TRUE(nodes.Add(t1, n1));
-    ASSERT_TRUE(nodes.Add(t2, n2));
-    ASSERT_TRUE(nodes.Add(t3, n3));
+    const auto n3 = lc::RandomCombinedNavState(t3);
+    ASSERT_TRUE(nodes.Add(n0));
+    ASSERT_TRUE(nodes.Add(n1));
+    ASSERT_TRUE(nodes.Add(n2));
+    ASSERT_TRUE(nodes.Add(n3));
     const int num_nodes_removed = nodes.RemoveOldNodes(1.334);
     EXPECT_EQ(num_nodes_removed, 2);
     EXPECT_EQ(nodes.size(), 2);
@@ -571,17 +570,17 @@ TEST(CombinedNavStateNodesTester, RemoveOldNodes) {
     std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
     gl::CombinedNavStateNodes nodes(graph_nodes);
     const double t0 = 0;
-    const auto n0 = lc::RandomCombinedNavState(t);
+    const auto n0 = lc::RandomCombinedNavState(t0);
     const double t1 = 1.001;
-    const auto n1 = lc::RandomCombinedNavState(t);
+    const auto n1 = lc::RandomCombinedNavState(t1);
     const double t2 = 2.100;
-    const auto n2 = lc::RandomCombinedNavState(t);
+    const auto n2 = lc::RandomCombinedNavState(t2);
     const double t3 = 3.0222;
-    const auto n3 = lc::RandomCombinedNavState(t);
-    ASSERT_TRUE(nodes.Add(t0, n0));
-    ASSERT_TRUE(nodes.Add(t1, n1));
-    ASSERT_TRUE(nodes.Add(t2, n2));
-    ASSERT_TRUE(nodes.Add(t3, n3));
+    const auto n3 = lc::RandomCombinedNavState(t3);
+    ASSERT_TRUE(nodes.Add(n0));
+    ASSERT_TRUE(nodes.Add(n1));
+    ASSERT_TRUE(nodes.Add(n2));
+    ASSERT_TRUE(nodes.Add(n3));
     const int num_nodes_removed = nodes.RemoveOldNodes(2.78);
     EXPECT_EQ(num_nodes_removed, 3);
     EXPECT_EQ(nodes.size(), 1);
@@ -593,17 +592,17 @@ TEST(CombinedNavStateNodesTester, RemoveOldNodes) {
     std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
     gl::CombinedNavStateNodes nodes(graph_nodes);
     const double t0 = 0;
-    const auto n0 = lc::RandomCombinedNavState(t);
+    const auto n0 = lc::RandomCombinedNavState(t0);
     const double t1 = 1.001;
-    const auto n1 = lc::RandomCombinedNavState(t);
+    const auto n1 = lc::RandomCombinedNavState(t1);
     const double t2 = 2.100;
-    const auto n2 = lc::RandomCombinedNavState(t);
+    const auto n2 = lc::RandomCombinedNavState(t2);
     const double t3 = 3.0222;
-    const auto n3 = lc::RandomCombinedNavState(t);
-    ASSERT_TRUE(nodes.Add(t0, n0));
-    ASSERT_TRUE(nodes.Add(t1, n1));
-    ASSERT_TRUE(nodes.Add(t2, n2));
-    ASSERT_TRUE(nodes.Add(t3, n3));
+    const auto n3 = lc::RandomCombinedNavState(t3);
+    ASSERT_TRUE(nodes.Add(n0));
+    ASSERT_TRUE(nodes.Add(n1));
+    ASSERT_TRUE(nodes.Add(n2));
+    ASSERT_TRUE(nodes.Add(n3));
     const int num_nodes_removed = nodes.RemoveOldNodes(1923.78);
     EXPECT_EQ(num_nodes_removed, 4);
     EXPECT_EQ(nodes.size(), 0);
@@ -614,11 +613,11 @@ TEST(CombinedNavStateNodesTester, Duration) {
   std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
   gl::CombinedNavStateNodes nodes(graph_nodes);
   EXPECT_EQ(nodes.Duration(), 0);
-  ASSERT_TRUE(nodes.Add(1.0, 1));
+  ASSERT_TRUE(nodes.Add(lc::RandomCombinedNavState(1.0)));
   EXPECT_EQ(nodes.Duration(), 0);
-  ASSERT_TRUE(nodes.Add(2.0, 2));
+  ASSERT_TRUE(nodes.Add(lc::RandomCombinedNavState(2.0)));
   EXPECT_NEAR(nodes.Duration(), 1, 1e-6);
-  ASSERT_TRUE(nodes.Add(3.0, 3));
+  ASSERT_TRUE(nodes.Add(lc::RandomCombinedNavState(3.0)));
   EXPECT_NEAR(nodes.Duration(), 2, 1e-6);
 }
 
@@ -633,10 +632,10 @@ TEST(CombinedNavStateNodesTester, Timestamps) {
   const double t1 = 1;
   const double t2 = 2;
   const double t3 = 3;
-  ASSERT_TRUE(nodes.Add(t0, t0));
-  ASSERT_TRUE(nodes.Add(t1, t1));
-  ASSERT_TRUE(nodes.Add(t2, t2));
-  ASSERT_TRUE(nodes.Add(t3, t3));
+  ASSERT_TRUE(nodes.Add(lc::RandomCombinedNavState(t0)));
+  ASSERT_TRUE(nodes.Add(lc::RandomCombinedNavState(t1)));
+  ASSERT_TRUE(nodes.Add(lc::RandomCombinedNavState(t2)));
+  ASSERT_TRUE(nodes.Add(lc::RandomCombinedNavState(t3)));
   {
     const auto timestamps = nodes.Timestamps();
     EXPECT_EQ(timestamps[0], t0);
@@ -651,7 +650,7 @@ TEST(CombinedNavStateNodesTester, Serialization) {
   const auto serialized_nodes = gtsam::serializeBinary(nodes);
   gl::CombinedNavStateNodes deserialized_nodes;
   gtsam::deserializeBinary(serialized_nodes, deserialized_nodes);
-}*/
+}
 
 // Run all the tests that were declared with TEST()
 int main(int argc, char** argv) {

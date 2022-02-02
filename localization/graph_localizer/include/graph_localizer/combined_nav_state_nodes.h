@@ -34,6 +34,9 @@ class CombinedNavStateNodes {
  public:
   explicit CombinedNavStateNodes(std::shared_ptr<graph_optimizer::Nodes> nodes);
 
+  // For serialization only
+  CombinedNavStateNodes() {}
+
   boost::optional<localization_common::CombinedNavState> Get(const localization_common::Time timestamp) const;
 
   bool Add(const localization_common::CombinedNavState& combined_nav_state);
