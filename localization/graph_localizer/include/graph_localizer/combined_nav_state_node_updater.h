@@ -19,7 +19,7 @@
 #ifndef GRAPH_LOCALIZER_COMBINED_NAV_STATE_NODE_UPDATER_H_
 #define GRAPH_LOCALIZER_COMBINED_NAV_STATE_NODE_UPDATER_H_
 
-#include <graph_localizer/combined_nav_state_graph_values.h>
+#include <graph_localizer/combined_nav_state_nodes.h>
 #include <graph_localizer/combined_nav_state_node_updater_params.h>
 #include <graph_optimizer/key_info.h>
 #include <graph_optimizer/node_updater_with_priors.h>
@@ -33,7 +33,7 @@ class CombinedNavStateNodeUpdater
  public:
   CombinedNavStateNodeUpdater(const CombinedNavStateNodeUpdaterParams& params,
                               std::shared_ptr<imu_integration::LatestImuIntegrator> latest_imu_integrator,
-                              std::shared_ptr<gtsam::Values> values);
+                              std::shared_ptr<graph_optimizer::Nodes> nodes);
   CombinedNavStateNodeUpdater() = default;
 
   void AddInitialValuesAndPriors(gtsam::NonlinearFactorGraph& factors);
@@ -60,50 +60,50 @@ class CombinedNavStateNodeUpdater
   gtsam::KeyVector OldKeys(const localization_common::Time oldest_allowed_time,
                            const gtsam::NonlinearFactorGraph& graph) const final;
 
-  boost::optional<gtsam::Key> GetKey(graph_optimizer::KeyCreatorFunction key_creator_function,
-                                     const localization_common::Time timestamp) const final;
-
   boost::optional<localization_common::Time> OldestTimestamp() const final;
 
   boost::optional<localization_common::Time> LatestTimestamp() const final;
 
-  std::shared_ptr<const CombinedNavStateGraphValues> shared_graph_values() const;
+  /*std::shared_ptr<const CombinedNavStateGraphValues> shared_graph_values() const;
 
   std::shared_ptr<CombinedNavStateGraphValues> shared_graph_values();
 
   const CombinedNavStateGraphValues& graph_values() const;
+  boost::optional<gtsam::Key> GetKey(graph_optimizer::KeyCreatorFunction key_creator_function,
+                                     const localization_common::Time timestamp) const final;
+
+
+  int GenerateKeyIndex();
+
+  */
 
  private:
   void RemovePriors(const int key_index, gtsam::NonlinearFactorGraph& factors);
-  int GenerateKeyIndex();
   bool AddOrSplitImuFactorIfNeeded(const localization_common::Time timestamp, gtsam::NonlinearFactorGraph& factors,
-                                   CombinedNavStateGraphValues& graph_values);
+                                   CombinedNavStateNodes& nodes);
   bool CreateAndAddLatestImuFactorAndCombinedNavState(const localization_common::Time timestamp,
                                                       gtsam::NonlinearFactorGraph& factors,
-                                                      CombinedNavStateGraphValues& graph_values);
+                                                      CombinedNavStateNodes& nodes);
   bool CreateAndAddImuFactorAndPredictedCombinedNavState(const localization_common::CombinedNavState& global_N_body,
                                                          const gtsam::PreintegratedCombinedMeasurements& pim,
                                                          gtsam::NonlinearFactorGraph& factors,
-                                                         CombinedNavStateGraphValues& graph_values);
+                                                         CombinedNavStateNodes& nodes);
   bool SplitOldImuFactorAndAddCombinedNavState(const localization_common::Time timestamp,
-                                               gtsam::NonlinearFactorGraph& factors,
-                                               CombinedNavStateGraphValues& graph_values);
+                                               gtsam::NonlinearFactorGraph& factors, CombinedNavStateNodes& nodes);
 
   // Serialization function
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, const unsigned int file_version) {
     ar& BOOST_SERIALIZATION_NVP(params_);
-    // ar& BOOST_SERIALIZATION_NVP(latest_imu_integrator_);
-    ar& BOOST_SERIALIZATION_NVP(graph_values_);
-    ar& BOOST_SERIALIZATION_NVP(key_index_);
+    ar& BOOST_SERIALIZATION_NVP(nodes);
+    ar& BOOST_SERIALIZATION_NVP(latest_imu_integrator_);
     ar& BOOST_SERIALIZATION_NVP(global_N_body_start_noise_);
   }
 
   CombinedNavStateNodeUpdaterParams params_;
+  CombinedNavStateNodes nodes_;
   std::shared_ptr<imu_integration::LatestImuIntegrator> latest_imu_integrator_;
-  std::shared_ptr<CombinedNavStateGraphValues> graph_values_;
-  int key_index_;
   localization_common::CombinedNavStateNoise global_N_body_start_noise_;
 };
 }  // namespace graph_localizer
