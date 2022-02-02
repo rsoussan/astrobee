@@ -318,6 +318,350 @@ TEST(CombinedNavStateNodesTester, LowerAndUpperBounds) {
   }
 }
 
+TEST(CombinedNavStateNodesTester, LowerBoundOrEqual) {
+  std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
+  gl::CombinedNavStateNodes nodes(graph_nodes);
+  const localization_common::Time timestamp_1 = 3.098;
+  const auto node_1 = lc::RandomCombinedNavState(timestamp_1);
+  ASSERT_TRUE(nodes.Add(node_1));
+  const localization_common::Time timestamp_2 = 5.777;
+  const auto node_2 = lc::RandomCombinedNavState(timestamp_2);
+  ASSERT_TRUE(nodes.Add(node_2));
+  const localization_common::Time timestamp_3 = 7.902;
+  const auto node_3 = lc::RandomCombinedNavState(timestamp_3);
+  ASSERT_TRUE(nodes.Add(node_3));
+  const auto too_low_timestamp = nodes.LowerBoundOrEqualTimestamp(1.23);
+  EXPECT_TRUE(too_low_timestamp == boost::none);
+  const auto lowest_timestamp = nodes.LowerBoundOrEqualTimestamp(4.11);
+  ASSERT_TRUE(lowest_timestamp != boost::none);
+  EXPECT_EQ(*lowest_timestamp, timestamp_1);
+  const auto middle_timestamp = nodes.LowerBoundOrEqualTimestamp(6.61);
+  ASSERT_TRUE(middle_timestamp != boost::none);
+  EXPECT_EQ(*middle_timestamp, timestamp_2);
+  const auto upper_timestamp = nodes.LowerBoundOrEqualTimestamp(900);
+  ASSERT_TRUE(upper_timestamp != boost::none);
+  EXPECT_EQ(*upper_timestamp, timestamp_3);
+  const auto equal_timestamp = nodes.LowerBoundOrEqualTimestamp(timestamp_2);
+  ASSERT_TRUE(equal_timestamp != boost::none);
+  EXPECT_EQ(*equal_timestamp, timestamp_2);
+
+  const auto too_low_node = nodes.LowerBoundOrEqualNode(1.23);
+  EXPECT_TRUE(too_low_node == boost::none);
+  const auto lowest_node = nodes.LowerBoundOrEqualNode(4.11);
+  ASSERT_TRUE(lowest_node != boost::none);
+  EXPECT_TRUE(lowest_node->Equals(node_1));
+  const auto middle_node = nodes.LowerBoundOrEqualNode(6.61);
+  ASSERT_TRUE(middle_node != boost::none);
+  EXPECT_TRUE(middle_node->Equals(node_2));
+  const auto upper_node = nodes.LowerBoundOrEqualNode(900);
+  ASSERT_TRUE(upper_node != boost::none);
+  EXPECT_TRUE(upper_node->Equals(node_3));
+  const auto equal_node = nodes.LowerBoundOrEqualNode(timestamp_2);
+  ASSERT_TRUE(equal_node != boost::none);
+  EXPECT_TRUE(equal_node->Equals(node_2));
+}
+
+/*TEST(CombinedNavStateNodesTester, Closest) {
+  std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
+  gl::CombinedNavStateNodes nodes(graph_nodes);
+  const double node_1 = 1.23;
+  const localization_common::Time timestamp_1 = 3.1;
+  ASSERT_TRUE(nodes.Add(timestamp_1, node_1));
+  const double node_2 = 2.22;
+  const localization_common::Time timestamp_2 = 5.78;
+  ASSERT_TRUE(nodes.Add(timestamp_2, node_2));
+  const double node_3 = 3.98;
+  const localization_common::Time timestamp_3 = 7.88;
+  ASSERT_TRUE(nodes.Add(timestamp_3, node_3));
+  const auto below_lowest_timestamp = nodes.ClosestTimestamp(1.23);
+  ASSERT_TRUE(below_lowest_timestamp != boost::none);
+  EXPECT_EQ(*below_lowest_timestamp, timestamp_1);
+  const auto above_lowest_timestamp = nodes.ClosestTimestamp(4.11);
+  ASSERT_TRUE(above_lowest_timestamp != boost::none);
+  EXPECT_EQ(*above_lowest_timestamp, timestamp_1);
+  const auto below_middle_timestamp = nodes.ClosestTimestamp(5.61);
+  ASSERT_TRUE(below_middle_timestamp != boost::none);
+  EXPECT_EQ(*below_middle_timestamp, timestamp_2);
+  const auto above_middle_timestamp = nodes.ClosestTimestamp(6.61);
+  ASSERT_TRUE(above_middle_timestamp != boost::none);
+  EXPECT_EQ(*above_middle_timestamp, timestamp_2);
+  const auto below_upper_timestamp = nodes.ClosestTimestamp(7.61);
+  ASSERT_TRUE(below_upper_timestamp != boost::none);
+  EXPECT_EQ(*below_upper_timestamp, timestamp_3);
+  const auto above_upper_timestamp = nodes.ClosestTimestamp(8.61);
+  ASSERT_TRUE(above_upper_timestamp != boost::none);
+  EXPECT_EQ(*above_upper_timestamp, timestamp_3);
+  const auto equal_timestamp = nodes.ClosestTimestamp(timestamp_2);
+  ASSERT_TRUE(equal_timestamp != boost::none);
+  EXPECT_EQ(*equal_timestamp, timestamp_2);
+
+  const auto below_lowest_node = nodes.ClosestNode(1.23);
+  EXPECT_TRUE(below_lowest_node != boost::none);
+  EXPECT_EQ(*below_lowest_node, node_1);
+  const auto above_lowest_node = nodes.ClosestNode(4.11);
+  ASSERT_TRUE(above_lowest_node != boost::none);
+  EXPECT_EQ(*above_lowest_node, node_1);
+  const auto below_middle_node = nodes.ClosestNode(5.61);
+  ASSERT_TRUE(below_middle_node != boost::none);
+  EXPECT_EQ(*below_middle_node, node_2);
+  const auto above_middle_node = nodes.ClosestNode(6.61);
+  ASSERT_TRUE(above_middle_node != boost::none);
+  EXPECT_EQ(*above_middle_node, node_2);
+  const auto below_upper_node = nodes.ClosestNode(7.61);
+  ASSERT_TRUE(below_upper_node != boost::none);
+  EXPECT_EQ(*below_upper_node, node_3);
+  const auto above_upper_node = nodes.ClosestNode(8.61);
+  ASSERT_TRUE(above_upper_node != boost::none);
+  EXPECT_EQ(*above_upper_node, node_3);
+  const auto equal_node = nodes.ClosestNode(timestamp_2);
+  ASSERT_TRUE(equal_node != boost::none);
+  EXPECT_EQ(*equal_node, node_2);
+}
+
+TEST(CombinedNavStateNodesTester, OldKeysTimestampsAndNodes) {
+  std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
+  gl::CombinedNavStateNodes nodes(graph_nodes);
+  const double t0 = 0;
+  const double n0 = lc::RandomDouble();
+  const int k0 = 1;
+  const double t1 = 1.001;
+  const double n1 = lc::RandomDouble();
+  const int k1 = 2;
+  const double t2 = 2.100;
+  const double n2 = lc::RandomDouble();
+  const int k2 = 3;
+  const double t3 = 3.0222;
+  const double n3 = lc::RandomDouble();
+  const int k3 = 4;
+  ASSERT_TRUE(nodes.Add(t0, n0));
+  ASSERT_TRUE(nodes.Add(t1, n1));
+  ASSERT_TRUE(nodes.Add(t2, n2));
+  ASSERT_TRUE(nodes.Add(t3, n3));
+  {
+    const auto old_keys = nodes.OldKeys(0);
+    EXPECT_EQ(old_keys.size(), 0);
+    const auto old_nodes = nodes.OldNodes(0);
+    EXPECT_EQ(old_nodes.size(), 0);
+    const auto old_timestamps = nodes.OldTimestamps(0);
+    EXPECT_EQ(old_timestamps.size(), 0);
+  }
+  {
+    const auto old_keys = nodes.OldKeys(0.1);
+    EXPECT_EQ(old_keys.size(), 1);
+    EXPECT_EQ(old_keys[0], k0);
+    const auto old_nodes = nodes.OldNodes(0.1);
+    ASSERT_EQ(old_nodes.size(), 1);
+    EXPECT_EQ(old_nodes[0], n0);
+    const auto old_timestamps = nodes.OldTimestamps(0.1);
+    ASSERT_EQ(old_timestamps.size(), 1);
+    EXPECT_EQ(old_timestamps[0], t0);
+  }
+  {
+    const auto old_keys = nodes.OldKeys(1.7);
+    EXPECT_EQ(old_keys.size(), 2);
+    EXPECT_EQ(old_keys[0], k0);
+    EXPECT_EQ(old_keys[1], k1);
+    const auto old_nodes = nodes.OldNodes(1.7);
+    ASSERT_EQ(old_nodes.size(), 2);
+    EXPECT_EQ(old_nodes[0], n0);
+    EXPECT_EQ(old_nodes[1], n1);
+    const auto old_timestamps = nodes.OldTimestamps(1.7);
+    ASSERT_EQ(old_timestamps.size(), 2);
+    EXPECT_EQ(old_timestamps[0], t0);
+    EXPECT_EQ(old_timestamps[1], t1);
+  }
+  {
+    const auto old_keys = nodes.OldKeys(2.333);
+    EXPECT_EQ(old_keys.size(), 3);
+    EXPECT_EQ(old_keys[0], k0);
+    EXPECT_EQ(old_keys[1], k1);
+    EXPECT_EQ(old_keys[2], k2);
+    const auto old_nodes = nodes.OldNodes(2.333);
+    ASSERT_EQ(old_nodes.size(), 3);
+    EXPECT_EQ(old_nodes[0], n0);
+    EXPECT_EQ(old_nodes[1], n1);
+    EXPECT_EQ(old_nodes[2], n2);
+    const auto old_timestamps = nodes.OldTimestamps(2.333);
+    ASSERT_EQ(old_timestamps.size(), 3);
+    EXPECT_EQ(old_timestamps[0], t0);
+    EXPECT_EQ(old_timestamps[1], t1);
+    EXPECT_EQ(old_timestamps[2], t2);
+  }
+  {
+    const auto old_keys = nodes.OldKeys(1999);
+    EXPECT_EQ(old_keys.size(), 4);
+    EXPECT_EQ(old_keys[0], k0);
+    EXPECT_EQ(old_keys[1], k1);
+    EXPECT_EQ(old_keys[2], k2);
+    EXPECT_EQ(old_keys[3], k3);
+    const auto old_nodes = nodes.OldNodes(1999);
+    ASSERT_EQ(old_nodes.size(), 4);
+    EXPECT_EQ(old_nodes[0], n0);
+    EXPECT_EQ(old_nodes[1], n1);
+    EXPECT_EQ(old_nodes[2], n2);
+    EXPECT_EQ(old_nodes[3], n3);
+    const auto old_timestamps = nodes.OldTimestamps(1999);
+    ASSERT_EQ(old_timestamps.size(), 4);
+    EXPECT_EQ(old_timestamps[0], t0);
+    EXPECT_EQ(old_timestamps[1], t1);
+    EXPECT_EQ(old_timestamps[2], t2);
+    EXPECT_EQ(old_timestamps[3], t3);
+  }
+}
+
+TEST(CombinedNavStateNodesTester, RemoveOldNodes) {
+  {
+    std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
+    gl::CombinedNavStateNodes nodes(graph_nodes);
+    const double t0 = 0;
+    const double n0 = lc::RandomDouble();
+    const double t1 = 1.001;
+    const double n1 = lc::RandomDouble();
+    const double t2 = 2.100;
+    const double n2 = lc::RandomDouble();
+    const double t3 = 3.0222;
+    const double n3 = lc::RandomDouble();
+    ASSERT_TRUE(nodes.Add(t0, n0));
+    ASSERT_TRUE(nodes.Add(t1, n1));
+    ASSERT_TRUE(nodes.Add(t2, n2));
+    ASSERT_TRUE(nodes.Add(t3, n3));
+    const int num_nodes_removed = nodes.RemoveOldNodes(0);
+    EXPECT_EQ(num_nodes_removed, 0);
+    EXPECT_EQ(nodes.size(), 4);
+  }
+
+  {
+    std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
+    gl::CombinedNavStateNodes nodes(graph_nodes);
+    const double t0 = 0;
+    const double n0 = lc::RandomDouble();
+    const double t1 = 1.001;
+    const double n1 = lc::RandomDouble();
+    const double t2 = 2.100;
+    const double n2 = lc::RandomDouble();
+    const double t3 = 3.0222;
+    const double n3 = lc::RandomDouble();
+    ASSERT_TRUE(nodes.Add(t0, n0));
+    ASSERT_TRUE(nodes.Add(t1, n1));
+    ASSERT_TRUE(nodes.Add(t2, n2));
+    ASSERT_TRUE(nodes.Add(t3, n3));
+    const int num_nodes_removed = nodes.RemoveOldNodes(0.1);
+    EXPECT_EQ(num_nodes_removed, 1);
+    EXPECT_EQ(nodes.size(), 3);
+    const auto timestamps = nodes.Timestamps();
+    EXPECT_EQ(timestamps[0], t1);
+    EXPECT_EQ(timestamps[1], t2);
+    EXPECT_EQ(timestamps[2], t3);
+  }
+  {
+    std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
+    gl::CombinedNavStateNodes nodes(graph_nodes);
+    const double t0 = 0;
+    const double n0 = lc::RandomDouble();
+    const double t1 = 1.001;
+    const double n1 = lc::RandomDouble();
+    const double t2 = 2.100;
+    const double n2 = lc::RandomDouble();
+    const double t3 = 3.0222;
+    const double n3 = lc::RandomDouble();
+    ASSERT_TRUE(nodes.Add(t0, n0));
+    ASSERT_TRUE(nodes.Add(t1, n1));
+    ASSERT_TRUE(nodes.Add(t2, n2));
+    ASSERT_TRUE(nodes.Add(t3, n3));
+    const int num_nodes_removed = nodes.RemoveOldNodes(1.334);
+    EXPECT_EQ(num_nodes_removed, 2);
+    EXPECT_EQ(nodes.size(), 2);
+    const auto timestamps = nodes.Timestamps();
+    EXPECT_EQ(timestamps[0], t2);
+    EXPECT_EQ(timestamps[1], t3);
+  }
+
+  {
+    std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
+    gl::CombinedNavStateNodes nodes(graph_nodes);
+    const double t0 = 0;
+    const double n0 = lc::RandomDouble();
+    const double t1 = 1.001;
+    const double n1 = lc::RandomDouble();
+    const double t2 = 2.100;
+    const double n2 = lc::RandomDouble();
+    const double t3 = 3.0222;
+    const double n3 = lc::RandomDouble();
+    ASSERT_TRUE(nodes.Add(t0, n0));
+    ASSERT_TRUE(nodes.Add(t1, n1));
+    ASSERT_TRUE(nodes.Add(t2, n2));
+    ASSERT_TRUE(nodes.Add(t3, n3));
+    const int num_nodes_removed = nodes.RemoveOldNodes(2.78);
+    EXPECT_EQ(num_nodes_removed, 3);
+    EXPECT_EQ(nodes.size(), 1);
+    const auto timestamps = nodes.Timestamps();
+    EXPECT_EQ(timestamps[0], t3);
+  }
+
+  {
+    std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
+    gl::CombinedNavStateNodes nodes(graph_nodes);
+    const double t0 = 0;
+    const double n0 = lc::RandomDouble();
+    const double t1 = 1.001;
+    const double n1 = lc::RandomDouble();
+    const double t2 = 2.100;
+    const double n2 = lc::RandomDouble();
+    const double t3 = 3.0222;
+    const double n3 = lc::RandomDouble();
+    ASSERT_TRUE(nodes.Add(t0, n0));
+    ASSERT_TRUE(nodes.Add(t1, n1));
+    ASSERT_TRUE(nodes.Add(t2, n2));
+    ASSERT_TRUE(nodes.Add(t3, n3));
+    const int num_nodes_removed = nodes.RemoveOldNodes(1923.78);
+    EXPECT_EQ(num_nodes_removed, 4);
+    EXPECT_EQ(nodes.size(), 0);
+  }
+}
+
+TEST(CombinedNavStateNodesTester, Duration) {
+  std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
+  gl::CombinedNavStateNodes nodes(graph_nodes);
+  EXPECT_EQ(nodes.Duration(), 0);
+  ASSERT_TRUE(nodes.Add(1.0, 1));
+  EXPECT_EQ(nodes.Duration(), 0);
+  ASSERT_TRUE(nodes.Add(2.0, 2));
+  EXPECT_NEAR(nodes.Duration(), 1, 1e-6);
+  ASSERT_TRUE(nodes.Add(3.0, 3));
+  EXPECT_NEAR(nodes.Duration(), 2, 1e-6);
+}
+
+TEST(CombinedNavStateNodesTester, Timestamps) {
+  std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
+  gl::CombinedNavStateNodes nodes(graph_nodes);
+  {
+    const auto timestamps = nodes.Timestamps();
+    EXPECT_EQ(timestamps.size(), 0);
+  }
+  const double t0 = 0;
+  const double t1 = 1;
+  const double t2 = 2;
+  const double t3 = 3;
+  ASSERT_TRUE(nodes.Add(t0, t0));
+  ASSERT_TRUE(nodes.Add(t1, t1));
+  ASSERT_TRUE(nodes.Add(t2, t2));
+  ASSERT_TRUE(nodes.Add(t3, t3));
+  {
+    const auto timestamps = nodes.Timestamps();
+    EXPECT_EQ(timestamps[0], t0);
+    EXPECT_EQ(timestamps[1], t1);
+    EXPECT_EQ(timestamps[2], t2);
+    EXPECT_EQ(timestamps[3], t3);
+  }
+}
+
+TEST(CombinedNavStateNodesTester, Serialization) {
+  const gl::CombinedNavStateNodes nodes;
+  const auto serialized_nodes = gtsam::serializeBinary(nodes);
+  gl::CombinedNavStateNodes deserialized_nodes;
+  gtsam::deserializeBinary(serialized_nodes, deserialized_nodes);
+}*/
+
 // Run all the tests that were declared with TEST()
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
