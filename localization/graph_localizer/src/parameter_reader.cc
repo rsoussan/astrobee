@@ -224,11 +224,6 @@ void LoadCombinedNavStateNodeUpdaterParams(config_reader::ConfigReader& config,
   params.threshold_bias_uncertainty = mc::LoadBool(config, "threshold_bias_uncertainty");
   params.accel_bias_stddev_threshold = mc::LoadDouble(config, "accel_bias_stddev_threshold");
   params.gyro_bias_stddev_threshold = mc::LoadDouble(config, "gyro_bias_stddev_threshold");
-  LoadCombinedNavStateGraphValuesParams(config, params.graph_values);
-}
-
-void LoadCombinedNavStateGraphValuesParams(config_reader::ConfigReader& config,
-                                           CombinedNavStateGraphValuesParams& params) {
   params.ideal_duration = mc::LoadDouble(config, "ideal_duration");
   params.min_num_states = mc::LoadInt(config, "min_num_states");
   params.max_num_states = mc::LoadInt(config, "max_num_states");

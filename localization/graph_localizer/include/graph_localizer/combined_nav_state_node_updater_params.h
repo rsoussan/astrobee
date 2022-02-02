@@ -18,7 +18,6 @@
 #ifndef GRAPH_LOCALIZER_COMBINED_NAV_STATE_NODE_UPDATER_PARAMS_H_
 #define GRAPH_LOCALIZER_COMBINED_NAV_STATE_NODE_UPDATER_PARAMS_H_
 
-#include <graph_localizer/combined_nav_state_graph_values_params.h>
 #include <localization_common/combined_nav_state.h>
 
 #include <boost/serialization/serialization.hpp>
@@ -33,10 +32,13 @@ struct CombinedNavStateNodeUpdaterParams {
   double huber_k;
   localization_common::CombinedNavState global_N_body_start;
   bool add_priors;
-  CombinedNavStateGraphValuesParams graph_values;
   bool threshold_bias_uncertainty;
   double accel_bias_stddev_threshold;
   double gyro_bias_stddev_threshold;
+  // Only kept if there are at least min_num_states and not more than max_num_states
+  double ideal_duration;
+  int min_num_states;
+  int max_num_states;
 
  private:
   // Serialization function
@@ -55,6 +57,9 @@ struct CombinedNavStateNodeUpdaterParams {
     ar& BOOST_SERIALIZATION_NVP(threshold_bias_uncertainty);
     ar& BOOST_SERIALIZATION_NVP(accel_bias_stddev_threshold);
     ar& BOOST_SERIALIZATION_NVP(gyro_bias_stddev_threshold);
+    ar& BOOST_SERIALIZATION_NVP(ideal_duration);
+    ar& BOOST_SERIALIZATION_NVP(min_num_states);
+    ar& BOOST_SERIALIZATION_NVP(max_num_states);
   }
 };
 }  // namespace graph_localizer
