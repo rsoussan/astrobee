@@ -72,6 +72,12 @@ boost::optional<lc::Time> CombinedNavStateNodes::ClosestTimestamp(const lc::Time
   return pose_nodes_.ClosestTimestamp(timestamp);
 }
 
+boost::optional<lc::CombinedNavState> CombinedNavStateNodes::ClosestNode(const lc::Time timestamp) const {
+  const auto closest_timestamp = pose_nodes_.ClosestTimestamp(timestamp);
+  if (!closest_timestamp) return boost::none;
+  return Get(*closest_timestamp);
+}
+
 std::pair<boost::optional<lc::Time>, boost::optional<lc::Time>> CombinedNavStateNodes::LowerAndUpperBoundTimestamps(
   const lc::Time timestamp) const {
   return pose_nodes_.LowerAndUpperBoundTimestamps(timestamp);

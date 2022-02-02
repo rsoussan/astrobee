@@ -361,18 +361,18 @@ TEST(CombinedNavStateNodesTester, LowerBoundOrEqual) {
   EXPECT_TRUE(equal_node->Equals(node_2));
 }
 
-/*TEST(CombinedNavStateNodesTester, Closest) {
+TEST(CombinedNavStateNodesTester, Closest) {
   std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
   gl::CombinedNavStateNodes nodes(graph_nodes);
-  const double node_1 = 1.23;
-  const localization_common::Time timestamp_1 = 3.1;
-  ASSERT_TRUE(nodes.Add(timestamp_1, node_1));
-  const double node_2 = 2.22;
-  const localization_common::Time timestamp_2 = 5.78;
-  ASSERT_TRUE(nodes.Add(timestamp_2, node_2));
-  const double node_3 = 3.98;
-  const localization_common::Time timestamp_3 = 7.88;
-  ASSERT_TRUE(nodes.Add(timestamp_3, node_3));
+  const localization_common::Time timestamp_1 = 3.098;
+  const auto node_1 = lc::RandomCombinedNavState(timestamp_1);
+  ASSERT_TRUE(nodes.Add(node_1));
+  const localization_common::Time timestamp_2 = 5.777;
+  const auto node_2 = lc::RandomCombinedNavState(timestamp_2);
+  ASSERT_TRUE(nodes.Add(node_2));
+  const localization_common::Time timestamp_3 = 7.902;
+  const auto node_3 = lc::RandomCombinedNavState(timestamp_3);
+  ASSERT_TRUE(nodes.Add(node_3));
   const auto below_lowest_timestamp = nodes.ClosestTimestamp(1.23);
   ASSERT_TRUE(below_lowest_timestamp != boost::none);
   EXPECT_EQ(*below_lowest_timestamp, timestamp_1);
@@ -397,27 +397,28 @@ TEST(CombinedNavStateNodesTester, LowerBoundOrEqual) {
 
   const auto below_lowest_node = nodes.ClosestNode(1.23);
   EXPECT_TRUE(below_lowest_node != boost::none);
-  EXPECT_EQ(*below_lowest_node, node_1);
+  EXPECT_TRUE(below_lowest_node->Equals(node_1));
   const auto above_lowest_node = nodes.ClosestNode(4.11);
   ASSERT_TRUE(above_lowest_node != boost::none);
-  EXPECT_EQ(*above_lowest_node, node_1);
+  EXPECT_TRUE(above_lowest_node->Equals(node_1));
   const auto below_middle_node = nodes.ClosestNode(5.61);
   ASSERT_TRUE(below_middle_node != boost::none);
-  EXPECT_EQ(*below_middle_node, node_2);
+  EXPECT_TRUE(below_middle_node->Equals(node_2));
   const auto above_middle_node = nodes.ClosestNode(6.61);
   ASSERT_TRUE(above_middle_node != boost::none);
-  EXPECT_EQ(*above_middle_node, node_2);
+  EXPECT_TRUE(above_middle_node->Equals(node_2));
   const auto below_upper_node = nodes.ClosestNode(7.61);
   ASSERT_TRUE(below_upper_node != boost::none);
-  EXPECT_EQ(*below_upper_node, node_3);
+  EXPECT_TRUE(below_upper_node->Equals(node_3));
   const auto above_upper_node = nodes.ClosestNode(8.61);
   ASSERT_TRUE(above_upper_node != boost::none);
-  EXPECT_EQ(*above_upper_node, node_3);
+  EXPECT_TRUE(above_upper_node->Equals(node_3));
   const auto equal_node = nodes.ClosestNode(timestamp_2);
   ASSERT_TRUE(equal_node != boost::none);
-  EXPECT_EQ(*equal_node, node_2);
+  EXPECT_TRUE(equal_node->Equals(node_2));
 }
 
+/*
 TEST(CombinedNavStateNodesTester, OldKeysTimestampsAndNodes) {
   std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
   gl::CombinedNavStateNodes nodes(graph_nodes);
