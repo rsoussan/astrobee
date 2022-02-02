@@ -56,6 +56,120 @@ TEST(CombinedNavStateNodesTester, AddGet) {
   }
 }
 
+TEST(CombinedNavStateNodesTester, OldestLatest) {
+  std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
+  gl::CombinedNavStateNodes nodes(graph_nodes);
+  // No elements
+  {
+    EXPECT_TRUE(nodes.OldestTimestamp() == boost::none);
+    EXPECT_TRUE(nodes.OldestNode() == boost::none);
+    EXPECT_TRUE(nodes.LatestTimestamp() == boost::none);
+    EXPECT_TRUE(nodes.LatestNode() == boost::none);
+  }
+
+  const localization_common::Time timestamp_1 = 1.0;
+  const auto node_1 = lc::RandomCombinedNavState(timestamp_1);
+  ASSERT_TRUE(nodes.Add(node_1));
+  // 1 element
+  {
+    const auto oldest_timestamp = nodes.OldestTimestamp();
+    ASSERT_TRUE(oldest_timestamp != boost::none);
+    EXPECT_EQ(*oldest_timestamp, timestamp_1);
+    const auto latest_timestamp = nodes.LatestTimestamp();
+    ASSERT_TRUE(latest_timestamp != boost::none);
+    EXPECT_EQ(*latest_timestamp, timestamp_1);
+
+    const auto oldest_node = nodes.OldestNode();
+    ASSERT_TRUE(oldest_node != boost::none);
+    EXPECT_TRUE(oldest_node->Equals(node_1));
+    const auto latest_node = nodes.LatestNode();
+    ASSERT_TRUE(latest_node != boost::none);
+    EXPECT_TRUE(latest_node->Equals(node_1));
+  }
+
+  const localization_common::Time timestamp_2 = 3.23;
+  const auto node_2 = lc::RandomCombinedNavState(timestamp_2);
+  ASSERT_TRUE(nodes.Add(node_2));
+  // 2 elements
+  {
+    const auto oldest_timestamp = nodes.OldestTimestamp();
+    ASSERT_TRUE(oldest_timestamp != boost::none);
+    EXPECT_EQ(*oldest_timestamp, timestamp_1);
+    const auto latest_timestamp = nodes.LatestTimestamp();
+    ASSERT_TRUE(latest_timestamp != boost::none);
+    EXPECT_EQ(*latest_timestamp, timestamp_2);
+
+    const auto oldest_node = nodes.OldestNode();
+    ASSERT_TRUE(oldest_node != boost::none);
+    EXPECT_TRUE(oldest_node->Equals(node_1));
+    const auto latest_node = nodes.LatestNode();
+    ASSERT_TRUE(latest_node != boost::none);
+    EXPECT_TRUE(latest_node->Equals(node_2));
+  }
+
+  const localization_common::Time timestamp_3 = 21.11;
+  const auto node_3 = lc::RandomCombinedNavState(timestamp_3);
+  ASSERT_TRUE(nodes.Add(node_3));
+  // 3 elements
+  {
+    const auto oldest_timestamp = nodes.OldestTimestamp();
+    ASSERT_TRUE(oldest_timestamp != boost::none);
+    EXPECT_EQ(*oldest_timestamp, timestamp_1);
+    const auto latest_timestamp = nodes.LatestTimestamp();
+    ASSERT_TRUE(latest_timestamp != boost::none);
+    EXPECT_EQ(*latest_timestamp, timestamp_3);
+
+    const auto oldest_node = nodes.OldestNode();
+    ASSERT_TRUE(oldest_node != boost::none);
+    EXPECT_TRUE(oldest_node->Equals(node_1));
+    const auto latest_node = nodes.LatestNode();
+    ASSERT_TRUE(latest_node != boost::none);
+    EXPECT_TRUE(latest_node->Equals(node_3));
+  }
+
+  ASSERT_TRUE(nodes.Remove(timestamp_1));
+  {
+    const auto oldest_timestamp = nodes.OldestTimestamp();
+    ASSERT_TRUE(oldest_timestamp != boost::none);
+    EXPECT_EQ(*oldest_timestamp, timestamp_2);
+    const auto latest_timestamp = nodes.LatestTimestamp();
+    ASSERT_TRUE(latest_timestamp != boost::none);
+    EXPECT_EQ(*latest_timestamp, timestamp_3);
+
+    const auto oldest_node = nodes.OldestNode();
+    ASSERT_TRUE(oldest_node != boost::none);
+    EXPECT_TRUE(oldest_node->Equals(node_2));
+    const auto latest_node = nodes.LatestNode();
+    ASSERT_TRUE(latest_node != boost::none);
+    EXPECT_TRUE(latest_node->Equals(node_3));
+  }
+
+  ASSERT_TRUE(nodes.Remove(timestamp_3));
+  {
+    const auto oldest_timestamp = nodes.OldestTimestamp();
+    ASSERT_TRUE(oldest_timestamp != boost::none);
+    EXPECT_EQ(*oldest_timestamp, timestamp_2);
+    const auto latest_timestamp = nodes.LatestTimestamp();
+    ASSERT_TRUE(latest_timestamp != boost::none);
+    EXPECT_EQ(*latest_timestamp, timestamp_2);
+
+    const auto oldest_node = nodes.OldestNode();
+    ASSERT_TRUE(oldest_node != boost::none);
+    EXPECT_TRUE(oldest_node->Equals(node_2));
+    const auto latest_node = nodes.LatestNode();
+    ASSERT_TRUE(latest_node != boost::none);
+    EXPECT_TRUE(latest_node->Equals(node_2));
+  }
+
+  ASSERT_TRUE(nodes.Remove(timestamp_2));
+  {
+    EXPECT_TRUE(nodes.OldestTimestamp() == boost::none);
+    EXPECT_TRUE(nodes.OldestNode() == boost::none);
+    EXPECT_TRUE(nodes.LatestTimestamp() == boost::none);
+    EXPECT_TRUE(nodes.LatestNode() == boost::none);
+  }
+}
+
 // Run all the tests that were declared with TEST()
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);

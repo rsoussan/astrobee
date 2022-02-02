@@ -52,13 +52,13 @@ bool CombinedNavStateNodes::Remove(const lc::Time timestamp) {
 
 std::vector<lc::Time> CombinedNavStateNodes::Timestamps() const { return pose_nodes_.Timestamps(); }
 
-boost::optional<lc::CombinedNavState> CombinedNavStateNodes::Latest() const {
+boost::optional<lc::CombinedNavState> CombinedNavStateNodes::LatestNode() const {
   const auto latest_timestamp = pose_nodes_.LatestTimestamp();
   if (!latest_timestamp) return boost::none;
   return Get(*latest_timestamp);
 }
 
-boost::optional<lc::CombinedNavState> CombinedNavStateNodes::Oldest() const {
+boost::optional<lc::CombinedNavState> CombinedNavStateNodes::OldestNode() const {
   const auto oldest_timestamp = pose_nodes_.OldestTimestamp();
   if (!oldest_timestamp) return boost::none;
   return Get(*oldest_timestamp);

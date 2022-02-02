@@ -38,9 +38,11 @@ class CombinedNavStateNodes {
 
   bool Add(const localization_common::CombinedNavState& combined_nav_state);
 
-  boost::optional<localization_common::CombinedNavState> Latest() const;
+  bool Remove(const localization_common::Time timestamp);
 
-  boost::optional<localization_common::CombinedNavState> Oldest() const;
+  boost::optional<localization_common::CombinedNavState> LatestNode() const;
+
+  boost::optional<localization_common::CombinedNavState> OldestNode() const;
 
   int RemoveOldNodes(const localization_common::Time oldest_allowed_time);
 
@@ -53,6 +55,9 @@ class CombinedNavStateNodes {
   // Assumes timestamp is within bounds of graph values timestamps.
   std::pair<boost::optional<localization_common::Time>, boost::optional<localization_common::Time>>
   LowerAndUpperBoundTimestamps(const localization_common::Time timestamp) const;
+
+  boost::optional<localization_common::Time> LowerBoundOrEqualTimestamp(
+    const localization_common::Time timestamp) const;
 
   boost::optional<localization_common::CombinedNavState> LowerBoundOrEqualCombinedNavState(
     const localization_common::Time timestamp) const;
@@ -68,11 +73,6 @@ class CombinedNavStateNodes {
   bool empty() const;
 
  private:
-  bool Remove(const localization_common::Time timestamp);
-
-  boost::optional<localization_common::Time> LowerBoundOrEqualTimestamp(
-    const localization_common::Time timestamp) const;
-
   // Serialization function
   friend class boost::serialization::access;
   template <class ARCHIVE>
