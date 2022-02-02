@@ -64,6 +64,7 @@ class CombinedNavStateNodes {
   std::vector<localization_common::Time> Timestamps() const;
 
   gtsam::KeyVector OldKeys(const localization_common::Time oldest_allowed_time) const;
+
   bool Empty() const;
 
  private:

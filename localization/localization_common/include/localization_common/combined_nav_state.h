@@ -53,9 +53,11 @@ class CombinedNavState {
   CombinedNavState() = default;
   Time timestamp() const { return timestamp_; }
   const gtsam::NavState& nav_state() const { return nav_state_; }
+  // Can't return reference until supported in gtsam::NavState
   gtsam::Pose3 pose() const { return nav_state().pose(); }
   const gtsam::Velocity3& velocity() const { return nav_state().velocity(); }
   const gtsam::imuBias::ConstantBias& bias() const { return bias_; }
+  bool Equals(const CombinedNavState& rhs, const double tolerance = 1e-9) const;
 
  private:
   // Serialization function

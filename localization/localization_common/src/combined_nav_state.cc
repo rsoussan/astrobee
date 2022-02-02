@@ -17,6 +17,7 @@
  */
 
 #include <localization_common/combined_nav_state.h>
+#include <localization_common/math.h>
 
 namespace localization_common {
 CombinedNavState::CombinedNavState(const gtsam::NavState& nav_state, const gtsam::imuBias::ConstantBias& bias,
@@ -26,4 +27,9 @@ CombinedNavState::CombinedNavState(const gtsam::NavState& nav_state, const gtsam
 CombinedNavState::CombinedNavState(const gtsam::Pose3& pose, const gtsam::Velocity3& velocity,
                                    const gtsam::imuBias::ConstantBias& bias, const Time timestamp)
     : CombinedNavState(gtsam::NavState(pose, velocity), bias, timestamp) {}
+
+bool CombinedNavState::Equals(const CombinedNavState& rhs, const double tolerance) const {
+  return pose().equals(rhs.pose(), tolerance) && MatrixEquality2(velocity(), rhs.velocity(), tolerance) &&
+         bias().equals(rhs.bias(), tolerance) && localization_common::Equals(timestamp(), rhs.timestamp(), tolerance);
+}
 }  // namespace localization_common

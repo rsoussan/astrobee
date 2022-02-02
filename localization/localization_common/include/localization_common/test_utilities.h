@@ -19,6 +19,9 @@
 #ifndef LOCALIZATION_COMMON_TEST_UTILITIES_H_
 #define LOCALIZATION_COMMON_TEST_UTILITIES_H_
 
+#include <localization_common/combined_nav_state.h>
+#include <localization_common/math.h>
+
 #include <gtsam/geometry/Pose3.h>
 
 #include <gtest/gtest.h>
@@ -75,6 +78,10 @@ Eigen::Affine3d RandomAffine3d();
 // Focal lengths and principal points selected from [0.1, 1000]
 Eigen::Matrix3d RandomIntrinsics();
 
+CombinedNavState RandomCombinedNavState();
+
+CombinedNavState RandomCombinedNavState(const Time timestamp);
+
 // Adds noise to identity Isometry3d
 Eigen::Isometry3d RandomIdentityCenteredIsometry3d(const double translation_stddev, const double rotation_stddev);
 
@@ -130,15 +137,6 @@ Eigen::Matrix<double, N, 1> AddNoiseToVector(const Eigen::Matrix<double, N, 1>& 
 template <int TolerancePower>
 bool MatrixEquality(const Eigen::MatrixXd& lhs, const Eigen::MatrixXd& rhs) {
   constexpr double tolerance = std::pow(10, -1.0 * TolerancePower);
-  // Seperately check for zero matrices since isApprox fails for these
-  if (lhs.isZero(tolerance) || rhs.isZero(tolerance)) {
-    return lhs.isZero(tolerance) && rhs.isZero(tolerance);
-  }
-  return lhs.isApprox(rhs, tolerance);
-}
-
-// TODO(rsoussan): Rename to MatrixEquality when other version removed
-bool MatrixEquality2(const Eigen::MatrixXd& lhs, const Eigen::MatrixXd& rhs, const double tolerance) {
   // Seperately check for zero matrices since isApprox fails for these
   if (lhs.isZero(tolerance) || rhs.isZero(tolerance)) {
     return lhs.isZero(tolerance) && rhs.isZero(tolerance);

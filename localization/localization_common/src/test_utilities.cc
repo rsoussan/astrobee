@@ -93,6 +93,16 @@ Eigen::Matrix3d RandomIntrinsics() {
   return intrinsics;
 }
 
+CombinedNavState RandomCombinedNavState() {
+  const auto random_timestamp = RandomPositiveDouble();
+  return RandomCombinedNavState(random_timestamp);
+}
+
+CombinedNavState RandomCombinedNavState(const Time timestamp) {
+  return CombinedNavState(RandomPose(), RandomVector3d(),
+                          gtsam::imuBias::ConstantBias(RandomVector3d(), RandomVector3d()), timestamp);
+}
+
 Eigen::Isometry3d RandomIdentityCenteredIsometry3d(const double translation_stddev, const double rotation_stddev) {
   return AddNoiseToIsometry3d(Eigen::Isometry3d::Identity(), translation_stddev, rotation_stddev);
 }
