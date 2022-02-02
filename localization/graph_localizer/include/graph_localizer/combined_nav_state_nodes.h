@@ -77,6 +77,11 @@ class CombinedNavStateNodes {
 
   gtsam::KeyVector OldKeys(const localization_common::Time oldest_allowed_time) const;
 
+  std::vector<localization_common::CombinedNavState> OldNodes(
+    const localization_common::Time oldest_allowed_timestamp) const;
+
+  std::vector<localization_common::Time> OldTimestamps(const localization_common::Time oldest_allowed_timestamp) const;
+
   bool empty() const;
 
  private:

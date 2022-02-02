@@ -134,6 +134,24 @@ gtsam::KeyVector CombinedNavStateNodes::OldKeys(const lc::Time oldest_allowed_ti
   return old_keys;
 }
 
+std::vector<lc::Time> CombinedNavStateNodes::OldTimestamps(const lc::Time oldest_allowed_timestamp) const {
+  return pose_nodes_.OldTimestamps(oldest_allowed_timestamp);
+}
+
+std::vector<lc::CombinedNavState> CombinedNavStateNodes::OldNodes(const lc::Time oldest_allowed_timestamp) const {
+  const auto old_timestamps = pose_nodes_.OldTimestamps(oldest_allowed_timestamp);
+  std::vector<lc::CombinedNavState> old_nodes;
+  for (const auto old_timestamp : old_timestamps) {
+    const auto old_node = Get(old_timestamp);
+    if (!old_node) {
+      LogError("OldNodes: Failed to get node for timestamp " << std::setprecision(15) << old_timestamp);
+      continue;
+    }
+    old_nodes.emplace_back(*old_node);
+  }
+  return old_nodes;
+}
+
 /*boost::optional<gtsam::Key> CombinedNavStateNodes::GetKey(go::KeyCreatorFunction key_creator_function,
                                                                 const localization_common::Time timestamp) const {
   if (timestamp_key_index_map_.count(timestamp) == 0) {
