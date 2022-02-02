@@ -16,22 +16,21 @@
  * under the License.
  */
 
-#include <graph_localizer/combined_nav_state_graph_values.h>
+#include <graph_localizer/combined_nav_state_nodes.h>
 #include <localization_common/logger.h>
 
 namespace graph_localizer {
 namespace go = graph_optimizer;
 namespace lc = localization_common;
-namespace lm = localization_measurements;
-CombinedNavStateNodes::CombinedNavStateNodes(std::shared_ptr<graph_optimizer> nodes)
+CombinedNavStateNodes::CombinedNavStateNodes(std::shared_ptr<go::Nodes> nodes)
     : pose_nodes_(nodes), velocity_nodes_(nodes), bias_nodes_(nodes) {}
 
 boost::optional<lc::CombinedNavState> CombinedNavStateNodes::Get(const lc::Time timestamp) const {
-  const auto pose = pose_nodes_(timestamp);
+  const auto pose = pose_nodes_.Get(timestamp);
   if (!pose) return boost::none;
-  const auto velocity = velocity_nodes_(timestamp);
+  const auto velocity = velocity_nodes_.Get(timestamp);
   if (!velocity) return boost::none;
-  const auto bias = bias_nodes_(timestamp);
+  const auto bias = bias_nodes_.Get(timestamp);
   if (!bias) return boost::none;
   return lc::CombinedNavState{*pose, *velocity, *bias, timestamp};
 }
@@ -39,8 +38,8 @@ boost::optional<lc::CombinedNavState> CombinedNavStateNodes::Get(const lc::Time 
 bool CombinedNavStateNodes::Add(const lc::CombinedNavState& combined_nav_state) {
   const auto& timestamp = combined_nav_state.timestamp();
   if (!pose_nodes_.Add(timestamp, combined_nav_state.pose())) return false;
-  if (!velocity_nodes_.Add(timestamp, combined_nav_state.velocity()) return false;
-  if (!bias_nodes_.Add(timestamp, combined_nav_state.bias()) return false;
+  if (!velocity_nodes_.Add(timestamp, combined_nav_state.velocity())) return false;
+  if (!bias_nodes_.Add(timestamp, combined_nav_state.bias())) return false;
   return true;
 }
 
@@ -51,71 +50,62 @@ bool CombinedNavStateNodes::Remove(const lc::Time timestamp) {
   return true;
 }
 
-std::vector<lc::Time> CombinedNavStateNodes::Timestamps() const {
-  return pose_nodes_.timestamps;
-}
+std::vector<lc::Time> CombinedNavStateNodes::Timestamps() const { return pose_nodes_.Timestamps(); }
 
 boost::optional<lc::CombinedNavState> CombinedNavStateNodes::Latest() const {
   const auto latest_timestamp = pose_nodes_.LatestTimestamp();
   if (!latest_timestamp) return boost::none;
-  return Get(latest_timestamp);
+  return Get(*latest_timestamp);
 }
 
 boost::optional<lc::CombinedNavState> CombinedNavStateNodes::Oldest() const {
   const auto oldest_timestamp = pose_nodes_.OldestTimestamp();
   if (!oldest_timestamp) return boost::none;
-  return Get(oldest_timestamp);
+  return Get(*oldest_timestamp);
 }
 
-boost::optional<lc::Time> CombinedNavStateNodes::OldestTimestamp() const {
-  return pose_nodes_.OldestTimestamp();
-}
+boost::optional<lc::Time> CombinedNavStateNodes::OldestTimestamp() const { return pose_nodes_.OldestTimestamp(); }
 
-boost::optional<lc::Time> CombinedNavStateNodes::LatestTimestamp() const {
-  return pose_nodes_.LatestTimestamp();
-}
+boost::optional<lc::Time> CombinedNavStateNodes::LatestTimestamp() const { return pose_nodes_.LatestTimestamp(); }
 
 boost::optional<lc::Time> CombinedNavStateNodes::ClosestTimestamp(const lc::Time timestamp) const {
   return pose_nodes_.ClosestTimestamp(timestamp);
 }
 
-std::pair<boost::optional<lc::Time>, boost::optional<lc::Time>>
-CombinedNavStateNodes::LowerAndUpperBoundTimestamp(const lc::Time timestamp) const {
-  return pose_nodes_.LowerAndUpperBoundTimestamp(timestamp);
+std::pair<boost::optional<lc::Time>, boost::optional<lc::Time>> CombinedNavStateNodes::LowerAndUpperBoundTimestamps(
+  const lc::Time timestamp) const {
+  return pose_nodes_.LowerAndUpperBoundTimestamps(timestamp);
 }
 
 bool CombinedNavStateNodes::Empty() const { return pose_nodes_.empty(); }
 
-double CombinedNavStateNodes::Duration() const {
-  return pose_nodes_.Duration();
-}
+double CombinedNavStateNodes::Duration() const { return pose_nodes_.Duration(); }
 
-int CombinedNavStateNodes::Size() const { return pose_nodes_.size(); }
+int CombinedNavStateNodes::size() const { return pose_nodes_.size(); }
 
 boost::optional<lc::Time> CombinedNavStateNodes::LowerBoundOrEqualTimestamp(const lc::Time timestamp) const {
-  return pose_nodes_.LowerBoundOrEqualTimestamp();
+  return pose_nodes_.LowerBoundOrEqualTimestamp(timestamp);
 }
 
 boost::optional<lc::CombinedNavState> CombinedNavStateNodes::LowerBoundOrEqualCombinedNavState(
   const lc::Time timestamp) const {
-  const auto timestamp = pose_nodes_.LowerBoundOrEqualTimestamp();
-  if (!timestamp) return boost::none;
-  return Get(*timestamp);
+  const auto lower_bound_or_equal_timestamp = pose_nodes_.LowerBoundOrEqualTimestamp(timestamp);
+  if (!lower_bound_or_equal_timestamp) return boost::none;
+  return Get(*lower_bound_or_equal_timestamp);
 }
 
-int CombinedNavStateNodes::RemoveOldCombinedNavStates(const lc::Time oldest_allowed_time) {
-  const int num_removed_states = pose_nodes_.RemoveOldNodes(oldest_allowed_time);
+int CombinedNavStateNodes::RemoveOldNodes(const lc::Time oldest_allowed_time) {
+  const int num_nodes_removed = pose_nodes_.RemoveOldNodes(oldest_allowed_time);
   velocity_nodes_.RemoveOldNodes(oldest_allowed_time);
   bias_nodes_.RemoveOldNodes(oldest_allowed_time);
-  return num_states_removed;
+  return num_nodes_removed;
 }
 
-gtsam::KeyVector CombinedNavStateNodes::OldKeys(const lc::Time oldest_allowed_time,
-                                                      const gtsam::NonlinearFactorGraph& graph) const {
+gtsam::KeyVector CombinedNavStateNodes::OldKeys(const lc::Time oldest_allowed_time) const {
   gtsam::KeyVector old_keys;
-  const auto old_pose_keys = pose_nodes_.OldKeys(oldest_allowed_time, graph);
-  const auto old_velocity_keys = velocity_nodes_.OldKeys(oldest_allowed_time, graph);
-  const auto old_bias_keys = bias_nodes_.OldKeys(oldest_allowed_time, graph);
+  const auto old_pose_keys = pose_nodes_.OldKeys(oldest_allowed_time);
+  const auto old_velocity_keys = velocity_nodes_.OldKeys(oldest_allowed_time);
+  const auto old_bias_keys = bias_nodes_.OldKeys(oldest_allowed_time);
   old_keys.insert(old_keys.end(), old_pose_keys.begin(), old_pose_keys.end());
   old_keys.insert(old_keys.end(), old_velocity_keys.begin(), old_velocity_keys.end());
   old_keys.insert(old_keys.end(), old_bias_keys.begin(), old_bias_keys.end());

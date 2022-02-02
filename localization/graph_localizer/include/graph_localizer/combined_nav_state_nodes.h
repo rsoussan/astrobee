@@ -32,11 +32,11 @@
 namespace graph_localizer {
 class CombinedNavStateNodes {
  public:
-  CombinedNavStateNodes(std::shared_ptr<gtsam::Values> values = std::shared_ptr<gtsam::Values>(new gtsam::Values()));
+  explicit CombinedNavStateNodes(std::shared_ptr<graph_optimizer::Nodes> nodes);
 
   boost::optional<localization_common::CombinedNavState> Get(const localization_common::Time timestamp) const;
 
-  bool Add(const localization_common::CombinedNavState& combined_nav_state, const int key_index);
+  bool Add(const localization_common::CombinedNavState& combined_nav_state);
 
   boost::optional<localization_common::CombinedNavState> Latest() const;
 
@@ -52,24 +52,22 @@ class CombinedNavStateNodes {
 
   // Assumes timestamp is within bounds of graph values timestamps.
   std::pair<boost::optional<localization_common::Time>, boost::optional<localization_common::Time>>
-  LowerAndUpperBoundTimestamp(const localization_common::Time timestamp) const;
+  LowerAndUpperBoundTimestamps(const localization_common::Time timestamp) const;
 
   boost::optional<localization_common::CombinedNavState> LowerBoundOrEqualCombinedNavState(
     const localization_common::Time timestamp) const;
 
-    double Duration() const;
+  double Duration() const;
 
   int size() const;
 
   std::vector<localization_common::Time> Timestamps() const;
 
-  gtsam::KeyVector OldKeys(const localization_common::Time oldest_allowed_time,
-                           const gtsam::NonlinearFactorGraph& graph) const;
+  gtsam::KeyVector OldKeys(const localization_common::Time oldest_allowed_time) const;
+  bool Empty() const;
 
  private:
   bool Remove(const localization_common::Time timestamp);
-
-  bool Empty() const;
 
   boost::optional<localization_common::Time> LowerBoundOrEqualTimestamp(
     const localization_common::Time timestamp) const;
@@ -83,9 +81,9 @@ class CombinedNavStateNodes {
     ar& BOOST_SERIALIZATION_NVP(bias_nodes_);
   }
 
-  graph_optimizer::TimestampedNodes pose_nodes_;
-  graph_optimizer::TimestampedNodes velocity_nodes_;
-  graph_optimizer::TimestampedNodes bias_nodes_;
+  graph_optimizer::TimestampedNodes<gtsam::Pose3> pose_nodes_;
+  graph_optimizer::TimestampedNodes<gtsam::Velocity3> velocity_nodes_;
+  graph_optimizer::TimestampedNodes<gtsam::imuBias::ConstantBias> bias_nodes_;
 };
 }  // namespace graph_localizer
 
