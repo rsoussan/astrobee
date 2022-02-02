@@ -45,14 +45,6 @@ lm::DepthOdometryMeasurement DepthOdometryMeasurementFromPose(const Eigen::Isome
   return lm::DepthOdometryMeasurement(odometry, correspondences, target_time);
 }
 
-CombinedNavStateGraphValuesParams DefaultCombinedNavStateGraphValuesParams() {
-  CombinedNavStateGraphValuesParams params;
-  params.ideal_duration = 3;
-  params.min_num_states = 3;
-  params.max_num_states = 20;
-  return params;
-}
-
 go::GraphOptimizerParams DefaultGraphOptimizerParams() {
   go::GraphOptimizerParams params;
   params.verbose = false;
@@ -79,8 +71,10 @@ CombinedNavStateNodeUpdaterParams DefaultCombinedNavStateNodeUpdaterParams() {
   params.global_N_body_start =
     lc::CombinedNavState(gtsam::Pose3::identity(), gtsam::Velocity3::Zero(), gtsam::imuBias::ConstantBias(), 0.0);
   params.add_priors = true;
-  params.graph_values = DefaultCombinedNavStateGraphValuesParams();
   params.threshold_bias_uncertainty = false;
+  params.ideal_duration = 3;
+  params.min_num_states = 3;
+  params.max_num_states = 20;
   return params;
 }
 
