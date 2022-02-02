@@ -56,10 +56,15 @@ class CombinedNavStateNodes {
   std::pair<boost::optional<localization_common::Time>, boost::optional<localization_common::Time>>
   LowerAndUpperBoundTimestamps(const localization_common::Time timestamp) const;
 
+  // Assumes timestamp is within bounds of graph values timestamps.
+  std::pair<boost::optional<localization_common::CombinedNavState>,
+            boost::optional<localization_common::CombinedNavState>>
+  LowerAndUpperBoundNodes(const localization_common::Time timestamp) const;
+
   boost::optional<localization_common::Time> LowerBoundOrEqualTimestamp(
     const localization_common::Time timestamp) const;
 
-  boost::optional<localization_common::CombinedNavState> LowerBoundOrEqualCombinedNavState(
+  boost::optional<localization_common::CombinedNavState> LowerBoundOrEqualNode(
     const localization_common::Time timestamp) const;
 
   double Duration() const;

@@ -170,6 +170,154 @@ TEST(CombinedNavStateNodesTester, OldestLatest) {
   }
 }
 
+TEST(CombinedNavStateNodesTester, LowerAndUpperBounds) {
+  std::shared_ptr<go::Nodes> graph_nodes(new go::Nodes());
+  gl::CombinedNavStateNodes nodes(graph_nodes);
+  // No elements
+  {
+    const auto lower_and_upper_bound_timestamps = nodes.LowerAndUpperBoundTimestamps(1.0);
+    EXPECT_TRUE(lower_and_upper_bound_timestamps.first == boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_timestamps.second == boost::none);
+    const auto lower_and_upper_bound_nodes = nodes.LowerAndUpperBoundNodes(1.0);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.first == boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.second == boost::none);
+  }
+
+  // 1 element
+  const localization_common::Time timestamp_1 = 37.001;
+  const auto node_1 = lc::RandomCombinedNavState(timestamp_1);
+  ASSERT_TRUE(nodes.Add(node_1));
+  // 1 element below
+  {
+    const auto lower_and_upper_bound_timestamps = nodes.LowerAndUpperBoundTimestamps(10.0);
+    EXPECT_TRUE(lower_and_upper_bound_timestamps.first == boost::none);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.second != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.second), timestamp_1);
+    const auto lower_and_upper_bound_nodes = nodes.LowerAndUpperBoundNodes(10.0);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.first == boost::none);
+    ASSERT_TRUE(lower_and_upper_bound_nodes.second != boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.second->Equals(node_1));
+  }
+  // 1 element above
+  {
+    const auto lower_and_upper_bound_timestamps = nodes.LowerAndUpperBoundTimestamps(57.3);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.first != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.first), timestamp_1);
+    EXPECT_TRUE(lower_and_upper_bound_timestamps.second == boost::none);
+    const auto lower_and_upper_bound_nodes = nodes.LowerAndUpperBoundNodes(57.3);
+    ASSERT_TRUE(lower_and_upper_bound_nodes.first != boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.first->Equals(node_1));
+    EXPECT_TRUE(lower_and_upper_bound_nodes.second == boost::none);
+  }
+  // 1 element equal
+  {
+    const auto lower_and_upper_bound_timestamps = nodes.LowerAndUpperBoundTimestamps(timestamp_1);
+    EXPECT_TRUE(lower_and_upper_bound_timestamps.first == boost::none);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.second != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.second), timestamp_1);
+    const auto lower_and_upper_bound_nodes = nodes.LowerAndUpperBoundNodes(timestamp_1);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.first == boost::none);
+    ASSERT_TRUE(lower_and_upper_bound_nodes.second != boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.second->Equals(node_1));
+  }
+
+  // 2 elements
+  const localization_common::Time timestamp_2 = 2.221;
+  const auto node_2 = lc::RandomCombinedNavState(timestamp_2);
+  ASSERT_TRUE(nodes.Add(node_2));
+
+  // 2 elements below
+  {
+    const auto lower_and_upper_bound_timestamps = nodes.LowerAndUpperBoundTimestamps(1.1);
+    EXPECT_TRUE(lower_and_upper_bound_timestamps.first == boost::none);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.second != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.second), timestamp_2);
+    const auto lower_and_upper_bound_nodes = nodes.LowerAndUpperBoundNodes(1.1);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.first == boost::none);
+    ASSERT_TRUE(lower_and_upper_bound_nodes.second != boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.second->Equals(node_2));
+  }
+  // 2 elements above
+  {
+    const auto lower_and_upper_bound_timestamps = nodes.LowerAndUpperBoundTimestamps(111.3);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.first != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.first), timestamp_1);
+    EXPECT_TRUE(lower_and_upper_bound_timestamps.second == boost::none);
+    const auto lower_and_upper_bound_nodes = nodes.LowerAndUpperBoundNodes(111.3);
+    ASSERT_TRUE(lower_and_upper_bound_nodes.first != boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.first->Equals(node_1));
+    EXPECT_TRUE(lower_and_upper_bound_nodes.second == boost::none);
+  }
+  // 2 elements equal lower
+  {
+    const auto lower_and_upper_bound_timestamps = nodes.LowerAndUpperBoundTimestamps(timestamp_2);
+    EXPECT_TRUE(lower_and_upper_bound_timestamps.first == boost::none);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.second != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.second), timestamp_2);
+    const auto lower_and_upper_bound_nodes = nodes.LowerAndUpperBoundNodes(timestamp_2);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.first == boost::none);
+    ASSERT_TRUE(lower_and_upper_bound_nodes.second != boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.second->Equals(node_2));
+  }
+  // 2 elements equal upper
+  {
+    const auto lower_and_upper_bound_timestamps = nodes.LowerAndUpperBoundTimestamps(timestamp_1);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.first != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.first), timestamp_2);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.second != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.second), timestamp_1);
+    const auto lower_and_upper_bound_nodes = nodes.LowerAndUpperBoundNodes(timestamp_1);
+    ASSERT_TRUE(lower_and_upper_bound_nodes.first != boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.first->Equals(node_2));
+    ASSERT_TRUE(lower_and_upper_bound_nodes.second != boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.second->Equals(node_1));
+  }
+  // 2 elements between
+  {
+    const auto lower_and_upper_bound_timestamps = nodes.LowerAndUpperBoundTimestamps(15.1);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.first != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.first), timestamp_2);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.second != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.second), timestamp_1);
+    const auto lower_and_upper_bound_nodes = nodes.LowerAndUpperBoundNodes(15.1);
+    ASSERT_TRUE(lower_and_upper_bound_nodes.first != boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.first->Equals(node_2));
+    ASSERT_TRUE(lower_and_upper_bound_nodes.second != boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.second->Equals(node_1));
+  }
+
+  // 3 elements
+  const localization_common::Time timestamp_3 = 14.076;
+  const auto node_3 = lc::RandomCombinedNavState(timestamp_3);
+  ASSERT_TRUE(nodes.Add(node_3));
+  // 3 elements lower between
+  {
+    const auto lower_and_upper_bound_timestamps = nodes.LowerAndUpperBoundTimestamps(7.11);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.first != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.first), timestamp_2);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.second != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.second), timestamp_3);
+    const auto lower_and_upper_bound_nodes = nodes.LowerAndUpperBoundNodes(7.11);
+    ASSERT_TRUE(lower_and_upper_bound_nodes.first != boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.first->Equals(node_2));
+    ASSERT_TRUE(lower_and_upper_bound_nodes.second != boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.second->Equals(node_3));
+  }
+  // 3 elements upper between
+  {
+    const auto lower_and_upper_bound_timestamps = nodes.LowerAndUpperBoundTimestamps(22.22);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.first != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.first), timestamp_3);
+    ASSERT_TRUE(lower_and_upper_bound_timestamps.second != boost::none);
+    EXPECT_EQ(*(lower_and_upper_bound_timestamps.second), timestamp_1);
+    const auto lower_and_upper_bound_nodes = nodes.LowerAndUpperBoundNodes(22.22);
+    ASSERT_TRUE(lower_and_upper_bound_nodes.first != boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.first->Equals(node_3));
+    ASSERT_TRUE(lower_and_upper_bound_nodes.second != boost::none);
+    EXPECT_TRUE(lower_and_upper_bound_nodes.second->Equals(node_1));
+  }
+}
+
 // Run all the tests that were declared with TEST()
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);

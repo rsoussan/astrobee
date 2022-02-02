@@ -77,6 +77,23 @@ std::pair<boost::optional<lc::Time>, boost::optional<lc::Time>> CombinedNavState
   return pose_nodes_.LowerAndUpperBoundTimestamps(timestamp);
 }
 
+// Assumes timestamp is within bounds of graph values timestamps.
+std::pair<boost::optional<lc::CombinedNavState>, boost::optional<lc::CombinedNavState>>
+CombinedNavStateNodes::LowerAndUpperBoundNodes(const lc::Time timestamp) const {
+  const auto lower_and_upper_bound_timestamps = LowerAndUpperBoundTimestamps(timestamp);
+  boost::optional<lc::CombinedNavState> lower_bound;
+  if (!lower_and_upper_bound_timestamps.first)
+    lower_bound = boost::none;
+  else
+    lower_bound = Get(*(lower_and_upper_bound_timestamps.first));
+  boost::optional<lc::CombinedNavState> upper_bound;
+  if (!lower_and_upper_bound_timestamps.second)
+    upper_bound = boost::none;
+  else
+    upper_bound = Get(*(lower_and_upper_bound_timestamps.second));
+  return {lower_bound, upper_bound};
+}
+
 bool CombinedNavStateNodes::empty() const { return pose_nodes_.empty(); }
 
 double CombinedNavStateNodes::Duration() const { return pose_nodes_.Duration(); }
@@ -87,8 +104,7 @@ boost::optional<lc::Time> CombinedNavStateNodes::LowerBoundOrEqualTimestamp(cons
   return pose_nodes_.LowerBoundOrEqualTimestamp(timestamp);
 }
 
-boost::optional<lc::CombinedNavState> CombinedNavStateNodes::LowerBoundOrEqualCombinedNavState(
-  const lc::Time timestamp) const {
+boost::optional<lc::CombinedNavState> CombinedNavStateNodes::LowerBoundOrEqualNode(const lc::Time timestamp) const {
   const auto lower_bound_or_equal_timestamp = pose_nodes_.LowerBoundOrEqualTimestamp(timestamp);
   if (!lower_bound_or_equal_timestamp) return boost::none;
   return Get(*lower_bound_or_equal_timestamp);
