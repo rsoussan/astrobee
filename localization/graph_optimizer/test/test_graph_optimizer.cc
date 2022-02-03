@@ -31,6 +31,22 @@ namespace lc = localization_common;
 using PosePrior = gtsam::PriorFactor<gtsam::Pose3>;
 using VelocityPrior = gtsam::PriorFactor<gtsam::Velocity3>;
 
+bool SameFactors(const gtsam::NonlinearFactorGraph& graph_a, const gtsam::NonlinearFactorGraph& graph_b) {
+  gtsam::NonlinearFactorGraph graph_a_copy;
+  for (auto factor_a_it = graph_a_copy.begin(); factor_a_it != graph_a_copy.end();) {
+    bool found_factor = false;
+    for (const auto& factor_b : graph_b) {
+      if ((*factor_a_it)->equals(*factor_b)) {
+        factor_a_it = graph_a_copy.erase(factor_a_it);
+        found_factor = true;
+        break;
+      }
+    }
+    if (!found_factor) return false;
+  }
+  return true;
+}
+
 TEST(GraphOptimizerTester, AddFactors) {
   const auto nodes = std::make_shared<go::Nodes>();
   const auto params = go::DefaultGraphOptimizerParams();
@@ -120,27 +136,19 @@ TEST(GraphOptimizerTester, RemoveFactorsWithKey) {
   const auto pose_key_1 = nodes->Add(pose);
   const gtsam::Vector6 pose_prior_noise_sigmas((gtsam::Vector(6) << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0).finished());
   const auto pose_noise = gtsam::noiseModel::Diagonal::Sigmas(pose_prior_noise_sigmas);
-  {
-    PosePrior pose_factor(pose_key_1, pose, pose_noise);
-    optimizer.AddFactor(pose_factor);
-  }
-  {
-    PosePrior pose_factor(pose_key_1, pose, pose_noise);
-    optimizer.AddFactor(pose_factor);
-  }
+  PosePrior pose_factor_1(pose_key_1, pose, pose_noise);
+  optimizer.AddFactor(pose_factor_1);
+  PosePrior pose_factor_2(pose_key_1, pose, pose_noise);
+  optimizer.AddFactor(pose_factor_2);
   const auto pose_key_2 = nodes->Add(pose);
-  {
-    PosePrior pose_factor(pose_key_2, pose, pose_noise);
-    optimizer.AddFactor(pose_factor);
-  }
+  PosePrior pose_factor_3(pose_key_2, pose, pose_noise);
+  optimizer.AddFactor(pose_factor_3);
   gtsam::Vector3 velocity;
   const auto velocity_key = nodes->Add(velocity);
   const gtsam::Vector3 velocity_prior_noise_sigmas((gtsam::Vector(3) << 1.0, 1.0, 1.0).finished());
   const auto velocity_noise = gtsam::noiseModel::Diagonal::Sigmas(velocity_prior_noise_sigmas);
-  {
-    VelocityPrior velocity_factor(velocity_key, velocity, velocity_noise);
-    optimizer.AddFactor(velocity_factor);
-  }
+  VelocityPrior velocity_factor_1(velocity_key, velocity, velocity_noise);
+  optimizer.AddFactor(velocity_factor_1);
   // Remove pose key 2 factors
   EXPECT_EQ(optimizer.NumFactors<PosePrior>(), 3);
   EXPECT_EQ(optimizer.NumFactors<VelocityPrior>(), 1);
@@ -157,13 +165,58 @@ TEST(GraphOptimizerTester, RemoveFactorsWithKey) {
   optimizer.RemoveFactors(keys, removed_factors);
   EXPECT_EQ(removed_factors.size(), 3);
   EXPECT_EQ(optimizer.TotalNumFactors(), 0);
-
+  {
+    gtsam::NonlinearFactorGraph factors;
+    factors.push_back(pose_factor_1);
+    factors.push_back(pose_factor_2);
+    EXPECT_TRUE(SameFactors(factors, removed_factors));
+  }
   // Add and remove velocity key factors
   VelocityPrior velocity_factor(velocity_key, velocity, velocity_noise);
   optimizer.AddFactor(velocity_factor);
   EXPECT_EQ(optimizer.TotalNumFactors(), 1);
   optimizer.RemoveFactors(velocity_key);
   EXPECT_EQ(optimizer.TotalNumFactors(), 0);
+}
+
+TEST(GraphOptimizerTester, GetFactors) {
+  const auto nodes = std::make_shared<go::Nodes>();
+  const auto params = go::DefaultGraphOptimizerParams();
+  go::GraphOptimizer optimizer(params, nodes);
+  gtsam::Pose3 pose;
+  const auto pose_key_1 = nodes->Add(pose);
+  const gtsam::Vector6 pose_prior_noise_sigmas((gtsam::Vector(6) << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0).finished());
+  const auto pose_noise = gtsam::noiseModel::Diagonal::Sigmas(pose_prior_noise_sigmas);
+  PosePrior pose_factor_1(pose_key_1, pose, pose_noise);
+  optimizer.AddFactor(pose_factor_1);
+  PosePrior pose_factor_2(pose_key_1, pose, pose_noise);
+  optimizer.AddFactor(pose_factor_2);
+  gtsam::Vector3 velocity;
+  const auto velocity_key = nodes->Add(velocity);
+  const gtsam::Vector3 velocity_prior_noise_sigmas((gtsam::Vector(3) << 1.0, 1.0, 1.0).finished());
+  const auto velocity_noise = gtsam::noiseModel::Diagonal::Sigmas(velocity_prior_noise_sigmas);
+  VelocityPrior velocity_factor(velocity_key, velocity, velocity_noise);
+  optimizer.AddFactor(velocity_factor);
+  const auto pose_factors = optimizer.Factors<PosePrior>();
+  EXPECT_EQ(pose_factors.size(), 2);
+  {
+    gtsam::NonlinearFactorGraph factors;
+    factors.push_back(pose_factor_1);
+    factors.push_back(pose_factor_2);
+    gtsam::NonlinearFactorGraph factors_b;
+    // TODO(rsoussan): Better way to contruct graph from vec of factors?
+    for (const auto& factor : pose_factors) factors_b.push_back(*factor);
+    EXPECT_TRUE(SameFactors(factors, factors_b));
+  }
+  const auto velocity_factors = optimizer.Factors<VelocityPrior>();
+  EXPECT_EQ(velocity_factors.size(), 1);
+  {
+    gtsam::NonlinearFactorGraph factors;
+    factors.push_back(velocity_factor);
+    gtsam::NonlinearFactorGraph factors_b;
+    for (const auto& factor : velocity_factors) factors_b.push_back(*factor);
+    EXPECT_TRUE(SameFactors(factors, factors_b));
+  }
 }
 
 // Run all the tests that were declared with TEST()
