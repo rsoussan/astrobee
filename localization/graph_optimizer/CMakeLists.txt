@@ -31,10 +31,15 @@ find_package(catkin2 REQUIRED COMPONENTS
 # System dependencies are found with CMake's conventions
 find_package(Eigen3 REQUIRED)
 
+find_package(Boost REQUIRED COMPONENTS serialization)
+
+# Find GTSAM
+find_package(GTSAM REQUIRED)
+
 # include ff_nodelet to get ff_util header files since these aren't exposed elsewhere
 catkin_package(
-  LIBRARIES ${PROJECT_NAME} ${GLOG_LIBRARIES}
-  INCLUDE_DIRS include ${GLOG_INCLUDE_DIRS}
+  LIBRARIES ${PROJECT_NAME} ${GLOG_LIBRARIES} ${GTSAM_LIBRARIES} 
+  INCLUDE_DIRS include ${GLOG_INCLUDE_DIRS} ${GTSAM_INCLUDE_DIR}
   CATKIN_DEPENDS config_reader localization_common msg_conversions
 )
 
@@ -52,6 +57,7 @@ include_directories(
 
 # Declare C++ libraries
 add_library(${PROJECT_NAME}
+  src/covariances.cc
   src/graph_optimizer.cc
   src/graph_optimizer_stats.cc
   src/nodes.cc
@@ -63,6 +69,13 @@ target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
+  #add_rostest_gtest(test_factor_adder_and_node_updater
+  #  test/test_factor_adder_and_node_updater.test
+  #  test/test_factor_adder_and_node_updater.cc
+  #)
+  #target_link_libraries(test_factor_adder_and_node_updater
+  #  ${PROJECT_NAME} ${catkin_LIBRARIES} 
+  #)
   add_rostest_gtest(test_graph_optimizer
     test/test_graph_optimizer.test
     test/test_graph_optimizer.cc

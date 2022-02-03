@@ -17,12 +17,23 @@
  */
 #include <graph_optimizer/test_utilities.h>
 
+#include <gtsam/nonlinear/Marginals.h>
+
 namespace graph_optimizer {
 namespace go = graph_optimizer;
+
 go::GraphOptimizerParams DefaultGraphOptimizerParams() {
   go::GraphOptimizerParams params;
   params.fatal_failures = false;
   params.huber_k = 1.345;
+  params.covariances = DefaultCovariancesParams();
+  return params;
+}
+
+go::CovariancesParams DefaultCovariancesParams() {
+  go::CovariancesParams params;
+  params.marginals_factorization = gtsam::Marginals::Factorization::QR;
+  params.fatal_failures = false;
   return params;
 }
 }  // namespace graph_optimizer

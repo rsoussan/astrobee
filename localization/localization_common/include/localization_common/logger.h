@@ -163,12 +163,14 @@
   } while (0)
 
 #endif
-// clang-format on
 
-inline void LogOptionallyFatal(const std::string& msg, const bool fatal) {
-  if (fatal)
-    LogFatal(msg);
-  else
-    LogError(msg);
-}
+#define LogOptionallyFatal(msg, fatal) \
+  do { \
+    if (fatal) { \
+      LogFatal(msg); \
+    } else { \
+      LogError(msg); \
+    } \
+  } while (0)
+// clang-format on
 #endif  // LOCALIZATION_COMMON_LOGGER_H_

@@ -21,10 +21,10 @@
 
 #include <graph_optimizer/graph_optimizer_params.h>
 #include <graph_optimizer/graph_stats.h>
+#include <sliding_window_graph_optimizer/marginalizer.h>
 #include <sliding_window_graph_optimizer/sliding_window_node_updater.h>
 #include <localization_common/time.h>
 
-#include <gtsam/nonlinear/Marginals.h>
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 
 #include <boost/serialization/serialization.hpp>
@@ -51,19 +51,12 @@ class SlidingWindowGraphOptimizer : public graph_optimizer::GraphOptimizer {
 
   const SlidingWindowGraphOptimizerParams& params() const;
 
-  // const boost::optional<gtsam::Marginals>& marginals() const;
-
  private:
-  gtsam::NonlinearFactorGraph MarginalFactors(const gtsam::NonlinearFactorGraph& old_factors,
-                                              const gtsam::KeyVector& old_keys,
-                                              const gtsam::GaussianFactorGraph::Eliminate& eliminate_function) const;
-
   // Removes Keys and Values outside of sliding window.
   // Removes any factors depending on removed values
   // Optionally adds marginalized factors encapsulating linearized error of removed factors
   // Optionally adds priors using marginalized covariances for new oldest states
-  void SlideWindow(const boost::optional<gtsam::Marginals>& marginals,
-                   const localization_common::Time last_latest_time);
+  void SlideWindow(const localization_common::Time last_window_latest_time);
 
   boost::optional<localization_common::Time> SlideWindowNewOldestTime() const;
 
@@ -97,14 +90,14 @@ class SlidingWindowGraphOptimizer : public graph_optimizer::GraphOptimizer {
     ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(graph_optimizer::GraphOptimizer);
     ar& BOOST_SERIALIZATION_NVP(params_);
     ar& BOOST_SERIALIZATION_NVP(node_updaters_);
-    ar& BOOST_SERIALIZATION_NVP(marginals_);
-    ar& BOOST_SERIALIZATION_NVP(last_latest_time_);
+    ar& BOOST_SERIALIZATION_NVP(marginalizer_);
+    ar& BOOST_SERIALIZATION_NVP(last_window_latest_time_);
   }
 
   SlidingWindowGraphOptimizerParams params_;
   std::vector<SlidingWindowNodeUpdater> node_updaters_;
-  boost::optional<gtsam::Marginals> marginals_;
-  boost::optional<localization_common::Time> last_latest_time_;
+  Marginalizer marginalizer_;
+  boost::optional<localization_common::Time> last_window_latest_time_;
 };
 }  // namespace sliding_window_graph_optimizer
 

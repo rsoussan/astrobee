@@ -25,6 +25,7 @@
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 
 #include <boost/optional.hpp>
+#include <boost/serialization/serialization.hpp>
 
 #include <map>
 #include <utility>

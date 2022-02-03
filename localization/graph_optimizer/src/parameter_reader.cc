@@ -17,6 +17,7 @@
  */
 
 #include <graph_optimizer/parameter_reader.h>
+#include <localization_common/logger.h>
 #include <msg_conversions/msg_conversions.h>
 
 namespace graph_optimizer {
@@ -33,7 +34,22 @@ void LoadGraphOptimizerParams(config_reader::ConfigReader& config, GraphOptimize
     gtsam::LevenbergMarquardtParams::SetCeresDefaults(&params.levenberg_marquardt);
   }
   params.levenberg_marquardt.maxIterations = mc::LoadInt(config, "max_iterations");
+  LoadCovariancesParams(config, params.covariances);
   params.huber_k = mc::LoadDouble(config, "huber_k");
+  params.fatal_failures = mc::LoadBool(config, "fatal_failures");
+}
+
+void LoadCovariancesParams(config_reader::ConfigReader& config, CovariancesParams& params) {
+  const std::string marginals_factorization = mc::LoadString(config, "marginals_factorization");
+  if (marginals_factorization == "qr") {
+    params.marginals_factorization = gtsam::Marginals::Factorization::QR;
+  } else if (marginals_factorization == "cholesky") {
+    params.marginals_factorization = gtsam::Marginals::Factorization::CHOLESKY;
+  } else {
+    LogError("LoadCovariancesParams: No marginals factorization entered, defaulting to qr.");
+    params.marginals_factorization = gtsam::Marginals::Factorization::QR;
+  }
+
   params.fatal_failures = mc::LoadBool(config, "fatal_failures");
 }
 }  // namespace graph_optimizer

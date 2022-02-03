@@ -26,7 +26,7 @@ namespace graph_optimizer {
 namespace lc = localization_common;
 
 GraphOptimizer::GraphOptimizer(const GraphOptimizerParams& params, std::shared_ptr<Nodes> nodes)
-    : params_(params), nodes_(std::move(nodes)) {}
+    : params_(params), nodes_(std::move(nodes)), covariances_(params.covariances), has_optimized_(false) {}
 
 bool GraphOptimizer::Valid() const { return true; }
 
@@ -58,6 +58,9 @@ bool GraphOptimizer::Optimize() {
   } catch (...) {
     LogOptionallyFatal("Update: Graph optimization failed, keeping old values.", params_.fatal_failures);
   }
+
+  if (!covariances_.Update(factors_, values())) return false;
+  has_optimized_ = true;
   return true;
 }
 
@@ -89,5 +92,5 @@ void GraphOptimizer::SaveDotFile(const std::string& output_path) const {
 
 const gtsam::NonlinearFactorGraph& GraphOptimizer::factors() const { return factors_; }
 
-const gtsam::Values& values() const { return nodes_->values(); }
+const gtsam::Values& GraphOptimizer::values() const { return nodes_->values(); }
 }  // namespace graph_optimizer

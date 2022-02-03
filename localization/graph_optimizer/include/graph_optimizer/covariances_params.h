@@ -16,14 +16,27 @@
  * under the License.
  */
 
-#ifndef GRAPH_OPTIMIZER_TEST_UTILITIES_H_
-#define GRAPH_OPTIMIZER_TEST_UTILITIES_H_
+#ifndef GRAPH_OPTIMIZER_COVARIANCES_PARAMS_H_
+#define GRAPH_OPTIMIZER_COVARIANCES_PARAMS_H_
 
-#include <graph_optimizer/covariances_params.h>
-#include <graph_optimizer/graph_optimizer_params.h>
+#include <gtsam/nonlinear/Marginals.h>
+
+#include <boost/serialization/serialization.hpp>
 
 namespace graph_optimizer {
-GraphOptimizerParams DefaultGraphOptimizerParams();
-CovariancesParams DefaultCovariancesParams();
+struct CovariancesParams {
+  gtsam::Marginals::Factorization marginals_factorization;
+  bool fatal_failures;
+
+ private:
+  // Serialization function
+  friend class boost::serialization::access;
+  template <class Archive>
+  void serialize(Archive& ar, const unsigned int file_version) {
+    ar& BOOST_SERIALIZATION_NVP(marginals_factorization);
+    ar& BOOST_SERIALIZATION_NVP(fatal_failures);
+  }
+};
 }  // namespace graph_optimizer
-#endif  // GRAPH_OPTIMIZER_TEST_UTILITIES_H_
+
+#endif  // GRAPH_OPTIMIZER_COVARIANCES_PARAMS_H_

@@ -15,31 +15,43 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-#ifndef GRAPH_OPTIMIZER_GRAPH_OPTIMIZER_PARAMS_H_
-#define GRAPH_OPTIMIZER_GRAPH_OPTIMIZER_PARAMS_H_
+#ifndef GRAPH_OPTIMIZER_COVARIANCES_H_
+#define GRAPH_OPTIMIZER_COVARIANCES_H_
 
 #include <graph_optimizer/covariances_params.h>
 
-#include <gtsam/nonlinear/LevenbergMarquardtParams.h>
+#include <gtsam/nonlinear/Marginals.h>
+#include <gtsam/nonlinear/NonlinearFactorGraph.h>
+
+#include <boost/serialization/serialization.hpp>
 
 namespace graph_optimizer {
-struct GraphOptimizerParams {
-  gtsam::LevenbergMarquardtParams levenberg_marquardt;
-  CovariancesParams covariances;
-  double huber_k;
-  bool fatal_failures;
+class Covariances {
+ public:
+  explicit Covariances(const CovariancesParams& params);
+
+  // For serialization only
+  Covariances() {}
+
+  bool Update(const gtsam::NonlinearFactorGraph& factors, const gtsam::Values& values);
+
+  boost::optional<gtsam::noiseModel::Gaussian::shared_ptr> Get(const gtsam::Key key) const;
+
+  bool UpdateMarginals(const gtsam::NonlinearFactorGraph& factors, const gtsam::Values& values);
 
  private:
   // Serialization function
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, const unsigned int file_version) {
-    // TODO(rsoussan): Put back when serialization is added to lm params in gtsam
-    // ar& BOOST_SERIALIZATION_NVP(levenberg_marquardt);
-    ar& BOOST_SERIALIZATION_NVP(huber_k);
-    ar& BOOST_SERIALIZATION_NVP(fatal_failures);
+    ar& BOOST_SERIALIZATION_NVP(params_);
+    // TODO(rsoussan): Put back when serialization for marginals is added in gtsam
+    // ar& BOOST_SERIALIZATION_NVP(marginals_);
   }
+
+  CovariancesParams params_;
+  boost::optional<gtsam::Marginals> marginals_;
 };
 }  // namespace graph_optimizer
 
-#endif  // GRAPH_OPTIMIZER_GRAPH_OPTIMIZER_PARAMS_H_
+#endif  // GRAPH_OPTIMIZER_COVARIANCES_H_

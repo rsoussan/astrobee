@@ -19,10 +19,12 @@
 #define GRAPH_OPTIMIZER_PARAMETER_READER_H_
 
 #include <config_reader/config_reader.h>
+#include <graph_optimizer/covariances_params.h>
 #include <graph_optimizer/graph_optimizer_params.h>
 
 namespace graph_optimizer {
 void LoadGraphOptimizerParams(config_reader::ConfigReader& config, GraphOptimizerParams& params);
+void LoadCovariancesParams(config_reader::ConfigReader& config, CovariancesParams& params);
 }  // namespace graph_optimizer
 
 #endif  // GRAPH_OPTIMIZER_PARAMETER_READER_H_

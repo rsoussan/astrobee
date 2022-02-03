@@ -20,8 +20,6 @@
 #include <localization_common/logger.h>
 #include <localization_common/utilities.h>
 
-#include <gtsam/nonlinear/LinearContainerFactor.h>
-
 namespace sliding_window_graph_optimizer {
 namespace go = graph_optimizer;
 namespace lc = localization_common;
@@ -32,23 +30,6 @@ SlidingWindowGraphOptimizer::SlidingWindowGraphOptimizer(const SlidingWindowGrap
 
 void GraphOptimizer::AddNodeUpdater(std::shared_ptr<SlidingWindowNodeUpdater> node_updater) {
   node_updaters_.emplace_back(std::move(node_updater));
-}
-
-// Adapted from gtsam::BatchFixedLagSmoother
-gtsam::NonlinearFactorGraph GraphOptimizer::MarginalFactors(
-  const gtsam::NonlinearFactorGraph& old_factors, const gtsam::KeyVector& old_keys,
-  const gtsam::GaussianFactorGraph::Eliminate& eliminate_function) const {
-  // Old keys not present in old factors.  This shouldn't occur.
-  if (old_keys.size() == 0) {
-    LogDebug("MarginalFactors: No old keys provided.");
-    return old_factors;
-  }
-
-  // Linearize Graph
-  const auto linearized_graph = old_factors.linearize(*values_);
-  const auto linear_marginal_factors =
-    *(linearized_graph->eliminatePartialMultifrontal(old_keys, eliminate_function).second);
-  return gtsam::LinearContainerFactor::ConvertLinearGraph(linear_marginal_factors, *values_);
 }
 
 boost::optional<lc::Time> GraphOptimizer::SlideWindowNewOldestTime() const {
@@ -82,7 +63,7 @@ std::pair<gtsam::KeyVector, gtsam::NonlinearFactorGraph> GraphOptimizer::OldKeys
   return std::make_pair(old_keys, old_factors);
 }
 
-void GraphOptimizer::SlideWindow(const boost::optional<gtsam::Marginals>& marginals, const lc::Time last_latest_time) {
+void GraphOptimizer::SlideWindow(const lc::Time last_window_latest_time) {
   const auto ideal_new_oldest_time = SlideWindowNewOldestTime();
   if (!ideal_new_oldest_time) {
     LogDebug("SlideWindow: No states removed. ");
@@ -90,17 +71,13 @@ void GraphOptimizer::SlideWindow(const boost::optional<gtsam::Marginals>& margin
   }
   // Ensure that new oldest time isn't more recent than last latest time
   // since then priors couldn't be added for the new oldest state
-  if (last_latest_time < *ideal_new_oldest_time)
+  if (last_window_latest_time < *ideal_new_oldest_time)
     LogError("SlideWindow: Ideal oldest time is more recent than last latest time.");
-  const auto new_oldest_time = std::min(last_latest_time, *ideal_new_oldest_time);
+  const auto new_oldest_time = std::min(last_window_latest_time, *ideal_new_oldest_time);
 
   const auto old_keys_and_factors = OldKeysAndFactors(new_oldest_time);
   if (params_.add_marginal_factors) {
-    const auto marginal_factors =
-      MarginalFactors(old_keys_and_factors.second, old_keys_and_factors.first, gtsam::EliminateQR);
-    for (const auto& marginal_factor : marginal_factors) {
-      graph_.push_back(marginal_factor);
-    }
+    marginalizer_.AddMarginalFactors(old_keys_and_factors.second, old_keys_and_factors.first, factors_);
   }
 
   for (auto& node_updater : node_updaters_)
@@ -143,58 +120,34 @@ bool GraphOptimizer::MeasurementRecentEnough(const lc::Time timestamp) const {
   return true;
 }
 
-bool GraphOptimizer::UpdateMarginals() {
-  try {
-    marginals_ = gtsam::Marginals(graph_, values(), marginals_factorization_);
-  } catch (gtsam::IndeterminantLinearSystemException) {
-    log(params_.fatal_failures, "Update: Indeterminant linear system error during computation of marginals.");
-    marginals_ = boost::none;
-    return false;
-  } catch (const std::exception& exception) {
-    log(params_.fatal_failures, "Update: Computing marginals failed. " + std::string(exception.what()));
-    marginals_ = boost::none;
-    return false;
-  } catch (...) {
-    log(params_.fatal_failures, "Update: Computing marginals failed.");
-    marginals_ = boost::none;
-    return false;
+void GraphOptimizer::UpdateOrdering() {
+  // Add graph ordering to place keys that will be marginalized in first group
+  const auto new_oldest_time = SlideWindowNewOldestTime();
+  if (new_oldest_time) {
+    const auto old_keys = OldKeys(*new_oldest_time);
+    const auto ordering = gtsam::Ordering::ColamdConstrainedFirst(graph_, old_keys);
+    params_.levenberg_marquardt.setOrdering(ordering);
+  } else {
+    params_.levenberg_marquardt.orderingType = gtsam::Ordering::COLAMD;
   }
-  return true;
 }
 
-// const boost::optional<gtsam::Marginals>& GraphOptimizer::marginals() const { return marginals_; }
-
-bool GraphOptimizer::Update() {
+bool GraphOptimizer::SlideWindowAndOptimize() {
   LogDebug("Update: Updating.");
   // graph_stats_->update_timer_.Start();
-  // Only get marginals and slide window if optimization has already occured
-  // TODO(rsoussan): Make cleaner way to check for this
-  if (last_latest_time_) {
-    // graph_stats_->marginals_timer_.Start();
-    // Calculate marginals for covariances
-    UpdateMarginals();
-    // graph_stats_->marginals_timer_.Stop();
-
+  if (params_.add_marginal_factors) {
+    marginalizer_.CacheOriginalValues(values());
+    UpdateOrdering();
+  }
+  // Only slide window if have optimization has already occured since
+  // covariances and/or marginals for marginalizer rely on updated values and factors
+  if (has_optimized_) {
     // graph_stats_->slide_window_timer_.Start();
-    if (!SlideWindow(marginals_, *last_latest_time_)) {
+    if (!SlideWindow(*last_window_latest_time_)) {
       LogError("Update: Failed to slide window.");
       return false;
     }
     // graph_stats_->slide_window_timer_.Stop();
-  }
-
-  // TODO(rsoussan): Is ordering required? if so clean these calls open and unify with marginalization
-  // TODO(rsoussan): Remove this now that marginalization occurs before optimization?
-  if (params_.add_marginal_factors) {
-    // Add graph ordering to place keys that will be marginalized in first group
-    const auto new_oldest_time = SlideWindowNewOldestTime();
-    if (new_oldest_time) {
-      const auto old_keys = OldKeys(*new_oldest_time);
-      const auto ordering = gtsam::Ordering::ColamdConstrainedFirst(graph_, old_keys);
-      params_.levenberg_marquardt.setOrdering(ordering);
-    } else {
-      params_.levenberg_marquardt.orderingType = gtsam::Ordering::COLAMD;
-    }
   }
 
   if (!ValidGraph()) {
@@ -204,18 +157,7 @@ bool GraphOptimizer::Update() {
 
   Optimize();
   // graph_stats_->optimization_timer_.Stop();
-
-  // Calculate marginals after the first optimization iteration so covariances
-  // can be used for first loc msg
-  // TODO(rsoussan): Clean this up
-  if (!last_latest_time_) {
-    // graph_stats_->marginals_timer_.Start();
-    // Calculate marginals for covariances
-    UpdateMarginals();
-    // graph_stats_->marginals_timer_.Stop();
-  }
-
-  last_latest_time_ = LatestTimestamp();
+  last_window_latest_time_ = LatestTimestamp();
 
   /*graph_stats_->log_stats_timer_.Start();
   graph_stats_->iterations_averager_.Update(optimizer.iterations());

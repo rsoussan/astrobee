@@ -19,6 +19,7 @@
 #ifndef GRAPH_OPTIMIZER_GRAPH_OPTIMIZER_H_
 #define GRAPH_OPTIMIZER_GRAPH_OPTIMIZER_H_
 
+#include <graph_optimizer/covariances.h>
 #include <graph_optimizer/graph_optimizer_params.h>
 #include <graph_optimizer/nodes.h>
 
@@ -82,14 +83,18 @@ class GraphOptimizer {
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, const unsigned int file_version) {
+    ar& BOOST_SERIALIZATION_NVP(covariances_);
     ar& BOOST_SERIALIZATION_NVP(params_);
     ar& BOOST_SERIALIZATION_NVP(nodes_);
     ar& BOOST_SERIALIZATION_NVP(factors_);
+    ar& BOOST_SERIALIZATION_NVP(has_optimized_);
   }
 
   GraphOptimizerParams params_;
+  Covariances covariances_;
   std::shared_ptr<Nodes> nodes_;
   gtsam::NonlinearFactorGraph factors_;
+  bool has_optimized_;
 };
 
 // Implementation
