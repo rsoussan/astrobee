@@ -61,6 +61,11 @@ bool GraphOptimizer::Optimize() {
   return true;
 }
 
+void GraphOptimizer::RemoveFactors(const gtsam::Key key,
+                                   boost::optional<gtsam::NonlinearFactorGraph&> removed_factors) {
+  RemoveFactors(gtsam::KeyVector(key), removed_factors);
+}
+
 void GraphOptimizer::RemoveFactors(const gtsam::KeyVector& keys,
                                    boost::optional<gtsam::NonlinearFactorGraph&> removed_factors) {
   if (keys.empty()) return;

@@ -47,6 +47,9 @@ class GraphOptimizer {
 
   bool Optimize();
 
+  // Removes all factors which contain key
+  void RemoveFactors(const gtsam::Key key, boost::optional<gtsam::NonlinearFactorGraph&> removed_factors = boost::none);
+
   // Removes all factors which contain any key in keys
   void RemoveFactors(const gtsam::KeyVector& keys,
                      boost::optional<gtsam::NonlinearFactorGraph&> removed_factors = boost::none);

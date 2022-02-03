@@ -76,6 +76,86 @@ TEST(GraphOptimizerTester, AddFactors) {
   }
 }
 
+TEST(GraphOptimizerTester, RemoveFactorsWithType) {
+  const auto nodes = std::make_shared<go::Nodes>();
+  const auto params = go::DefaultGraphOptimizerParams();
+  go::GraphOptimizer optimizer(params, nodes);
+  gtsam::Pose3 pose;
+  const auto key = nodes->Add(pose);
+  const gtsam::Vector6 pose_prior_noise_sigmas((gtsam::Vector(6) << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0).finished());
+  const auto pose_noise = gtsam::noiseModel::Diagonal::Sigmas(pose_prior_noise_sigmas);
+  {
+    PosePrior pose_factor(key, pose, pose_noise);
+    optimizer.AddFactor(pose_factor);
+  }
+  {
+    PosePrior pose_factor(key, pose, pose_noise);
+    optimizer.AddFactor(pose_factor);
+  }
+  {
+    PosePrior pose_factor(key, pose, pose_noise);
+    optimizer.AddFactor(pose_factor);
+  }
+  gtsam::Vector3 velocity;
+  const auto velocity_key = nodes->Add(velocity);
+  const gtsam::Vector3 velocity_prior_noise_sigmas((gtsam::Vector(3) << 1.0, 1.0, 1.0).finished());
+  const auto velocity_noise = gtsam::noiseModel::Diagonal::Sigmas(velocity_prior_noise_sigmas);
+  {
+    VelocityPrior velocity_factor(velocity_key, velocity, velocity_noise);
+    optimizer.AddFactor(velocity_factor);
+  }
+  EXPECT_EQ(optimizer.NumFactors<PosePrior>(), 3);
+  EXPECT_EQ(optimizer.NumFactors<VelocityPrior>(), 1);
+  EXPECT_EQ(optimizer.TotalNumFactors(), 4);
+  optimizer.RemoveFactors<PosePrior>();
+  EXPECT_EQ(optimizer.NumFactors<PosePrior>(), 0);
+  EXPECT_EQ(optimizer.TotalNumFactors(), 1);
+}
+
+TEST(GraphOptimizerTester, RemoveFactorsWithKey) {
+  const auto nodes = std::make_shared<go::Nodes>();
+  const auto params = go::DefaultGraphOptimizerParams();
+  go::GraphOptimizer optimizer(params, nodes);
+  gtsam::Pose3 pose;
+  const auto pose_key_1 = nodes->Add(pose);
+  const gtsam::Vector6 pose_prior_noise_sigmas((gtsam::Vector(6) << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0).finished());
+  const auto pose_noise = gtsam::noiseModel::Diagonal::Sigmas(pose_prior_noise_sigmas);
+  {
+    PosePrior pose_factor(pose_key_1, pose, pose_noise);
+    optimizer.AddFactor(pose_factor);
+  }
+  {
+    PosePrior pose_factor(pose_key_1, pose, pose_noise);
+    optimizer.AddFactor(pose_factor);
+  }
+  const auto pose_key_2 = nodes->Add(pose);
+  {
+    PosePrior pose_factor(pose_key_2, pose, pose_noise);
+    optimizer.AddFactor(pose_factor);
+  }
+  gtsam::Vector3 velocity;
+  const auto velocity_key = nodes->Add(velocity);
+  const gtsam::Vector3 velocity_prior_noise_sigmas((gtsam::Vector(3) << 1.0, 1.0, 1.0).finished());
+  const auto velocity_noise = gtsam::noiseModel::Diagonal::Sigmas(velocity_prior_noise_sigmas);
+  {
+    VelocityPrior velocity_factor(velocity_key, velocity, velocity_noise);
+    optimizer.AddFactor(velocity_factor);
+  }
+  EXPECT_EQ(optimizer.NumFactors<PosePrior>(), 3);
+  EXPECT_EQ(optimizer.NumFactors<VelocityPrior>(), 1);
+  EXPECT_EQ(optimizer.TotalNumFactors(), 4);
+  optimizer.RemoveFactors(pose_key_2);
+  EXPECT_EQ(optimizer.NumFactors<PosePrior>(), 2);
+  EXPECT_EQ(optimizer.NumFactors<VelocityPrior>(), 1);
+  EXPECT_EQ(optimizer.TotalNumFactors(), 3);
+  gtsam::NonlinearFactorGraph removed_pose_factors;
+  optimizer.RemoveFactors(pose_key_1, removed_pose_factors);
+  EXPECT_EQ(removed_pose_factors.size(), 1);
+  EXPECT_EQ(optimizer.NumFactors<PosePrior>(), 0);
+  EXPECT_EQ(optimizer.NumFactors<VelocityPrior>(), 1);
+  EXPECT_EQ(optimizer.TotalNumFactors(), 1);
+}
+
 // Run all the tests that were declared with TEST()
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
