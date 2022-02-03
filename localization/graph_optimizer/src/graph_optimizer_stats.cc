@@ -15,14 +15,12 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-#include <graph_optimizer/stats.h>
-#include <graph_optimizer/utilities.h>
+#include <graph_optimizer/graph_optimizer_stats.h>
 
 namespace graph_optimizer {
 GraphOptimizerStats::GraphOptimizerStats() {
   timers_.emplace_back(optimization_timer_);
   timers_.emplace_back(update_timer_);
-  timers_.emplace_back(add_buffered_factors_timer_);
   timers_.emplace_back(log_error_timer_);
   timers_.emplace_back(log_stats_timer_);
 

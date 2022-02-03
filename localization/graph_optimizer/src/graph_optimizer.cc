@@ -17,7 +17,6 @@
  */
 
 #include <graph_optimizer/graph_optimizer.h>
-#include <graph_optimizer/utilities.h>
 #include <localization_common/logger.h>
 #include <localization_common/utilities.h>
 
@@ -29,33 +28,35 @@ namespace lc = localization_common;
 GraphOptimizer::GraphOptimizer(const GraphOptimizerParams& params, std::shared_ptr<Nodes> nodes)
     : params_(params), nodes_(std::move(nodes)) {}
 
-bool GraphOptimizer::ValidGraph() const { return true; }
+bool GraphOptimizer::Valid() const { return true; }
 
-void GraphOptimizer::AddFactor(const gtsam::NonlinearFactor& factor) { factors_.push_back(factor); }
+void GraphOptimizer::AddFactor(boost::shared_ptr<gtsam::NonlinearFactor> factor) {
+  factors_.push_back(std::move(factor));
+}
 
 bool GraphOptimizer::Optimize() {
-  if (!ValidGraph()) {
+  if (!Valid()) {
     LogError("Optimize: Invalid graph, not optimizing.");
     return false;
   }
 
-  gtsam::LevenbergMarquardtOptimizer optimizer(factors_, nodes_.values(), params_.levenberg_marquardt);
+  gtsam::LevenbergMarquardtOptimizer optimizer(factors_, nodes_->values(), params_.levenberg_marquardt);
   try {
-    nodes_.values() = optimizer.optimize();
+    nodes_->values() = optimizer.optimize();
   } catch (gtsam::IndeterminantLinearSystemException) {
     LogOptionallyFatal("Update: Graph optimization failed, indeterminant linear system, keeping old values.",
-                       params_.log_fatal);
+                       params_.fatal_failures);
   } catch (gtsam::InvalidNoiseModel) {
     LogOptionallyFatal("Update: Graph optimization failed, invalid noise model, keeping old values.",
-                       params_.log_fatal);
+                       params_.fatal_failures);
   } catch (gtsam::InvalidMatrixBlock) {
     LogOptionallyFatal("Update: Graph optimization failed, invalid matrix block, keeping old values.",
-                       params_.log_fatal);
+                       params_.fatal_failures);
   } catch (gtsam::InvalidDenseElimination) {
     LogOptionallyFatal("Update: Graph optimization failed, invalid dense elimination, keeping old values.",
-                       params_.log_fatal);
+                       params_.fatal_failures);
   } catch (...) {
-    LogOptionallyFatal("Update: Graph optimization failed, keeping old values.", params_.log_fatal);
+    LogOptionallyFatal("Update: Graph optimization failed, keeping old values.", params_.fatal_failures);
   }
   return true;
 }
@@ -80,11 +81,11 @@ void GraphOptimizer::RemoveFactors(const gtsam::KeyVector& keys,
   }
 }
 
-const int GraphOptimizer::TotalNumFactors() const { return graph_.size(); }
+const int GraphOptimizer::TotalNumFactors() const { return factors_.size(); }
 
-void GraphOptimizer::SaveGraphDotFile(const std::string& output_path) const {
+void GraphOptimizer::SaveDotFile(const std::string& output_path) const {
   std::ofstream of(output_path.c_str());
-  graph_.saveGraph(of, *values_);
+  factors_.saveGraph(of, nodes_->values());
 }
 
 const gtsam::NonlinearFactorGraph& GraphOptimizer::factors() const { return factors_; }

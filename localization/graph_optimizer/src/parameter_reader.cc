@@ -25,14 +25,15 @@ namespace mc = msg_conversions;
 void LoadGraphOptimizerParams(config_reader::ConfigReader& config, GraphOptimizerParams& params) {
   const bool verbose = mc::LoadBool(config, "verbose");
   if (verbose) {
-    params_.levenberg_marquardt.verbosityLM = gtsam::LevenbergMarquardtParams::VerbosityLM::TRYDELTA;
-    params_.levenberg_marquardt.verbosity = gtsam::NonlinearOptimizerParams::Verbosity::LINEAR;
+    params.levenberg_marquardt.verbosityLM = gtsam::LevenbergMarquardtParams::VerbosityLM::TRYDELTA;
+    params.levenberg_marquardt.verbosity = gtsam::NonlinearOptimizerParams::Verbosity::LINEAR;
   }
   const bool use_ceres_params = mc::LoadBool(config, "use_ceres_params");
   if (use_ceres_params) {
-    gtsam::LevenbergMarquardtParams::SetCeresDefaults(&params_.levenberg_marquardt_params);
+    gtsam::LevenbergMarquardtParams::SetCeresDefaults(&params.levenberg_marquardt);
   }
-  params_.levenberg_marquardt.maxIterations = mc::LoadInt(config, "max_iterations");
-  params_.huber_k = mc::LoadDouble(config, "huber_k");
+  params.levenberg_marquardt.maxIterations = mc::LoadInt(config, "max_iterations");
+  params.huber_k = mc::LoadDouble(config, "huber_k");
+  params.fatal_failures = mc::LoadBool(config, "fatal_failures");
 }
 }  // namespace graph_optimizer

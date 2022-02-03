@@ -24,6 +24,7 @@ namespace graph_optimizer {
 struct GraphOptimizerParams {
   gtsam::LevenbergMarquardtParams levenberg_marquardt;
   double huber_k;
+  bool fatal_failures;
 
  private:
   // Serialization function
@@ -32,6 +33,7 @@ struct GraphOptimizerParams {
   void serialize(Archive& ar, const unsigned int file_version) {
     ar& BOOST_SERIALIZATION_NVP(levenberg_marquardt);
     ar& BOOST_SERIALIZATION_NVP(huber_k);
+    ar& BOOST_SERIALIZATION_NVP(fatal_failures);
   }
 };
 }  // namespace graph_optimizer

@@ -40,7 +40,7 @@ class GraphOptimizer {
   // Default destructor for inheritance
   ~GraphOptimizer() {}
 
-  void AddFactor(const gtsam::NonlinearFactor& factor);
+  void AddFactor(boost::shared_ptr<gtsam::NonlinearFactor> factor);
 
   bool Optimize();
 
@@ -86,10 +86,10 @@ class GraphOptimizer {
 
 // Implementation
 template <typename FactorType>
-void RemoveFactors() {
-  for (auto factor_it = factors.begin(); factor_it != factors.end();) {
+void GraphOptimizer::RemoveFactors() {
+  for (auto factor_it = factors_.begin(); factor_it != factors_.end();) {
     if (dynamic_cast<FactorType*>(factor_it->get())) {
-      factor_it = factors.erase(factor_it);
+      factor_it = factors_.erase(factor_it);
       continue;
     }
     ++factor_it;
@@ -99,7 +99,7 @@ void RemoveFactors() {
 template <typename FactorType>
 const std::vector<boost::shared_ptr<const FactorType>> GraphOptimizer::Factors() const {
   typename std::vector<boost::shared_ptr<const FactorType>> factors;
-  for (const auto& factor : factors()) {
+  for (const auto& factor : factors_) {
     const auto casted_factor = boost::dynamic_pointer_cast<const FactorType>(factor);
     if (casted_factor) factors.emplace_back(casted_factor);
   }
