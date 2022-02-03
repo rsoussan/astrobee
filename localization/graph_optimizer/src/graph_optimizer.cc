@@ -63,26 +63,20 @@ bool GraphOptimizer::Optimize() {
 
 void GraphOptimizer::RemoveFactors(const gtsam::Key key,
                                    boost::optional<gtsam::NonlinearFactorGraph&> removed_factors) {
-  RemoveFactors(gtsam::KeyVector(key), removed_factors);
-}
-
-void GraphOptimizer::RemoveFactors(const gtsam::KeyVector& keys,
-                                   boost::optional<gtsam::NonlinearFactorGraph&> removed_factors) {
-  if (keys.empty()) return;
   for (auto factor_it = factors_.begin(); factor_it != factors_.end();) {
-    bool found_key = false;
-    for (const auto& key : keys) {
-      if ((*factor_it)->find(key) != (*factor_it)->end()) {
-        found_key = true;
-        break;
-      }
-    }
-    if (found_key) {
+    if ((*factor_it)->find(key) != (*factor_it)->end()) {
       if (removed_factors) removed_factors->push_back(*factor_it);
       factor_it = factors_.erase(factor_it);
     } else {
       ++factor_it;
     }
+  }
+}
+
+void GraphOptimizer::RemoveFactors(const gtsam::KeyVector& keys,
+                                   boost::optional<gtsam::NonlinearFactorGraph&> removed_factors) {
+  for (const auto& key : keys) {
+    RemoveFactors(key, removed_factors);
   }
 }
 

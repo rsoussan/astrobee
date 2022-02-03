@@ -141,6 +141,7 @@ TEST(GraphOptimizerTester, RemoveFactorsWithKey) {
     VelocityPrior velocity_factor(velocity_key, velocity, velocity_noise);
     optimizer.AddFactor(velocity_factor);
   }
+  // Remove pose key 2 factors
   EXPECT_EQ(optimizer.NumFactors<PosePrior>(), 3);
   EXPECT_EQ(optimizer.NumFactors<VelocityPrior>(), 1);
   EXPECT_EQ(optimizer.TotalNumFactors(), 4);
@@ -148,12 +149,21 @@ TEST(GraphOptimizerTester, RemoveFactorsWithKey) {
   EXPECT_EQ(optimizer.NumFactors<PosePrior>(), 2);
   EXPECT_EQ(optimizer.NumFactors<VelocityPrior>(), 1);
   EXPECT_EQ(optimizer.TotalNumFactors(), 3);
-  gtsam::NonlinearFactorGraph removed_pose_factors;
-  optimizer.RemoveFactors(pose_key_1, removed_pose_factors);
-  EXPECT_EQ(removed_pose_factors.size(), 1);
-  EXPECT_EQ(optimizer.NumFactors<PosePrior>(), 0);
-  EXPECT_EQ(optimizer.NumFactors<VelocityPrior>(), 1);
+  // Remove pose key 1 and velocity key factors
+  gtsam::NonlinearFactorGraph removed_factors;
+  gtsam::KeyVector keys;
+  keys.push_back(pose_key_1);
+  keys.push_back(velocity_key);
+  optimizer.RemoveFactors(keys, removed_factors);
+  EXPECT_EQ(removed_factors.size(), 3);
+  EXPECT_EQ(optimizer.TotalNumFactors(), 0);
+
+  // Add and remove velocity key factors
+  VelocityPrior velocity_factor(velocity_key, velocity, velocity_noise);
+  optimizer.AddFactor(velocity_factor);
   EXPECT_EQ(optimizer.TotalNumFactors(), 1);
+  optimizer.RemoveFactors(velocity_key);
+  EXPECT_EQ(optimizer.TotalNumFactors(), 0);
 }
 
 // Run all the tests that were declared with TEST()
