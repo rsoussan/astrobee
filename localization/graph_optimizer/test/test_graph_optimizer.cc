@@ -219,6 +219,15 @@ TEST(GraphOptimizerTester, GetFactors) {
   }
 }
 
+TEST(GraphOptimizerTester, Serialization) {
+  const auto nodes = std::make_shared<go::Nodes>();
+  const auto params = go::DefaultGraphOptimizerParams();
+  go::GraphOptimizer optimizer(params, nodes);
+  const auto serialized_optimizer = gtsam::serializeBinary(optimizer);
+  go::GraphOptimizer deserialized_optimizer;
+  gtsam::deserializeBinary(serialized_optimizer, deserialized_optimizer);
+}
+
 // Run all the tests that were declared with TEST()
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);

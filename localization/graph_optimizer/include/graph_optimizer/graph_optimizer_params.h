@@ -31,7 +31,8 @@ struct GraphOptimizerParams {
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, const unsigned int file_version) {
-    ar& BOOST_SERIALIZATION_NVP(levenberg_marquardt);
+    // TODO(rsoussan): Put back when serialization is added to lm params in gtsam
+    // ar& BOOST_SERIALIZATION_NVP(levenberg_marquardt);
     ar& BOOST_SERIALIZATION_NVP(huber_k);
     ar& BOOST_SERIALIZATION_NVP(fatal_failures);
   }
