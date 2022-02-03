@@ -31,8 +31,6 @@ find_package(catkin2 REQUIRED COMPONENTS
 # System dependencies are found with CMake's conventions
 find_package(Eigen3 REQUIRED)
 
-find_package(Boost REQUIRED COMPONENTS serialization)
-
 # Find GTSAM
 find_package(GTSAM REQUIRED)
 
@@ -41,6 +39,7 @@ catkin_package(
   LIBRARIES ${PROJECT_NAME} ${GLOG_LIBRARIES} ${GTSAM_LIBRARIES} 
   INCLUDE_DIRS include ${GLOG_INCLUDE_DIRS} ${GTSAM_INCLUDE_DIR}
   CATKIN_DEPENDS config_reader localization_common msg_conversions
+  DEPENDS gtsam
 )
 
 ###########
@@ -65,7 +64,7 @@ add_library(${PROJECT_NAME}
   src/test_utilities.cc
 )
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} gtsam)
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
