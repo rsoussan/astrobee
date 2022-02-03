@@ -15,17 +15,13 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-#include <graph_optimizer/graph_stats.h>
+#include <graph_optimizer/stats.h>
 #include <graph_optimizer/utilities.h>
 
-#include <gtsam/nonlinear/LinearContainerFactor.h>
-
 namespace graph_optimizer {
-GraphStats::GraphStats() {
+GraphOptimizerStats::GraphOptimizerStats() {
   timers_.emplace_back(optimization_timer_);
   timers_.emplace_back(update_timer_);
-  timers_.emplace_back(marginals_timer_);
-  timers_.emplace_back(slide_window_timer_);
   timers_.emplace_back(add_buffered_factors_timer_);
   timers_.emplace_back(log_error_timer_);
   timers_.emplace_back(log_stats_timer_);
@@ -34,31 +30,31 @@ GraphStats::GraphStats() {
   AddErrorAverager(total_error_averager_);
 }
 
-void GraphStats::AddStatsAverager(localization_common::Averager& stats_averager) {
+void GraphOptimizerStats::AddStatsAverager(localization_common::Averager& stats_averager) {
   stats_averagers_.emplace_back(stats_averager);
 }
 
-void GraphStats::AddErrorAverager(localization_common::Averager& error_averager) {
+void GraphOptimizerStats::AddErrorAverager(localization_common::Averager& error_averager) {
   error_averagers_.emplace_back(error_averager);
 }
 
-void GraphStats::UpdateErrors(const gtsam::NonlinearFactorGraph& graph_factors) {}
+void GraphOptimizerStats::UpdateErrors(const gtsam::NonlinearFactorGraph& graph_factors) {}
 
-void GraphStats::UpdateStats(const gtsam::NonlinearFactorGraph& graph_factors) {}
+void GraphOptimizerStats::UpdateStats(const gtsam::NonlinearFactorGraph& graph_factors) {}
 
-void GraphStats::Log() const {
+void GraphOptimizerStats::Log() const {
   Log(timers_);
   Log(stats_averagers_);
   Log(error_averagers_);
 }
 
-void GraphStats::LogToFile(std::ofstream& ofstream) const {
+void GraphOptimizerStats::LogToFile(std::ofstream& ofstream) const {
   LogToFile(timers_, ofstream);
   LogToFile(stats_averagers_, ofstream);
   LogToFile(error_averagers_, ofstream);
 }
 
-void GraphStats::LogToCsv(std::ofstream& ofstream) const {
+void GraphOptimizerStats::LogToCsv(std::ofstream& ofstream) const {
   ofstream << "name,avg,min,max,stddev" << std::endl;
   LogToCsv(timers_, ofstream);
   LogToCsv(stats_averagers_, ofstream);

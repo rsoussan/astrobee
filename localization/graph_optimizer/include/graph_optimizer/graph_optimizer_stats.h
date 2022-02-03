@@ -15,8 +15,8 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-#ifndef GRAPH_OPTIMIZER_GRAPH_STATS_H_
-#define GRAPH_OPTIMIZER_GRAPH_STATS_H_
+#ifndef GRAPH_OPTIMIZER_GRAPH_OPTIMIZER_STATS_H_
+#define GRAPH_OPTIMIZER_GRAPH_OPTIMIZER_STATS_H_
 
 #include <localization_common/averager.h>
 #include <localization_common/timer.h>
@@ -26,9 +26,9 @@
 #include <vector>
 
 namespace graph_optimizer {
-class GraphStats {
+class GraphOptimizerStats {
  public:
-  GraphStats();
+  GraphOptimizerStats();
   void AddStatsAverager(localization_common::Averager& stats_averager);
   void AddErrorAverager(localization_common::Averager& error_averager);
   virtual void UpdateErrors(const gtsam::NonlinearFactorGraph& graph_factors);
@@ -44,9 +44,6 @@ class GraphStats {
   // Timers
   localization_common::Timer optimization_timer_ = localization_common::Timer("Optimization");
   localization_common::Timer update_timer_ = localization_common::Timer("Update");
-  localization_common::Timer marginals_timer_ = localization_common::Timer("Marginals");
-  localization_common::Timer slide_window_timer_ = localization_common::Timer("Slide Window");
-  localization_common::Timer add_buffered_factors_timer_ = localization_common::Timer("Add Buffered Factors");
   localization_common::Timer log_error_timer_ = localization_common::Timer("Log Error");
   localization_common::Timer log_stats_timer_ = localization_common::Timer("Log Stats");
 
@@ -73,4 +70,4 @@ class GraphStats {
 };
 }  // namespace graph_optimizer
 
-#endif  // GRAPH_OPTIMIZER_GRAPH_STATS_H_
+#endif  // GRAPH_OPTIMIZER_GRAPH_OPTIMIZER_STATS_H_

@@ -164,4 +164,11 @@
 
 #endif
 // clang-format on
+
+inline void LogOptionallyFatal(const std::string& msg, const bool fatal) {
+  if (fatal)
+    LogFatal(msg);
+  else
+    LogError(msg);
+}
 #endif  // LOCALIZATION_COMMON_LOGGER_H_

@@ -29,7 +29,7 @@
 namespace graph_optimizer {
 class Nodes {
  public:
-  Nodes(std::shared_ptr<gtsam::Values> values = std::shared_ptr<gtsam::Values>(new gtsam::Values()));
+  explicit Nodes(std::shared_ptr<gtsam::Values> values = std::make_shared<gtsam::Values>());
 
   template <typename NodeType>
   boost::optional<NodeType> Get(const gtsam::Key& key) const;
@@ -45,6 +45,8 @@ class Nodes {
   size_t size() const;
 
   const gtsam::Values& values() const { return *values_; }
+
+  gtsam::Values& values() { return *values_; }
 
  private:
   friend class boost::serialization::access;

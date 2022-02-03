@@ -23,15 +23,16 @@ namespace graph_optimizer {
 namespace mc = msg_conversions;
 
 void LoadGraphOptimizerParams(config_reader::ConfigReader& config, GraphOptimizerParams& params) {
-  params.verbose = mc::LoadBool(config, "verbose");
-  params.fatal_failures = mc::LoadBool(config, "fatal_failures");
-  params.log_on_destruction = mc::LoadBool(config, "log_on_destruction");
-  params.print_factor_info = mc::LoadBool(config, "print_factor_info");
-  params.use_ceres_params = mc::LoadBool(config, "use_ceres_params");
-  params.max_iterations = mc::LoadInt(config, "max_iterations");
-  params.marginals_factorization = mc::LoadString(config, "marginals_factorization");
-  params.add_marginal_factors = mc::LoadBool(config, "add_marginal_factors");
-  params.huber_k = mc::LoadDouble(config, "huber_k");
-  params.log_rate = mc::LoadInt(config, "log_rate");
+  const bool verbose = mc::LoadBool(config, "verbose");
+  if (verbose) {
+    params_.levenberg_marquardt.verbosityLM = gtsam::LevenbergMarquardtParams::VerbosityLM::TRYDELTA;
+    params_.levenberg_marquardt.verbosity = gtsam::NonlinearOptimizerParams::Verbosity::LINEAR;
+  }
+  const bool use_ceres_params = mc::LoadBool(config, "use_ceres_params");
+  if (use_ceres_params) {
+    gtsam::LevenbergMarquardtParams::SetCeresDefaults(&params_.levenberg_marquardt_params);
+  }
+  params_.levenberg_marquardt.maxIterations = mc::LoadInt(config, "max_iterations");
+  params_.huber_k = mc::LoadDouble(config, "huber_k");
 }
 }  // namespace graph_optimizer

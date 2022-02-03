@@ -22,10 +22,12 @@
 #include <graph_optimizer/nodes.h>
 
 namespace graph_optimizer {
-class IdNodes : public Nodes {
+class IdNodes {
  public:
-  IdNodes(std::shared_ptr<gtsam::Values> values = std::shared_ptr<gtsam::Values>(new gtsam::Values()))
-      : Nodes(std::move(values)) {}
+  explicit IdNodes(std::shared_ptr<Nodes> nodes) : nodes_(std::move(nodes)) {}
+
+ private:
+  std::shared_ptr<Nodes> nodes_;
 };
 }  // namespace graph_optimizer
 

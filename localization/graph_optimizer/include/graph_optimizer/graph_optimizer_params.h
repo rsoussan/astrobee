@@ -18,20 +18,21 @@
 #ifndef GRAPH_OPTIMIZER_GRAPH_OPTIMIZER_PARAMS_H_
 #define GRAPH_OPTIMIZER_GRAPH_OPTIMIZER_PARAMS_H_
 
-#include <string>
+#include <gtsam/nonlinear/LevenbergMarquardtParams.h>
 
 namespace graph_optimizer {
 struct GraphOptimizerParams {
-  bool verbose;
-  bool fatal_failures;
-  bool log_on_destruction;
-  bool print_factor_info;
-  bool use_ceres_params;
-  int max_iterations;
-  std::string marginals_factorization;
-  bool add_marginal_factors;
+  gtsam::LevenbergMarquardtParams levenberg_marquardt;
   double huber_k;
-  int log_rate;
+
+ private:
+  // Serialization function
+  friend class boost::serialization::access;
+  template <class Archive>
+  void serialize(Archive& ar, const unsigned int file_version) {
+    ar& BOOST_SERIALIZATION_NVP(levenberg_marquardt);
+    ar& BOOST_SERIALIZATION_NVP(huber_k);
+  }
 };
 }  // namespace graph_optimizer
 
