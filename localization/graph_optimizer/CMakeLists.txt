@@ -25,7 +25,6 @@ add_compile_options(-std=c++14)
 find_package(catkin2 REQUIRED COMPONENTS
 	config_reader
 	localization_common
-	localization_measurements
 	msg_conversions 
 )
 
@@ -36,7 +35,7 @@ find_package(Eigen3 REQUIRED)
 catkin_package(
   LIBRARIES ${PROJECT_NAME} ${GLOG_LIBRARIES}
   INCLUDE_DIRS include ${GLOG_INCLUDE_DIRS}
-  CATKIN_DEPENDS config_reader localization_common localization_measurements msg_conversions
+  CATKIN_DEPENDS config_reader localization_common msg_conversions
 )
 
 ###########
