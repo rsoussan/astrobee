@@ -70,6 +70,8 @@ class GraphOptimizer {
 
   const gtsam::NonlinearFactorGraph& factors() const;
 
+  const gtsam::Values& values() const;
+
  private:
   // Optional validity check for graph before optimizing
   virtual bool Valid() const;

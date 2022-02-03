@@ -88,4 +88,6 @@ void GraphOptimizer::SaveDotFile(const std::string& output_path) const {
 }
 
 const gtsam::NonlinearFactorGraph& GraphOptimizer::factors() const { return factors_; }
+
+const gtsam::Values& values() const { return nodes_->values(); }
 }  // namespace graph_optimizer
