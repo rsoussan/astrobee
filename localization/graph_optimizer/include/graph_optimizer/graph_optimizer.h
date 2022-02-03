@@ -42,6 +42,9 @@ class GraphOptimizer {
 
   void AddFactor(boost::shared_ptr<gtsam::NonlinearFactor> factor);
 
+  template <typename FactorType>
+  void AddFactor(const FactorType& factor);
+
   bool Optimize();
 
   // Removes all factors which contain any key in keys
@@ -85,6 +88,11 @@ class GraphOptimizer {
 };
 
 // Implementation
+template <typename FactorType>
+void GraphOptimizer::AddFactor(const FactorType& factor) {
+  factors_.push_back(factor);
+}
+
 template <typename FactorType>
 void GraphOptimizer::RemoveFactors() {
   for (auto factor_it = factors_.begin(); factor_it != factors_.end();) {

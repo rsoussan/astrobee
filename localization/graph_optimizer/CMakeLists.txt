@@ -57,6 +57,7 @@ add_library(${PROJECT_NAME}
   src/graph_optimizer_stats.cc
   src/nodes.cc
   src/parameter_reader.cc
+  src/test_utilities.cc
 )
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
