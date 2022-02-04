@@ -39,11 +39,13 @@ class TimestampedNodes {
   // For serialization only
   TimestampedNodes() {}
 
-  bool Add(const localization_common::Time timestamp, const NodeType& node);
+  boost::optional<gtsam::Key> Add(const localization_common::Time timestamp, const NodeType& node);
 
   bool Remove(const localization_common::Time timestamp);
 
-  boost::optional<NodeType> Get(const localization_common::Time timestamp) const;
+  boost::optional<NodeType> Node(const localization_common::Time timestamp) const;
+
+  boost::optional<gtsam::Key> Key(const localization_common::Time timestamp) const;
 
   size_t size() const;
 
@@ -102,11 +104,12 @@ template <typename NodeType>
 TimestampedNodes<NodeType>::TimestampedNodes(std::shared_ptr<Nodes> nodes) : nodes_(std::move(nodes)) {}
 
 template <typename NodeType>
-bool TimestampedNodes<NodeType>::Add(const localization_common::Time timestamp, const NodeType& node) {
+boost::optional<gtsam::Key> TimestampedNodes<NodeType>::Add(const localization_common::Time timestamp,
+                                                            const NodeType& node) {
   if (Contains(timestamp)) return false;
   const auto key = nodes_->Add(node);
   timestamp_key_map_.emplace(timestamp, key);
-  return true;
+  return key;
 }
 
 template <typename NodeType>
@@ -119,10 +122,16 @@ bool TimestampedNodes<NodeType>::Remove(const localization_common::Time timestam
 }
 
 template <typename NodeType>
-boost::optional<NodeType> TimestampedNodes<NodeType>::Get(const localization_common::Time timestamp) const {
+boost::optional<NodeType> TimestampedNodes<NodeType>::Node(const localization_common::Time timestamp) const {
   if (!Contains(timestamp)) return boost::none;
-  const auto key = timestamp_key_map_.at(timestamp);
-  return nodes_->Get<NodeType>(key);
+  const auto key = Key(timestamp);
+  return nodes_->Node<NodeType>(*key);
+}
+
+template <typename NodeType>
+boost::optional<gtsam::Key> TimestampedNodes<NodeType>::Key(const localization_common::Time timestamp) const {
+  if (!Contains(timestamp)) return boost::none;
+  return timestamp_key_map_.at(timestamp);
 }
 
 template <typename NodeType>
@@ -148,7 +157,7 @@ template <typename NodeType>
 boost::optional<NodeType> TimestampedNodes<NodeType>::OldestNode() const {
   const auto oldest_timestamp = OldestTimestamp();
   if (!oldest_timestamp) return boost::none;
-  return Get(*oldest_timestamp);
+  return Node(*oldest_timestamp);
 }
 
 template <typename NodeType>
@@ -164,7 +173,7 @@ template <typename NodeType>
 boost::optional<NodeType> TimestampedNodes<NodeType>::LatestNode() const {
   const auto latest_timestamp = LatestTimestamp();
   if (!latest_timestamp) return boost::none;
-  return Get(*latest_timestamp);
+  return Node(*latest_timestamp);
 }
 
 template <typename NodeType>
@@ -198,12 +207,12 @@ std::pair<boost::optional<NodeType>, boost::optional<NodeType>> TimestampedNodes
   if (!lower_and_upper_bound_timestamps.first)
     lower_bound = boost::none;
   else
-    lower_bound = Get(*(lower_and_upper_bound_timestamps.first));
+    lower_bound = Node(*(lower_and_upper_bound_timestamps.first));
   boost::optional<NodeType> upper_bound;
   if (!lower_and_upper_bound_timestamps.second)
     upper_bound = boost::none;
   else
-    upper_bound = Get(*(lower_and_upper_bound_timestamps.second));
+    upper_bound = Node(*(lower_and_upper_bound_timestamps.second));
   return {lower_bound, upper_bound};
 }
 
@@ -229,7 +238,7 @@ boost::optional<NodeType> TimestampedNodes<NodeType>::LowerBoundOrEqualNode(
   const localization_common::Time timestamp) const {
   const auto lower_bound_or_equal_timestamp = LowerBoundOrEqualTimestamp(timestamp);
   if (!lower_bound_or_equal_timestamp) return boost::none;
-  return Get(*lower_bound_or_equal_timestamp);
+  return Node(*lower_bound_or_equal_timestamp);
 }
 
 template <typename NodeType>
@@ -295,7 +304,7 @@ std::vector<NodeType> TimestampedNodes<NodeType>::OldNodes(
   const auto old_timestamps = OldTimestamps(oldest_allowed_timestamp);
   std::vector<NodeType> old_nodes;
   for (const auto old_timestamp : old_timestamps) {
-    const auto old_node = Get(old_timestamp);
+    const auto old_node = Node(old_timestamp);
     if (!old_node) {
       LogError("OldNodes: Failed to get node for timestamp " << std::setprecision(15) << old_timestamp);
       continue;
@@ -326,7 +335,7 @@ template <typename NodeType>
 boost::optional<NodeType> TimestampedNodes<NodeType>::ClosestNode(const localization_common::Time timestamp) const {
   const auto closest_timestamp = ClosestTimestamp(timestamp);
   if (!closest_timestamp) return boost::none;
-  return Get(*closest_timestamp);
+  return Node(*closest_timestamp);
 }
 
 template <typename NodeType>

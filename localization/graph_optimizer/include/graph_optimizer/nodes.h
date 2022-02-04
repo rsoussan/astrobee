@@ -32,7 +32,7 @@ class Nodes {
   explicit Nodes(std::shared_ptr<gtsam::Values> values = std::make_shared<gtsam::Values>());
 
   template <typename NodeType>
-  boost::optional<NodeType> Get(const gtsam::Key& key) const;
+  boost::optional<NodeType> Node(const gtsam::Key& key) const;
 
   // Returns key for newly added node
   template <typename NodeType>
@@ -59,7 +59,7 @@ class Nodes {
 
 // Implementation
 template <typename NodeType>
-boost::optional<NodeType> Nodes::Get(const gtsam::Key& key) const {
+boost::optional<NodeType> Nodes::Node(const gtsam::Key& key) const {
   try {
     return values_->at<NodeType>(key);
   } catch (...) {

@@ -73,7 +73,11 @@ class GraphOptimizer {
 
   const gtsam::NonlinearFactorGraph& factors() const;
 
+  gtsam::NonlinearFactorGraph& factors();
+
   const gtsam::Values& values() const;
+
+  std::shared_ptr<Nodes> nodes();
 
  private:
   // Optional validity check for graph before optimizing

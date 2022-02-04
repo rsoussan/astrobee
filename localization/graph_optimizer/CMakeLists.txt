@@ -68,13 +68,6 @@ target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} gtsam)
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
-  #add_rostest_gtest(test_factor_adder_and_node_updater
-  #  test/test_factor_adder_and_node_updater.test
-  #  test/test_factor_adder_and_node_updater.cc
-  #)
-  #target_link_libraries(test_factor_adder_and_node_updater
-  #  ${PROJECT_NAME} ${catkin_LIBRARIES} 
-  #)
   add_rostest_gtest(test_graph_optimizer
     test/test_graph_optimizer.test
     test/test_graph_optimizer.cc
@@ -89,6 +82,13 @@ if(CATKIN_ENABLE_TESTING)
   target_link_libraries(test_nodes
     ${PROJECT_NAME} ${catkin_LIBRARIES} 
   )
+  add_rostest_gtest(test_timestamped_node_updater
+    test/test_timestamped_node_updater.test
+    test/test_timestamped_node_updater.cc
+  )
+  target_link_libraries(test_timestamped_node_updater
+    ${PROJECT_NAME} ${catkin_LIBRARIES} 
+  )
   add_rostest_gtest(test_timestamped_nodes
     test/test_timestamped_nodes.test
     test/test_timestamped_nodes.cc
@@ -96,7 +96,6 @@ if(CATKIN_ENABLE_TESTING)
   target_link_libraries(test_timestamped_nodes
     ${PROJECT_NAME} ${catkin_LIBRARIES} 
   )
-
 endif() 
 
 #############

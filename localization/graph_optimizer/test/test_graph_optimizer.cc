@@ -67,7 +67,7 @@ TEST(GraphOptimizerTester, AddFactors) {
     EXPECT_EQ(optimizer.NumFactors<PosePrior>(), 1);
     EXPECT_EQ(optimizer.NumFactors<VelocityPrior>(), 0);
     ASSERT_TRUE(optimizer.Optimize());
-    const auto optimized_pose_1 = nodes->Get<gtsam::Pose3>(key_1);
+    const auto optimized_pose_1 = nodes->Node<gtsam::Pose3>(key_1);
     ASSERT_TRUE(optimized_pose_1 != boost::none);
     EXPECT_MATRIX_NEAR(pose_1, (*optimized_pose_1), 1e-6);
   }
@@ -83,10 +83,10 @@ TEST(GraphOptimizerTester, AddFactors) {
     EXPECT_EQ(optimizer.NumFactors<PosePrior>(), 2);
     EXPECT_EQ(optimizer.NumFactors<VelocityPrior>(), 0);
     ASSERT_TRUE(optimizer.Optimize());
-    const auto optimized_pose_1 = nodes->Get<gtsam::Pose3>(key_1);
+    const auto optimized_pose_1 = nodes->Node<gtsam::Pose3>(key_1);
     ASSERT_TRUE(optimized_pose_1 != boost::none);
     EXPECT_MATRIX_NEAR(pose_1, (*optimized_pose_1), 1e-6);
-    const auto optimized_pose_2 = nodes->Get<gtsam::Pose3>(key_2);
+    const auto optimized_pose_2 = nodes->Node<gtsam::Pose3>(key_2);
     ASSERT_TRUE(optimized_pose_2 != boost::none);
     EXPECT_MATRIX_NEAR(pose_2, (*optimized_pose_2), 1e-6);
   }

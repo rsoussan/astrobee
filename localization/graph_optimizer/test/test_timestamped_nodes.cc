@@ -34,12 +34,12 @@ TEST(TimestampedNodesTester, AddRemoveContainsEmptySize) {
   // Add element 1
   const double node_1 = 100.3;
   const localization_common::Time timestamp_1 = 1.0;
-  EXPECT_TRUE(timestamped_nodes.Add(timestamp_1, node_1));
+  EXPECT_TRUE(timestamped_nodes.Add(timestamp_1, node_1) != boost::none);
   EXPECT_EQ(timestamped_nodes.size(), 1);
   EXPECT_FALSE(timestamped_nodes.empty());
   {
-    EXPECT_TRUE(timestamped_nodes.Get(2.0) == boost::none);
-    const auto accessed_node = timestamped_nodes.Get(timestamp_1);
+    EXPECT_TRUE(timestamped_nodes.Node(2.0) == boost::none);
+    const auto accessed_node = timestamped_nodes.Node(timestamp_1);
     ASSERT_TRUE(accessed_node != boost::none);
     EXPECT_EQ(*accessed_node, node_1);
     EXPECT_TRUE(timestamped_nodes.Contains(timestamp_1));
@@ -48,16 +48,16 @@ TEST(TimestampedNodesTester, AddRemoveContainsEmptySize) {
   // Add element 2
   const double node_2 = 100.3;
   const localization_common::Time timestamp_2 = 3.3;
-  EXPECT_TRUE(timestamped_nodes.Add(timestamp_2, node_2));
+  EXPECT_TRUE(timestamped_nodes.Add(timestamp_2, node_2) != boost::none);
   EXPECT_EQ(timestamped_nodes.size(), 2);
   EXPECT_FALSE(timestamped_nodes.empty());
   {
-    EXPECT_TRUE(timestamped_nodes.Get(7.0) == boost::none);
-    const auto accessed_node_1 = timestamped_nodes.Get(timestamp_1);
+    EXPECT_TRUE(timestamped_nodes.Node(7.0) == boost::none);
+    const auto accessed_node_1 = timestamped_nodes.Node(timestamp_1);
     ASSERT_TRUE(accessed_node_1 != boost::none);
     EXPECT_EQ(*accessed_node_1, node_1);
     EXPECT_TRUE(timestamped_nodes.Contains(timestamp_1));
-    const auto accessed_node_2 = timestamped_nodes.Get(timestamp_2);
+    const auto accessed_node_2 = timestamped_nodes.Node(timestamp_2);
     ASSERT_TRUE(accessed_node_2 != boost::none);
     EXPECT_EQ(*accessed_node_2, node_2);
     EXPECT_TRUE(timestamped_nodes.Contains(timestamp_2));
@@ -65,15 +65,15 @@ TEST(TimestampedNodesTester, AddRemoveContainsEmptySize) {
 
   // Remove element 1
   EXPECT_TRUE(timestamped_nodes.Remove(timestamp_1));
-  EXPECT_TRUE(timestamped_nodes.Get(timestamp_1) == boost::none);
+  EXPECT_TRUE(timestamped_nodes.Node(timestamp_1) == boost::none);
   EXPECT_FALSE(timestamped_nodes.Contains(timestamp_1));
-  EXPECT_TRUE(timestamped_nodes.Get(timestamp_2) != boost::none);
+  EXPECT_TRUE(timestamped_nodes.Node(timestamp_2) != boost::none);
   EXPECT_TRUE(timestamped_nodes.Contains(timestamp_2));
-  EXPECT_TRUE(timestamped_nodes.Get(timestamp_2) != boost::none);
+  EXPECT_TRUE(timestamped_nodes.Node(timestamp_2) != boost::none);
   EXPECT_EQ(timestamped_nodes.size(), 1);
   EXPECT_FALSE(timestamped_nodes.empty());
   {
-    const auto good_val = timestamped_nodes.Get(timestamp_2);
+    const auto good_val = timestamped_nodes.Node(timestamp_2);
     ASSERT_TRUE(good_val != boost::none);
     EXPECT_EQ(*good_val, node_2);
   }
@@ -84,14 +84,14 @@ TEST(TimestampedNodesTester, AddRemoveContainsEmptySize) {
 
   // Remove element 2
   EXPECT_TRUE(timestamped_nodes.Remove(timestamp_2));
-  EXPECT_TRUE(timestamped_nodes.Get(timestamp_1) == boost::none);
+  EXPECT_TRUE(timestamped_nodes.Node(timestamp_1) == boost::none);
   EXPECT_FALSE(timestamped_nodes.Contains(timestamp_1));
-  EXPECT_TRUE(timestamped_nodes.Get(timestamp_2) == boost::none);
+  EXPECT_TRUE(timestamped_nodes.Node(timestamp_2) == boost::none);
   EXPECT_FALSE(timestamped_nodes.Contains(timestamp_2));
   EXPECT_EQ(timestamped_nodes.size(), 0);
   EXPECT_TRUE(timestamped_nodes.empty());
   {
-    const auto bad_val = timestamped_nodes.Get(timestamp_2);
+    const auto bad_val = timestamped_nodes.Node(timestamp_2);
     EXPECT_TRUE(bad_val == boost::none);
   }
 }
@@ -108,7 +108,7 @@ TEST(TimestampedNodesTester, OldestLatest) {
   }
   const double node_1 = 101.0;
   const localization_common::Time timestamp_1 = 1.0;
-  ASSERT_TRUE(timestamped_nodes.Add(timestamp_1, node_1));
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_1, node_1) != boost::none);
   // 1 element
   {
     const auto oldest_timestamp = timestamped_nodes.OldestTimestamp();
@@ -128,7 +128,7 @@ TEST(TimestampedNodesTester, OldestLatest) {
   // 2 elements
   const double node_2 = 100.3;
   const localization_common::Time timestamp_2 = 3.3;
-  ASSERT_TRUE(timestamped_nodes.Add(timestamp_2, node_2));
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_2, node_2) != boost::none);
   {
     const auto oldest_timestamp = timestamped_nodes.OldestTimestamp();
     ASSERT_TRUE(oldest_timestamp != boost::none);
@@ -148,7 +148,7 @@ TEST(TimestampedNodesTester, OldestLatest) {
   // 3 elements
   const double node_3 = 2100.3;
   const localization_common::Time timestamp_3 = 19.3;
-  ASSERT_TRUE(timestamped_nodes.Add(timestamp_3, node_3));
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_3, node_3) != boost::none);
   {
     const auto oldest_timestamp = timestamped_nodes.OldestTimestamp();
     ASSERT_TRUE(oldest_timestamp != boost::none);
@@ -224,7 +224,7 @@ TEST(TimestampedNodesTester, LowerAndUpperBounds) {
   // 1 element
   const double node_1 = -77.0;
   const localization_common::Time timestamp_1 = 37.0;
-  ASSERT_TRUE(timestamped_nodes.Add(timestamp_1, node_1));
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_1, node_1) != boost::none);
   // 1 element below
   {
     const auto lower_and_upper_bound_timestamps = timestamped_nodes.LowerAndUpperBoundTimestamps(10.0);
@@ -262,7 +262,7 @@ TEST(TimestampedNodesTester, LowerAndUpperBounds) {
   // 2 elements
   const double node_2 = 512.0;
   const localization_common::Time timestamp_2 = 2.33;
-  ASSERT_TRUE(timestamped_nodes.Add(timestamp_2, node_2));
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_2, node_2) != boost::none);
   // 2 elements below
   {
     const auto lower_and_upper_bound_timestamps = timestamped_nodes.LowerAndUpperBoundTimestamps(1.1);
@@ -326,7 +326,7 @@ TEST(TimestampedNodesTester, LowerAndUpperBounds) {
   // 3 elements
   const double node_3 = 291.1;
   const localization_common::Time timestamp_3 = 14.1;
-  ASSERT_TRUE(timestamped_nodes.Add(timestamp_3, node_3));
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_3, node_3) != boost::none);
   // 3 elements lower between
   {
     const auto lower_and_upper_bound_timestamps = timestamped_nodes.LowerAndUpperBoundTimestamps(7.11);
@@ -360,13 +360,13 @@ TEST(TimestampedNodesTester, LowerBoundOrEqual) {
   go::TimestampedNodes<double> timestamped_nodes(nodes);
   const double node_1 = 1.23;
   const localization_common::Time timestamp_1 = 3.1;
-  ASSERT_TRUE(timestamped_nodes.Add(timestamp_1, node_1));
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_1, node_1) != boost::none);
   const double node_2 = 2.22;
   const localization_common::Time timestamp_2 = 5.78;
-  ASSERT_TRUE(timestamped_nodes.Add(timestamp_2, node_2));
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_2, node_2) != boost::none);
   const double node_3 = 3.98;
   const localization_common::Time timestamp_3 = 7.88;
-  ASSERT_TRUE(timestamped_nodes.Add(timestamp_3, node_3));
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_3, node_3) != boost::none);
   const auto too_low_timestamp = timestamped_nodes.LowerBoundOrEqualTimestamp(1.23);
   EXPECT_TRUE(too_low_timestamp == boost::none);
   const auto lowest_timestamp = timestamped_nodes.LowerBoundOrEqualTimestamp(4.11);
@@ -403,13 +403,13 @@ TEST(TimestampedNodesTester, Closest) {
   go::TimestampedNodes<double> timestamped_nodes(nodes);
   const double node_1 = 1.23;
   const localization_common::Time timestamp_1 = 3.1;
-  ASSERT_TRUE(timestamped_nodes.Add(timestamp_1, node_1));
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_1, node_1) != boost::none);
   const double node_2 = 2.22;
   const localization_common::Time timestamp_2 = 5.78;
-  ASSERT_TRUE(timestamped_nodes.Add(timestamp_2, node_2));
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_2, node_2) != boost::none);
   const double node_3 = 3.98;
   const localization_common::Time timestamp_3 = 7.88;
-  ASSERT_TRUE(timestamped_nodes.Add(timestamp_3, node_3));
+  ASSERT_TRUE(timestamped_nodes.Add(timestamp_3, node_3) != boost::none);
   const auto below_lowest_timestamp = timestamped_nodes.ClosestTimestamp(1.23);
   ASSERT_TRUE(below_lowest_timestamp != boost::none);
   EXPECT_EQ(*below_lowest_timestamp, timestamp_1);
@@ -470,10 +470,10 @@ TEST(TimestampedNodesTester, OldKeysTimestampsAndNodes) {
   const double t3 = 3.0222;
   const double n3 = lc::RandomDouble();
   const int k3 = 4;
-  ASSERT_TRUE(timestamped_nodes.Add(t0, n0));
-  ASSERT_TRUE(timestamped_nodes.Add(t1, n1));
-  ASSERT_TRUE(timestamped_nodes.Add(t2, n2));
-  ASSERT_TRUE(timestamped_nodes.Add(t3, n3));
+  ASSERT_TRUE(timestamped_nodes.Add(t0, n0) != boost::none);
+  ASSERT_TRUE(timestamped_nodes.Add(t1, n1) != boost::none);
+  ASSERT_TRUE(timestamped_nodes.Add(t2, n2) != boost::none);
+  ASSERT_TRUE(timestamped_nodes.Add(t3, n3) != boost::none);
   {
     const auto old_keys = timestamped_nodes.OldKeys(0);
     EXPECT_EQ(old_keys.size(), 0);
@@ -558,10 +558,10 @@ TEST(TimestampedNodesTester, RemoveOldNodes) {
     const double n2 = lc::RandomDouble();
     const double t3 = 3.0222;
     const double n3 = lc::RandomDouble();
-    ASSERT_TRUE(timestamped_nodes.Add(t0, n0));
-    ASSERT_TRUE(timestamped_nodes.Add(t1, n1));
-    ASSERT_TRUE(timestamped_nodes.Add(t2, n2));
-    ASSERT_TRUE(timestamped_nodes.Add(t3, n3));
+    ASSERT_TRUE(timestamped_nodes.Add(t0, n0) != boost::none);
+    ASSERT_TRUE(timestamped_nodes.Add(t1, n1) != boost::none);
+    ASSERT_TRUE(timestamped_nodes.Add(t2, n2) != boost::none);
+    ASSERT_TRUE(timestamped_nodes.Add(t3, n3) != boost::none);
     const int num_nodes_removed = timestamped_nodes.RemoveOldNodes(0);
     EXPECT_EQ(num_nodes_removed, 0);
     EXPECT_EQ(timestamped_nodes.size(), 4);
@@ -578,10 +578,10 @@ TEST(TimestampedNodesTester, RemoveOldNodes) {
     const double n2 = lc::RandomDouble();
     const double t3 = 3.0222;
     const double n3 = lc::RandomDouble();
-    ASSERT_TRUE(timestamped_nodes.Add(t0, n0));
-    ASSERT_TRUE(timestamped_nodes.Add(t1, n1));
-    ASSERT_TRUE(timestamped_nodes.Add(t2, n2));
-    ASSERT_TRUE(timestamped_nodes.Add(t3, n3));
+    ASSERT_TRUE(timestamped_nodes.Add(t0, n0) != boost::none);
+    ASSERT_TRUE(timestamped_nodes.Add(t1, n1) != boost::none);
+    ASSERT_TRUE(timestamped_nodes.Add(t2, n2) != boost::none);
+    ASSERT_TRUE(timestamped_nodes.Add(t3, n3) != boost::none);
     const int num_nodes_removed = timestamped_nodes.RemoveOldNodes(0.1);
     EXPECT_EQ(num_nodes_removed, 1);
     EXPECT_EQ(timestamped_nodes.size(), 3);
@@ -601,10 +601,10 @@ TEST(TimestampedNodesTester, RemoveOldNodes) {
     const double n2 = lc::RandomDouble();
     const double t3 = 3.0222;
     const double n3 = lc::RandomDouble();
-    ASSERT_TRUE(timestamped_nodes.Add(t0, n0));
-    ASSERT_TRUE(timestamped_nodes.Add(t1, n1));
-    ASSERT_TRUE(timestamped_nodes.Add(t2, n2));
-    ASSERT_TRUE(timestamped_nodes.Add(t3, n3));
+    ASSERT_TRUE(timestamped_nodes.Add(t0, n0) != boost::none);
+    ASSERT_TRUE(timestamped_nodes.Add(t1, n1) != boost::none);
+    ASSERT_TRUE(timestamped_nodes.Add(t2, n2) != boost::none);
+    ASSERT_TRUE(timestamped_nodes.Add(t3, n3) != boost::none);
     const int num_nodes_removed = timestamped_nodes.RemoveOldNodes(1.334);
     EXPECT_EQ(num_nodes_removed, 2);
     EXPECT_EQ(timestamped_nodes.size(), 2);
@@ -624,10 +624,10 @@ TEST(TimestampedNodesTester, RemoveOldNodes) {
     const double n2 = lc::RandomDouble();
     const double t3 = 3.0222;
     const double n3 = lc::RandomDouble();
-    ASSERT_TRUE(timestamped_nodes.Add(t0, n0));
-    ASSERT_TRUE(timestamped_nodes.Add(t1, n1));
-    ASSERT_TRUE(timestamped_nodes.Add(t2, n2));
-    ASSERT_TRUE(timestamped_nodes.Add(t3, n3));
+    ASSERT_TRUE(timestamped_nodes.Add(t0, n0) != boost::none);
+    ASSERT_TRUE(timestamped_nodes.Add(t1, n1) != boost::none);
+    ASSERT_TRUE(timestamped_nodes.Add(t2, n2) != boost::none);
+    ASSERT_TRUE(timestamped_nodes.Add(t3, n3) != boost::none);
     const int num_nodes_removed = timestamped_nodes.RemoveOldNodes(2.78);
     EXPECT_EQ(num_nodes_removed, 3);
     EXPECT_EQ(timestamped_nodes.size(), 1);
@@ -646,10 +646,10 @@ TEST(TimestampedNodesTester, RemoveOldNodes) {
     const double n2 = lc::RandomDouble();
     const double t3 = 3.0222;
     const double n3 = lc::RandomDouble();
-    ASSERT_TRUE(timestamped_nodes.Add(t0, n0));
-    ASSERT_TRUE(timestamped_nodes.Add(t1, n1));
-    ASSERT_TRUE(timestamped_nodes.Add(t2, n2));
-    ASSERT_TRUE(timestamped_nodes.Add(t3, n3));
+    ASSERT_TRUE(timestamped_nodes.Add(t0, n0) != boost::none);
+    ASSERT_TRUE(timestamped_nodes.Add(t1, n1) != boost::none);
+    ASSERT_TRUE(timestamped_nodes.Add(t2, n2) != boost::none);
+    ASSERT_TRUE(timestamped_nodes.Add(t3, n3) != boost::none);
     const int num_nodes_removed = timestamped_nodes.RemoveOldNodes(1923.78);
     EXPECT_EQ(num_nodes_removed, 4);
     EXPECT_EQ(timestamped_nodes.size(), 0);
@@ -660,11 +660,11 @@ TEST(TimestampedNodesTester, Duration) {
   std::shared_ptr<go::Nodes> nodes(new go::Nodes());
   go::TimestampedNodes<double> timestamped_nodes(nodes);
   EXPECT_EQ(timestamped_nodes.Duration(), 0);
-  ASSERT_TRUE(timestamped_nodes.Add(1.0, 1));
+  ASSERT_TRUE(timestamped_nodes.Add(1.0, 1) != boost::none);
   EXPECT_EQ(timestamped_nodes.Duration(), 0);
-  ASSERT_TRUE(timestamped_nodes.Add(2.0, 2));
+  ASSERT_TRUE(timestamped_nodes.Add(2.0, 2) != boost::none);
   EXPECT_NEAR(timestamped_nodes.Duration(), 1, 1e-6);
-  ASSERT_TRUE(timestamped_nodes.Add(3.0, 3));
+  ASSERT_TRUE(timestamped_nodes.Add(3.0, 3) != boost::none);
   EXPECT_NEAR(timestamped_nodes.Duration(), 2, 1e-6);
 }
 
@@ -679,10 +679,10 @@ TEST(TimestampedNodesTester, Timestamps) {
   const double t1 = 1;
   const double t2 = 2;
   const double t3 = 3;
-  ASSERT_TRUE(timestamped_nodes.Add(t0, t0));
-  ASSERT_TRUE(timestamped_nodes.Add(t1, t1));
-  ASSERT_TRUE(timestamped_nodes.Add(t2, t2));
-  ASSERT_TRUE(timestamped_nodes.Add(t3, t3));
+  ASSERT_TRUE(timestamped_nodes.Add(t0, t0) != boost::none);
+  ASSERT_TRUE(timestamped_nodes.Add(t1, t1) != boost::none);
+  ASSERT_TRUE(timestamped_nodes.Add(t2, t2) != boost::none);
+  ASSERT_TRUE(timestamped_nodes.Add(t3, t3) != boost::none);
   {
     const auto timestamps = timestamped_nodes.Timestamps();
     EXPECT_EQ(timestamps[0], t0);
