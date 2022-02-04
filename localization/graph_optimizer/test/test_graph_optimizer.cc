@@ -234,6 +234,11 @@ TEST(GraphOptimizerTester, Covariances) {
   const auto pose_noise_1 = gtsam::noiseModel::Diagonal::Sigmas(pose_prior_1_noise_sigmas);
   PosePrior pose_factor_1(key_1, pose_1, pose_noise_1);
   optimizer.AddFactor(pose_factor_1);
+  // Covariances not available before first optimization call
+  {
+    const auto covariance_pose_1 = optimizer.Covariance(key_1);
+    EXPECT_TRUE(covariance_pose_1 == boost::none);
+  }
   ASSERT_TRUE(optimizer.Optimize());
   {
     const auto covariance_pose_1 = optimizer.Covariance(key_1);
@@ -247,6 +252,10 @@ TEST(GraphOptimizerTester, Covariances) {
   const gtsam::Vector6 pose_prior_2_noise_sigmas((gtsam::Vector(6) << 3.0, 3.0, 3.0, 3.0, 3.0, 3.0).finished());
   const auto pose_noise_2 = gtsam::noiseModel::Diagonal::Sigmas(pose_prior_2_noise_sigmas);
   PosePrior pose_factor_2(key_2, pose_2, pose_noise_2);
+  {
+    const auto covariance_pose_2 = optimizer.Covariance(key_2);
+    EXPECT_TRUE(covariance_pose_2 == boost::none);
+  }
   optimizer.AddFactor(pose_factor_2);
   ASSERT_TRUE(optimizer.Optimize());
   {
