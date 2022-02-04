@@ -83,6 +83,10 @@ void GraphOptimizer::RemoveFactors(const gtsam::KeyVector& keys,
   }
 }
 
+boost::optional<gtsam::noiseModel::Gaussian::shared_ptr> GraphOptimizer::Covariance(const gtsam::Key key) const {
+  return covariances_.Get(key);
+}
+
 const int GraphOptimizer::TotalNumFactors() const { return factors_.size(); }
 
 void GraphOptimizer::SaveDotFile(const std::string& output_path) const {

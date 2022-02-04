@@ -62,6 +62,8 @@ class GraphOptimizer {
   template <typename FactorType>
   const std::vector<boost::shared_ptr<const FactorType>> Factors() const;
 
+  boost::optional<gtsam::noiseModel::Gaussian::shared_ptr> Covariance(const gtsam::Key key) const;
+
   template <typename FactorType>
   int NumFactors() const;
 

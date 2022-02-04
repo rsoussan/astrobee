@@ -219,6 +219,46 @@ TEST(GraphOptimizerTester, GetFactors) {
   }
 }
 
+TEST(GraphOptimizerTester, Covariances) {
+  const auto nodes = std::make_shared<go::Nodes>();
+  const auto params = go::DefaultGraphOptimizerParams();
+  go::GraphOptimizer optimizer(params, nodes);
+
+  EXPECT_TRUE(optimizer.Covariance(1) == boost::none);
+
+  // Add prior 1
+  gtsam::Pose3 pose_1;
+  const auto noisy_pose_1 = lc::AddNoiseToPose(pose_1, 1, 1);
+  const auto key_1 = nodes->Add(noisy_pose_1);
+  const gtsam::Vector6 pose_prior_1_noise_sigmas((gtsam::Vector(6) << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0).finished());
+  const auto pose_noise_1 = gtsam::noiseModel::Diagonal::Sigmas(pose_prior_1_noise_sigmas);
+  PosePrior pose_factor_1(key_1, pose_1, pose_noise_1);
+  optimizer.AddFactor(pose_factor_1);
+  ASSERT_TRUE(optimizer.Optimize());
+  {
+    const auto covariance_pose_1 = optimizer.Covariance(key_1);
+    EXPECT_TRUE(covariance_pose_1 != boost::none);
+    EXPECT_MATRIX_NEAR((*covariance_pose_1)->covariance(), (Eigen::Matrix<double, 6, 6>::Identity()), 1e-6);
+  }
+  // Add prior 2
+  gtsam::Pose3 pose_2;
+  const auto noisy_pose_2 = lc::AddNoiseToPose(pose_2, 1, 1);
+  const auto key_2 = nodes->Add(noisy_pose_2);
+  const gtsam::Vector6 pose_prior_2_noise_sigmas((gtsam::Vector(6) << 3.0, 3.0, 3.0, 3.0, 3.0, 3.0).finished());
+  const auto pose_noise_2 = gtsam::noiseModel::Diagonal::Sigmas(pose_prior_2_noise_sigmas);
+  PosePrior pose_factor_2(key_2, pose_2, pose_noise_2);
+  optimizer.AddFactor(pose_factor_2);
+  ASSERT_TRUE(optimizer.Optimize());
+  {
+    const auto covariance_pose_1 = optimizer.Covariance(key_1);
+    EXPECT_TRUE(covariance_pose_1 != boost::none);
+    EXPECT_MATRIX_NEAR((*covariance_pose_1)->covariance(), (Eigen::Matrix<double, 6, 6>::Identity()), 1e-6);
+    const auto covariance_pose_2 = optimizer.Covariance(key_2);
+    EXPECT_TRUE(covariance_pose_2 != boost::none);
+    EXPECT_MATRIX_NEAR((*covariance_pose_2)->covariance(), (9.0 * Eigen::Matrix<double, 6, 6>::Identity()), 1e-6);
+  }
+}
+
 TEST(GraphOptimizerTester, Serialization) {
   const auto nodes = std::make_shared<go::Nodes>();
   const auto params = go::DefaultGraphOptimizerParams();
