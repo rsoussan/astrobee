@@ -16,10 +16,12 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_PROTOBUF_DATABASE_H_
-#define SPARSE_MAPPING_PROTOBUF_DATABASE_H_
+#ifndef SPARSE_MAPPING_TEMPLATED_IMAGE_DATABASE_H_
+#define SPARSE_MAPPING_TEMPLATED_IMAGE_DATABASE_H_
 
 #include <sparse_map.pb.h>
+#include <sparse_map/base_database.h>
+#include <sparse_map/templated_vocabulary.h>
 
 #pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
 #pragma GCC diagnostic push
@@ -35,24 +37,20 @@
 namespace sparse_mapping {
 
 template<class TDescriptor, class F>
-class ProtobufDatabase : public DBoW2::TemplatedDatabase<TDescriptor, F> {
+class TemplatedImageDatabase : public DBoW2::TemplatedDatabase<TDescriptor, F>, public BaseDatabase{
  public:
-  explicit ProtobufDatabase(google::protobuf::io::ZeroCopyInputStream* input)
+  explicit TemplatedImageDatabase(google::protobuf::io::ZeroCopyInputStream* input)
      : DBoW2::TemplatedDatabase<TDescriptor, F>() {LoadProtobuf(input);}
-  ProtobufDatabase(ProtobufVocabulary<TDescriptor, F> const& voc, bool flag, int val) :
+  TemplatedImageDatabase(TemplatedVocabulary<TDescriptor, F> const& voc, bool flag, int val) :
      DBoW2::TemplatedDatabase<TDescriptor, F>(voc, flag, val) {}
-  void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const;
-  void LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input);
+  void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const override;
+  void LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) override;
 };
-
-// TODO(rsoussan): Change this to binary database? change fbrief to brisk or doesn't matter?
-// make typedef binary_descriptor and make comment that brief works for any binary descriptor?
-typedef ProtobufDatabase<DBoW2::FBrief::TDescriptor, DBoW2::FBrief> BriefDatabase;
 
 // Implementation
 template<class TDescriptor, class F>
-void ProtobufDatabase<TDescriptor, F>::LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) {
-  ProtobufVocabulary<TDescriptor, F>* voc = new ProtobufVocabulary<TDescriptor, F>();
+void TemplatedImageDatabase<TDescriptor, F>::LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) {
+  TemplatedVocabulary<TDescriptor, F>* voc = new TemplatedVocabulary<TDescriptor, F>();
   voc->LoadProtobuf(input);
   this->m_voc = voc;
 
@@ -82,8 +80,8 @@ void ProtobufDatabase<TDescriptor, F>::LoadProtobuf(google::protobuf::io::ZeroCo
 }
 
 template<class TDescriptor, class F>
-void ProtobufDatabase<TDescriptor, F>::SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const {
-  (dynamic_cast<ProtobufVocabulary<TDescriptor, F>* >(this->m_voc))->SaveProtobuf(output);
+void TemplatedImageDatabase<TDescriptor, F>::SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const {
+  (dynamic_cast<TemplatedVocabulary<TDescriptor, F>* >(this->m_voc))->SaveProtobuf(output);
 
   sparse_mapping_protobuf::DBoWDB db;
 
@@ -113,4 +111,4 @@ void ProtobufDatabase<TDescriptor, F>::SaveProtobuf(google::protobuf::io::ZeroCo
   }
 }
 }  // namespace sparse_mapping
-#endif  // SPARSE_MAPPING_PROTOBUF_DATABASE_H_
+#endif  // SPARSE_MAPPING_TEMPLATED_IMAGE_DATABASE_H_

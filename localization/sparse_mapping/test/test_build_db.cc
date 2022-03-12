@@ -81,7 +81,7 @@ void RunWithDB(std::string const& detector_name) {
   std::string out_nvm = "output.nvm";
   sparse_mapping::SparseMap map(features_out);
   map.SetNumSimilar(num_similar);
-  EXPECT_EQ(static_cast<int>(map.vocab_db_.m_num_nodes), 3);
+  EXPECT_EQ(static_cast<int>(map.vocab_db_.size()), 3);
   map.DetectFeatures();
   std::string essential_file = "essential.csv";
   std::string matches_file = "matches.txt";

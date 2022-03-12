@@ -145,7 +145,6 @@ void BuildDBforDBoW2(SparseMap* map, std::string const& descriptor,
       db->add(features[i]);
 
     map->vocab_db_.binary_db = db;
-    map->vocab_db_.m_num_nodes = db->size();
   }
 }
 }  // namespace sparse_mapping

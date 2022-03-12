@@ -16,8 +16,8 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_PROTOBUF_VOCABULARY_H_
-#define SPARSE_MAPPING_PROTOBUF_VOCABULARY_H_
+#ifndef SPARSE_MAPPING_TEMPLATED_FEATURE_VOCABULARY_H_
+#define SPARSE_MAPPING_TEMPLATED_FEATURE_VOCABULARY_H_
 
 #include <sparse_map.pb.h>
 
@@ -38,23 +38,20 @@ namespace sparse_mapping {
 // Enables more efficient file storage for the vocabulary class, which otherwise
 // uses an ASCII format that is very large and slow to load.
 template<class TDescriptor, class F>
-class ProtobufVocabulary : public DBoW2::TemplatedVocabulary<TDescriptor, F> {
+class TemplatedFeatureVocabulary : public DBoW2::TemplatedVocabulary<TDescriptor, F> {
  public:
-  ProtobufVocabulary(int k = 10, int L = 5,
+  TemplatedFeatureVocabulary(int k = 10, int L = 5,
           DBoW2::WeightingType weighting = DBoW2::TF_IDF, DBoW2::ScoringType scoring = DBoW2::L1_NORM) :
       DBoW2::TemplatedVocabulary<TDescriptor, F>(k, L, weighting, scoring) {}
-  explicit ProtobufVocabulary(google::protobuf::io::ZeroCopyInputStream* input) :
+  explicit TemplatedFeatureVocabulary(google::protobuf::io::ZeroCopyInputStream* input) :
       DBoW2::TemplatedVocabulary<TDescriptor, F>() {LoadProtobuf(input);}
   void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const;
   void LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input);
 };
 
-typedef ProtobufVocabulary<DBoW2::FBrief::TDescriptor, DBoW2::FBrief> BinaryVocabulary;
-
-
 // Implementation
 template<class TDescriptor, class F>
-void ProtobufVocabulary<TDescriptor, F>::LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) {
+void TemplatedFeatureVocabulary<TDescriptor, F>::LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) {
   this->m_words.clear();
   this->m_nodes.clear();
 
@@ -109,7 +106,7 @@ void ProtobufVocabulary<TDescriptor, F>::LoadProtobuf(google::protobuf::io::Zero
 }
 
 template<class TDescriptor, class F>
-void ProtobufVocabulary<TDescriptor, F>::SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const {
+void TemplatedFeatureVocabulary<TDescriptor, F>::SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const {
   sparse_mapping_protobuf::DBoWVocab vocab;
 
   vocab.set_k(this->m_k);
@@ -162,4 +159,4 @@ void ProtobufVocabulary<TDescriptor, F>::SaveProtobuf(google::protobuf::io::Zero
   }
 }
 }  // namespace sparse_mapping
-#endif  // SPARSE_MAPPING_PROTOBUF_VOCABULARY_H_
+#endif  // SPARSE_MAPPING_TEMPLATED_FEATURE_VOCABULARY_H_
