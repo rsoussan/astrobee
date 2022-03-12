@@ -51,7 +51,9 @@ void FBrisk::meanValue(const std::vector<FBrisk::pDescriptor>& descriptors, FBri
 
 // --------------------------------------------------------------------------
 
-double FBrisk::distance(const FBrisk::TDescriptor& a, const FBrisk::TDescriptor& b) { return static_cast<double>(a ^ b).count(); }
+double FBrisk::distance(const FBrisk::TDescriptor& a, const FBrisk::TDescriptor& b) {
+  return static_cast<double>(a ^ b).count();
+}
 
 // --------------------------------------------------------------------------
 

@@ -74,4 +74,4 @@ class FBrisk : protected FClass {
 };
 }  // namespace DBoW2
 
-#endif // SPARSE_MAPPING_FBRISK_H_
+#endif  // SPARSE_MAPPING_FBRISK_H_

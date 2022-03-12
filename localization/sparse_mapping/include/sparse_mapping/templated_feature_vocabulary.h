@@ -105,8 +105,9 @@ void TemplatedFeatureVocabulary<TDescriptor, F>::LoadProtobuf(google::protobuf::
   }
 }
 
-template<class TDescriptor, class F>
-void TemplatedFeatureVocabulary<TDescriptor, F>::SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const {
+template <class TDescriptor, class F>
+void TemplatedFeatureVocabulary<TDescriptor, F>::SaveProtobuf(
+  google::protobuf::io::ZeroCopyOutputStream* output) const {
   sparse_mapping_protobuf::DBoWVocab vocab;
 
   vocab.set_k(this->m_k);

@@ -661,16 +661,12 @@ bool Localize(cv::Mat const& test_descriptors,
               int early_break_landmarks, int histogram_equalization,
               std::vector<int> * cid_list) {
   std::vector<int> indices;
+  // Notice that we request more similar images than what we need. We'll prune them below.
+  // TODO(rsoussan): why?
+  const int max_results = num_similar + FLAGS_num_extra_localization_db_images;
   // Query the vocab tree.
   if (cid_list == NULL)
-    sparse_mapping::QueryDB(detector_name,
-                            vocab_db,
-                            // Notice that we request more similar
-                            // images than what we need. We'll prune
-                            // them below.
-                            num_similar + FLAGS_num_extra_localization_db_images,
-                            test_descriptors,
-                            &indices);
+    indices = vocab_db->Query(test_descriptors, max_results);
   else
     indices = *cid_list;
   if (indices.empty()) {

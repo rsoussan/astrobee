@@ -43,6 +43,7 @@ class TemplatedImageDatabase : public DBoW2::TemplatedDatabase<TDescriptor, F>, 
      : DBoW2::TemplatedDatabase<TDescriptor, F>() {LoadProtobuf(input);}
   TemplatedImageDatabase(TemplatedVocabulary<TDescriptor, F> const& voc, bool flag, int val) :
      DBoW2::TemplatedDatabase<TDescriptor, F>(voc, flag, val) {}
+  std::vector<int> Query(const std::vector<cv::Mat>& descriptors, const int max_results) const override;
   void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const override;
   void LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) override;
 };
@@ -109,6 +110,20 @@ void TemplatedImageDatabase<TDescriptor, F>::SaveProtobuf(google::protobuf::io::
     }
     word_id++;
   }
+}
+
+// Return the indices of the images which are most similar to the current image.
+// TODO(rsoussan): Also return score?
+template <class TDescriptor, class F>
+std::vector<int> TemplatedImageDatabase<TDescriptor, F>::Query(const std::vector<cv::Mat>& descriptors,
+                                                               const int max_results) {
+  std::vector<int> indices;
+  DBoW2::QueryResults results;
+  this->query(descriptors_vec, results, max_results);
+  for (int i = 0; i < results.size(); ++i) {
+      indices.push_back(results[i].Id);
+    }
+  return indices;
 }
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_TEMPLATED_IMAGE_DATABASE_H_
