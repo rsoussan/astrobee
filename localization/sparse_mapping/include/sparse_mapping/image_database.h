@@ -27,7 +27,8 @@ namespace sparse_mapping {
   class ImageDatabase {
    public:
     virtual ~ImageDatabase() {}
-    std::vector<int> Query(const std::vector<cv::Mat>& descriptors, const int max_results) const override;
+    virtual std::vector<int> Query(const cv::Mat& descriptors, const int max_results) = 0;
+    virtual std::vector<int> Query(const std::vector<cv::Mat>& descriptors, const int max_results) = 0;
     virtual void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const = 0;
     virtual void LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input, int db_type) = 0;
   };

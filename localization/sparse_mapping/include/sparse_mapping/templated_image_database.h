@@ -43,6 +43,7 @@ class TemplatedImageDatabase : public DBoW2::TemplatedDatabase<TDescriptor, F>, 
      : DBoW2::TemplatedDatabase<TDescriptor, F>() {LoadProtobuf(input);}
   TemplatedImageDatabase(TemplatedVocabulary<TDescriptor, F> const& voc, bool flag, int val) :
      DBoW2::TemplatedDatabase<TDescriptor, F>(voc, flag, val) {}
+  std::vector<int> Query(const cv::Mat& descriptors, const int max_results) const override;
   std::vector<int> Query(const std::vector<cv::Mat>& descriptors, const int max_results) const override;
   void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const override;
   void LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) override;
@@ -110,6 +111,18 @@ void TemplatedImageDatabase<TDescriptor, F>::SaveProtobuf(google::protobuf::io::
     }
     word_id++;
   }
+}
+
+// Return the indices of the images which are most similar to the current image.
+// TODO(rsoussan): Also return score?
+template <class TDescriptor, class F>
+std::vector<int> TemplatedImageDatabase<TDescriptor, F>::Query(const cv::Mat& descriptors,
+                                                               const int max_results) {
+    std::vector<cv::Mat> descriptors_vec;
+    for (int row = 0; row < descriptors.rows; ++row) {
+      descriptors_vec.push_back(descriptors.row(row);
+    }
+    return Query(descriptors_vec, max_results);
 }
 
 // Return the indices of the images which are most similar to the current image.
