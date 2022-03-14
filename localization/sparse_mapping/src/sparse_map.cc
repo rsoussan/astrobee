@@ -574,6 +574,22 @@ void SparseMap::InitializeCidFidToPid() {
                                         &cid_fid_to_pid_);
 }
 
+  std::vector<cv::Mat> GetImageFeatures(const int image_id) const {
+      std::vector<cv::Mat> features;
+      const int num_features = map->GetFrameKeypoints(image_id).outerSize();
+      for (int i = 0; i < num_features; ++i) {
+        features.emplace_back(map->GetDescriptor(cid, i));
+      }
+  }
+
+  std::vector<std::vector<cv::Mat>> SparseMap::GetAllFeatures() const {
+      std::vector<std::vector<cv::Mat>> all_features;
+      const int num_images = map->GetNumFrames();
+      for (int image_id = 0; image_id < num_images; ++image_id) {
+        all_features.emplace_back(GetImageFeatures(image_id));
+      }
+  }
+
 void SparseMap::DetectFeaturesFromFile(std::string const& filename,
                                        bool multithreaded,
                                        cv::Mat* descriptors,

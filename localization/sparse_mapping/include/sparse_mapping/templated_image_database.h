@@ -20,8 +20,8 @@
 #define SPARSE_MAPPING_TEMPLATED_IMAGE_DATABASE_H_
 
 #include <sparse_map.pb.h>
-#include <sparse_map/base_database.h>
-#include <sparse_map/templated_vocabulary.h>
+#include <sparse_map/image_database.h>
+#include <sparse_map/templated_feature_vocabulary.h>
 
 #pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
 #pragma GCC diagnostic push
@@ -41,7 +41,7 @@ class TemplatedImageDatabase : public DBoW2::TemplatedDatabase<TDescriptor, F>, 
  public:
   explicit TemplatedImageDatabase(google::protobuf::io::ZeroCopyInputStream* input)
      : DBoW2::TemplatedDatabase<TDescriptor, F>() {LoadProtobuf(input);}
-  TemplatedImageDatabase(TemplatedVocabulary<TDescriptor, F> const& voc, bool flag, int val) :
+  TemplatedImageDatabase(TemplatedFeatureVocabulary<TDescriptor, F> const& voc, bool flag, int val) :
      DBoW2::TemplatedDatabase<TDescriptor, F>(voc, flag, val) {}
   std::vector<int> Query(const cv::Mat& descriptors, const int max_results) const override;
   std::vector<int> Query(const std::vector<cv::Mat>& descriptors, const int max_results) const override;
@@ -52,7 +52,7 @@ class TemplatedImageDatabase : public DBoW2::TemplatedDatabase<TDescriptor, F>, 
 // Implementation
 template<class TDescriptor, class F>
 void TemplatedImageDatabase<TDescriptor, F>::LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) {
-  TemplatedVocabulary<TDescriptor, F>* voc = new TemplatedVocabulary<TDescriptor, F>();
+  TemplatedFeatureVocabulary<TDescriptor, F>* voc = new TemplatedFeatureVocabulary<TDescriptor, F>();
   voc->LoadProtobuf(input);
   this->m_voc = voc;
 
@@ -83,7 +83,7 @@ void TemplatedImageDatabase<TDescriptor, F>::LoadProtobuf(google::protobuf::io::
 
 template<class TDescriptor, class F>
 void TemplatedImageDatabase<TDescriptor, F>::SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const {
-  (dynamic_cast<TemplatedVocabulary<TDescriptor, F>* >(this->m_voc))->SaveProtobuf(output);
+  (dynamic_cast<TemplatedFeatureVocabulary<TDescriptor, F>* >(this->m_voc))->SaveProtobuf(output);
 
   sparse_mapping_protobuf::DBoWDB db;
 

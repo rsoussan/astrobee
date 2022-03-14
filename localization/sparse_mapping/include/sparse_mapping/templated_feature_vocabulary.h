@@ -40,16 +40,39 @@ namespace sparse_mapping {
 template<class TDescriptor, class F>
 class TemplatedFeatureVocabulary : public DBoW2::TemplatedVocabulary<TDescriptor, F> {
  public:
-  TemplatedFeatureVocabulary(int k = 10, int L = 5,
-          DBoW2::WeightingType weighting = DBoW2::TF_IDF, DBoW2::ScoringType scoring = DBoW2::L1_NORM) :
-      DBoW2::TemplatedVocabulary<TDescriptor, F>(k, L, weighting, scoring) {}
-  explicit TemplatedFeatureVocabulary(google::protobuf::io::ZeroCopyInputStream* input) :
-      DBoW2::TemplatedVocabulary<TDescriptor, F>() {LoadProtobuf(input);}
+  // Create empty vocab
+  TemplatedFeatureVocabulary(const int k = 10, const int L = 5,
+          const DBoW2::WeightingType weighting = DBoW2::TF_IDF, const DBoW2::ScoringType scoring = DBoW2::L1_NORM);
+  // Create vocab and add features
+  TemplatedFeatureVocabulary(const std::vector<cv::Mat>& features, const int k = 10, const int L = 5,
+                             const DBoW2::WeightingType weighting = DBoW2::TF_IDF,
+                             const DBoW2::ScoringType scoring = DBoW2::L1_NORM);
+  // Load vocab from a file
+  explicit TemplatedFeatureVocabulary(google::protobuf::io::ZeroCopyInputStream* input);
   void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const;
   void LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input);
 };
 
 // Implementation
+template<class TDescriptor, class F>
+  TemplatedFeatureVocabulary<TDescriptor, F>::TemplatedFeatureVocabulary(const int k = 10, const int L = 5,
+          const DBoW2::WeightingType weighting = DBoW2::TF_IDF, const DBoW2::ScoringType scoring = DBoW2::L1_NORM) :
+      DBoW2::TemplatedVocabulary<TDescriptor, F>(k, L, weighting, scoring) {}
+
+template <class TDescriptor, class F>
+TemplatedFeatureVocabulary<TDescriptor, F>::TemplatedFeatureVocabulary(
+  const std::vector<cv::Mat>& features, const int k = 10, const int L = 5,
+  const DBoW2::WeightingType weighting = DBoW2::TF_IDF, const DBoW2::ScoringType scoring = DBoW2::L1_NORM)
+    : DBoW2::TemplatedVocabulary<TDescriptor, F>(k, L, weighting, scoring) {
+  create(features);
+}
+
+template <class TDescriptor, class F>
+TemplatedFeatureVocabulary<TDescriptor, F>::TemplatedFeatureVocabulary(google::protobuf::io::ZeroCopyInputStream* input)
+    : DBoW2::TemplatedVocabulary<TDescriptor, F>() {
+  LoadProtobuf(input);
+}
+
 template<class TDescriptor, class F>
 void TemplatedFeatureVocabulary<TDescriptor, F>::LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) {
   this->m_words.clear();

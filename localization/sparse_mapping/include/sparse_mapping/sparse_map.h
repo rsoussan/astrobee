@@ -242,6 +242,12 @@ struct SparseMap {
   // construct from pid_to_cid_fid
   void InitializeCidFidToPid();
 
+  std::vector<cv::Mat> GetImageFeatures(const int image_id) const;
+
+  // Returns the features for all images. Organized as a vector of image features, where the image
+  // features are a vector of cv::Mat features.
+  std::vector<std::vector<cv::Mat>> GetAllFeatures() const;
+
   // detect features with opencv
   void DetectFeaturesFromFile(std::string const& filename,
                               bool multithreaded,
