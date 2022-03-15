@@ -338,16 +338,14 @@ void VocabDB() {
   else
     branching_factor = 10;
 
-  std::string detector;
-  {
-    // Temporarily load the map to guess the descriptor
-    sparse_mapping::SparseMap m(FLAGS_output_map);
-    detector = m.detector_.GetDetectorName();
-  }
-
-  sparse_mapping::BuildDB(FLAGS_output_map,
-                          detector, depth, branching_factor,
-                          FLAGS_db_restarts);
+  sparse_mapping::SparseMap map(FLAGS_output_map);
+  sparse_mapping::SparseMapParams params; 
+  params.image_database.depth = depth;
+  params.image_database.branching_factor = branching_factor;
+  map.params() = params;
+  // TODO(rsoussan): support brisk and surf
+  map.BuildBriskImageDatabase();
+  map.Save(FLAGS_output_map);
 
   // Pruning must always happen after the database is built, as the
   // full set of features (so without pruning) is necessary to later

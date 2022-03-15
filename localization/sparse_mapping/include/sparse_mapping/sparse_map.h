@@ -21,7 +21,8 @@
 
 #include <ff_common/eigen_vectors.h>
 #include <interest_point/matching.h>
-#include <sparse_mapping/vocab_tree.h>
+#include <sparse_mapping/image_database.h>
+#include <sparse_mapping/params.h>
 #include <sparse_mapping/sparse_mapping.h>
 #include <camera/camera_model.h>
 #include <camera/camera_params.h>
@@ -44,44 +45,14 @@ namespace cv {
 }
 
 namespace sparse_mapping {
-
-// Non-member function InitializeCidFidToPid() that we will use within
-// this class and outside of it as well.
-void InitializeCidFidToPid(int num_cid,
-                           std::vector<std::map<int, int> > const& pid_to_cid_fid,
-                           std::vector<std::map<int, int> > * cid_fid_to_pid);
-
-/**
- * Estimate the camera pose for a set of image descriptors and keypoints.
- * Non-member function. We will invoke it both from within
- * the SparseMap class and from outside of it.
- **/
-bool Localize(cv::Mat const& test_descriptors,
-              Eigen::Matrix2Xd const& test_keypoints,
-              camera::CameraParameters const& camera_params,
-              camera::CameraModel* pose,
-              std::vector<Eigen::Vector3d>* inlier_landmarks,
-              std::vector<Eigen::Vector2d>* inlier_observations,
-              int num_cid,
-              std::string const& detector_name,
-              sparse_mapping::VocabDB * vocab_db,
-              int num_similar,
-              std::vector<std::string> const& cid_to_filename,
-              std::vector<cv::Mat> const& cid_to_descriptor_map,
-              std::vector<Eigen::Matrix2Xd > const& cid_to_keypoint_map,
-              std::vector<std::map<int, int> > const& cid_fid_to_pid,
-              std::vector<Eigen::Vector3d> const& pid_to_xyz,
-              int num_ransac_iterations, int ransac_inlier_tolerance,
-              int early_break_landmarks, int histogram_equalization,
-              std::vector<int> * cid_list);
-
 /**
  * A class representing a sparse map, which consists of a collection
  * of keyframes and detected features. To localize, an image's features
  * are matched to the keyframes in the map. They keyframe features have known
  * positions and the camera pose can be estimated with ransac.
  **/
-struct SparseMap {
+class SparseMap {
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   /**
    * Constructs a new sparse map from a list of image files and their
@@ -110,6 +81,8 @@ struct SparseMap {
 
 
   SparseMap(bool bundler_format, std::string const& filename, std::vector<std::string> const& files);
+
+  void BuildDatabase(const FeatureSets& feature_sets);
 
   void SetDetectorParams(int min_features, int max_features, int retries,
                          double min_thresh, double default_thresh, double max_thresh);
@@ -144,7 +117,7 @@ struct SparseMap {
   /**
    * Get the number of keyframes in the map.
    **/
-  size_t GetNumFrames(void) const {return cid_to_filename_.size();}
+  size_t GetNumFrames() const {return cid_to_filename_.size();}
   /**
    * Get the filename of a keyframe in the map.
    **/
@@ -175,7 +148,7 @@ struct SparseMap {
   /**
    * Get the number of landmark points in the map.
    **/
-  size_t GetNumLandmarks(void) const {return pid_to_xyz_.size();}
+  size_t GetNumLandmarks() const {return pid_to_xyz_.size();}
   /**
    * Get the global position of the specified landmark.
    **/
@@ -194,7 +167,7 @@ struct SparseMap {
   /**
    * Return the number of RANSAC iterations.
    **/
-  int GetRansacIterations(void) const {return num_ransac_iterations_;}
+  int GetRansacIterations() const {return num_ransac_iterations_;}
   /**
    * Set the RANSAC inlier tolerance, the number of pixels an inlier
    * feature is allowed to be off by.
@@ -204,7 +177,7 @@ struct SparseMap {
    * Get the RANSAC inlier tolerance, the number of pixels an inlier
    * feature is allowed to be off by.
    **/
-  int GetRansacInlierTolerance(void) const {return ransac_inlier_tolerance_;}
+  int GetRansacInlierTolerance() const {return ransac_inlier_tolerance_;}
   /**
    * Set the number of early break landmarks, when to stop in adding landmarks when localizing.
    **/
@@ -214,12 +187,12 @@ struct SparseMap {
   /**
    * Return the parameters of the camera used to construct the map.
    **/
-  camera::CameraParameters GetCameraParameters(void) const {return camera_params_;}
+  camera::CameraParameters GetCameraParameters() const {return camera_params_;}
   void SetCameraParameters(camera::CameraParameters camera_params) {camera_params_ = camera_params;}
   /**
    * Return the number of observations. Use this number to divide the final error to find the average pixel error.
    **/
-  size_t GetNumObservations(void) const {return std::accumulate(pid_to_cid_fid_.begin(),
+  size_t GetNumObservations() const {return std::accumulate(pid_to_cid_fid_.begin(),
                                                                 pid_to_cid_fid_.end(),
                                                                 0, [](size_t v, std::map<int, int> const& map)
                                                                 { return v + map.size(); }); }
@@ -246,7 +219,9 @@ struct SparseMap {
 
   // Returns the features for all images. Organized as a vector of image features, where the image
   // features are a vector of cv::Mat features.
-  std::vector<std::vector<cv::Mat>> GetAllFeatures() const;
+  FetaureSets GetAllFeatures() const;
+
+  int NumFeatures() const;
 
   // detect features with opencv
   void DetectFeaturesFromFile(std::string const& filename,
@@ -258,15 +233,32 @@ struct SparseMap {
                       cv::Mat* descriptors,
                       Eigen::Matrix2Xd* keypoints);
   // delete feature descriptors with no matching landmark
-  void PruneMap(void);
+  void PruneMap();
 
   /**
    * Set the number of similar images queried by the VocabDB.
    **/
   void SetNumSimilar(int num_similar) {num_similar_ = num_similar;}
 
+  // TODO(rsoussan): Get rid of this?
   std::string GetDetectorName() { return detector_.GetDetectorName(); }
 
+  const ImageDatabase& image_database() const { return *image_database_; }
+
+  void ClearImageDatabase();
+
+  template<class TDescriptor, class F>
+  void BuildImageDatabase();
+
+  void BuildSurfImageDatabase();
+
+  void BuildBriskImageDatabase();
+
+  SparseMapParams& params() { return params_; }
+
+  const SparseMapParams& params() const { return params_; }
+
+  // TODO(rsoussan): These should be private
   // stored in map file
   std::vector<std::string> cid_to_filename_;
   // TODO(bcoltin) replace Eigen2Xd everywhere with one keypoint class
@@ -280,7 +272,6 @@ struct SparseMap {
 
   interest_point::FeatureDetector detector_;
   camera::CameraParameters camera_params_;
-  mutable sparse_mapping::VocabDB vocab_db_;  // TODO(oalexan1): Mutable means someone is doing something wrong.
   int num_similar_;
   int num_ransac_iterations_;
   int ransac_inlier_tolerance_;
@@ -305,6 +296,9 @@ struct SparseMap {
   std::vector<Eigen::Vector3d> user_pid_to_xyz_;
 
  private:
+  std::unique_ptr<ImageDatabase> image_database_;
+  SparseMapParams params_;
+
   // I found out the hard way that sparse maps cannot be copied
   // correctly, hence prohibit this. The only good way seems to be to
   // load a copy from disk. (oalexan1)
@@ -315,6 +309,23 @@ struct SparseMap {
   // Reorder the images in the map and the rest of the data accordingly
   void reorderMap(std::map<int, int> const& old_cid_to_new_cid);
 };
+
+// Implementation
+template<class TDescriptor, class F>
+void SparseMap::BuildImageDatabase() {
+  const int total_features = NumFeatures();
+  while (std::pow(params_.image_database.vocabulary.branching_factor, params_.image_database.vocabulary.depth) <
+         total_features) {
+    ++params_.image_database.vocabulary.depth;
+    LOG(WARNING) << "Database not large enough, increasing depth.";
+  }
+  LOG(INFO) << "Total database capacity is "
+            << std::pow(params_.image_database.vocabulary.branching_factor, params_.image_database.vocabulary.depth)
+            << ", total features to insert are " << total_features << ".";
+
+  const auto feature_sets = GetAllFeatures();
+  image_database_.reset(new TemplatedImageDatabase<TDescriptor, F>(feature_sets, params_.image_database));
+}
 }  // namespace sparse_mapping
 
 #endif  // SPARSE_MAPPING_SPARSE_MAP_H_

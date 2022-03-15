@@ -221,7 +221,7 @@ void MatchFeatures(const std::string & essential_file,
     ff_common::PrintProgressBar(stdout, static_cast<float>(cid)
                              / static_cast <float>(s->cid_to_keypoint_map_.size() - 1));
     std::vector<int> indices, queried_indices;
-    queried_indices = s->vocab_db_.Query(s->cid_to_descriptor_map_[cid], s->num_similar_);
+    queried_indices = s->image_database().Query(s->cid_to_descriptor_map_[cid], s->num_similar_);
 
     if (!queried_indices.empty()) {
       // always include the next three images
@@ -1194,7 +1194,8 @@ void MergeMaps(sparse_mapping::SparseMap * A_in,
                                              B.GetHistogramEqualization());
 
   // Wipe things that we won't merge (or not yet)
-  C.vocab_db_ = sparse_mapping::VocabDB();
+  C.ClearImageDatabase();
+  // TODO(rsoussan): make function to do this
   C.pid_to_cid_fid_.clear();
   C.pid_to_xyz_.clear();
   C.cid_fid_to_pid_.clear();
@@ -1459,7 +1460,7 @@ void ExtractSubmap(std::vector<std::string> * keep_ptr,
   std::vector<std::string> & keep = *keep_ptr;
 
   // Wipe things that we won't merge (or not yet)
-  map.vocab_db_ = sparse_mapping::VocabDB();
+  map.ClearImageDatabase();
   map.pid_to_xyz_.clear();
   map.cid_fid_to_pid_.clear();
   map.db_to_cid_map_.clear();
