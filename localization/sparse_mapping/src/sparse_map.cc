@@ -47,6 +47,7 @@
 #include <thread>
 #include <limits>
 
+// TODO(rsoussan): Remove gflags
 DEFINE_int32(num_similar, 20,
              "Use in localization this many images which "
              "are most similar to the image to localize.");
@@ -58,36 +59,24 @@ DEFINE_int32(early_break_landmarks, 100,
              "Break early when we have this many landmarks during localization.");
 DEFINE_bool(histogram_equalization, false,
             "If true, equalize the histogram for images to improve robustness to illumination conditions.");
-DEFINE_int32(num_extra_localization_db_images, 0,
-             "Match this many extra images from the Vocab DB, only keep num_similar.");
 DEFINE_bool(verbose_localization, false,
             "If true, list the images most similar to the one being localized.");
 
 namespace sparse_mapping {
 
-SparseMap::SparseMap(const std::vector<std::string> & filenames,
-                     const std::string & detector,
-                     const camera::CameraParameters & params):
-        cid_to_filename_(filenames),
-        detector_(detector), camera_params_(params),
-        num_similar_(FLAGS_num_similar),
-        num_ransac_iterations_(FLAGS_num_ransac_iterations),
-        ransac_inlier_tolerance_(FLAGS_ransac_inlier_tolerance),
-        early_break_landmarks_(FLAGS_early_break_landmarks),
-        histogram_equalization_(FLAGS_histogram_equalization) {
+SparseMap::SparseMap(const std::vector<std::string>& filenames, const std::string& detector,
+                     const camera::CameraParameters& camera_params)
+    : cid_to_filename_(filenames), detector_(detector) {
+  LoadParams(camera_params);
   cid_to_descriptor_map_.resize(cid_to_filename_.size());
   // TODO(bcoltin): only record scale and orientation for opensift?
   cid_to_keypoint_map_.resize(cid_to_filename_.size());
 }
 
-SparseMap::SparseMap(const std::string & protobuf_file, bool localization) :
-  camera_params_(Eigen::Vector2i(-1, -1), Eigen::Vector2d::Constant(-1),
-                 Eigen::Vector2d(-1, -1)),
-  num_similar_(FLAGS_num_similar),
-  num_ransac_iterations_(FLAGS_num_ransac_iterations),
-  ransac_inlier_tolerance_(FLAGS_ransac_inlier_tolerance),
-  early_break_landmarks_(FLAGS_early_break_landmarks),
-  histogram_equalization_(FLAGS_histogram_equalization) {
+SparseMap::SparseMap(const std::string& protobuf_file, bool localization) : {
+  camera::CameraParameters camera_params(Eigen::Vector2i(-1, -1), Eigen::Vector2d::Constant(-1),
+                 Eigen::Vector2d(-1, -1));
+  LoadParams(camera_params);
   // The above camera params used bad values because we are expected to reload
   // later.
   Load(protobuf_file, localization);
@@ -97,13 +86,9 @@ SparseMap::SparseMap(const std::string & protobuf_file, bool localization) :
 SparseMap::SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_t,
                      const std::vector<std::string> & filenames,
                      const std::string & detector,
-                     const camera::CameraParameters & params):
-  detector_(detector), camera_params_(params),
-  num_similar_(FLAGS_num_similar),
-  num_ransac_iterations_(FLAGS_num_ransac_iterations),
-  ransac_inlier_tolerance_(FLAGS_ransac_inlier_tolerance),
-  early_break_landmarks_(FLAGS_early_break_landmarks),
-  histogram_equalization_(FLAGS_histogram_equalization) {
+                     const camera::CameraParameters & camera_params):
+  detector_(detector) {
+  LoadParams(camera_params);
   if (filenames.size() != cid_to_cam_t.size())
     LOG(FATAL) << "Expecting as many images as cameras";
 
@@ -124,14 +109,12 @@ SparseMap::SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_t,
 
 // Form a sparse map by reading a text file from disk. This is for comparing
 // bundler, nvm or theia maps.
-SparseMap::SparseMap(bool bundler_format, std::string const& filename, std::vector<std::string> const& all_image_files)
-    : camera_params_(Eigen::Vector2i(640, 480), Eigen::Vector2d::Constant(300),
-                     Eigen::Vector2d(320, 240)),  // these are placeholders and must be changed
-      num_similar_(FLAGS_num_similar),
-      num_ransac_iterations_(FLAGS_num_ransac_iterations),
-      ransac_inlier_tolerance_(FLAGS_ransac_inlier_tolerance),
-      early_break_landmarks_(FLAGS_early_break_landmarks),
-      histogram_equalization_(FLAGS_histogram_equalization) {
+SparseMap::SparseMap(bool bundler_format, std::string const& filename,
+                     std::vector<std::string> const& all_image_files) {
+  // these are placeholders and must be changed
+  const camera::CameraParameters camera_params(Eigen::Vector2i(640, 480), Eigen::Vector2d::Constant(300),
+                                               Eigen::Vector2d(320, 240));
+  LoadParams(camera_params);
   std::string ext = ff_common::file_extension(filename);
   boost::to_lower(ext);
 
@@ -234,11 +217,16 @@ SparseMap::SparseMap(bool bundler_format, std::string const& filename, std::vect
   InitializeCidFidToPid();
 }
 
-void SparseMap::BuildDatabase(const FeatureSets& feature_sets) {
-  // TODO(rsoussan): replace this with new name
-  vocab_db
+void SparseMap::LoadParams(const camera::CameraParameters & camera_params) {
+      params_.camera_params = camera_params;
+        params_.num_similar = FLAGS_num_similar;
+        params_.num_ransac_iterations = FLAGS_num_ransac_iterations;
+        params_.ransac_inlier_tolerance = FLAGS_ransac_inlier_tolerance;
+        params_.early_break_landmarks = FLAGS_early_break_landmarks;
+        params_.histogram_equalization = FLAGS_histogram_equalization;
 }
 
+// TODO(rsoussan: move detectfeatures and localize code to utilities file)
 // Detect features in given images
 void SparseMap::DetectFeatures() {
   ff_common::ThreadPool pool;
@@ -679,7 +667,7 @@ bool SparseMap::Localize(std::string const& img_file,
                                   cid_to_keypoint_map_,
                                   cid_fid_to_pid_,
                                   pid_to_xyz_,
-                                  num_ransac_iterations_,
+                                  params_.num_ransac_iterations_,
                                   ransac_inlier_tolerance_,
                                   early_break_landmarks_,
                                   histogram_equalization_,
@@ -790,14 +778,15 @@ void SparseMap::reorderMap(std::map<int, int> const& old_cid_to_new_cid) {
   }
 
   // Wipe things that we won't reorder
+  // TODO(rsoussan): Make clear function to do this
   ClearImageDatabase();
-  db_to_cid_map_.clear();
   cid_to_cid_.clear();
   user_cid_to_keypoint_map_.clear();
   user_pid_to_cid_fid_.clear();
   user_pid_to_xyz_.clear();
   cid_fid_to_pid_.clear();  // Will recreate this later
 
+  // TODO(rsoussan): Avoid all this by creating a new sparse map database and assigning it to the sparse map
   // Must create temporary structures
   std::vector<std::string>        new_cid_to_filename(num_cid);
   std::vector<Eigen::Matrix2Xd>   new_cid_to_keypoint_map(num_cid);
@@ -883,7 +872,7 @@ bool SparseMap::Localize(const cv::Mat & image, camera::CameraModel* pose,
                                   cid_to_keypoint_map_,
                                   cid_fid_to_pid_,
                                   pid_to_xyz_,
-                                  num_ransac_iterations_,
+                                  params_.num_ransac_iterations_,
                                   ransac_inlier_tolerance_,
                                   early_break_landmarks_,
                                   histogram_equalization_,
@@ -908,11 +897,10 @@ bool SparseMap::Localize(const cv::Mat & test_descriptors, const Eigen::Matrix2X
                                   cid_to_keypoint_map_,
                                   cid_fid_to_pid_,
                                   pid_to_xyz_,
-                                  num_ransac_iterations_,
+                                  params_.num_ransac_iterations_,
                                   ransac_inlier_tolerance_,
                                   early_break_landmarks_,
                                   histogram_equalization_,
                                   cid_list);
 }
-
 }  // namespace sparse_mapping

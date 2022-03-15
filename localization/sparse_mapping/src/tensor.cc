@@ -1199,7 +1199,6 @@ void MergeMaps(sparse_mapping::SparseMap * A_in,
   C.pid_to_cid_fid_.clear();
   C.pid_to_xyz_.clear();
   C.cid_fid_to_pid_.clear();
-  C.db_to_cid_map_.clear();
   C.cid_to_cid_.clear();
   C.user_cid_to_keypoint_map_.clear();
   C.user_pid_to_cid_fid_.clear();
@@ -1463,7 +1462,6 @@ void ExtractSubmap(std::vector<std::string> * keep_ptr,
   map.ClearImageDatabase();
   map.pid_to_xyz_.clear();
   map.cid_fid_to_pid_.clear();
-  map.db_to_cid_map_.clear();
   map.cid_to_cid_.clear();
   map.user_cid_to_keypoint_map_.clear();
   map.user_pid_to_cid_fid_.clear();
@@ -1768,25 +1766,26 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
   Eigen::Matrix3Xd in(3, np);
   for (int i = 0; i < np; i++)
     in.col(i) = pid_to_xyz[i];
-  sparse_mapping::Find3DAffineTransform(in, user_xyz, &map->world_transform_);
+  Eigen::Affine3d world_transform;
+  sparse_mapping::Find3DAffineTransform(in, user_xyz, &world_transform);
 
   // Transform the map to the world coordinate system
-  sparse_mapping::TransformCamerasAndPoints(map->world_transform_,
+  sparse_mapping::TransformCamerasAndPoints(world_transform,
                                             &(map->cid_to_cam_t_global_),
                                             &(map->pid_to_xyz_));
 
   mean_err = 0.0;
   for (int i = 0; i < user_xyz.cols(); i++)
-    mean_err += (map->world_transform_*in.col(i) - user_xyz.col(i)).norm();
+    mean_err += (world_transform*in.col(i) - user_xyz.col(i)).norm();
   mean_err /= user_xyz.cols();
 
   // We don't use LOG(INFO) below, as it does not play well with
   // Eigen.
-  double scale = pow(map->world_transform_.linear().determinant(), 1.0 / 3.0);
+  double scale = pow(world_transform.linear().determinant(), 1.0 / 3.0);
   std::cout << "Transform to world coordinates." << std::endl;
-  std::cout << "Rotation:\n" << map->world_transform_.linear() / scale << std::endl;
+  std::cout << "Rotation:\n" << world_transform.linear() / scale << std::endl;
   std::cout << "Scale:\n" << scale << std::endl;
-  std::cout << "Translation:\n" << map->world_transform_.translation().transpose()
+  std::cout << "Translation:\n" << world_transform.translation().transpose()
             << std::endl;
 
   std::cout << "Mean absolute error after registration and before final bundle adjustment: "
@@ -1794,7 +1793,7 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
 
   std::cout << "Transformed computed xyz -- measured xyz -- error diff - error norm (meters)" << std::endl;
   for (int i = 0; i < user_xyz.cols(); i++) {
-    Eigen::Vector3d a = map->world_transform_*in.col(i);
+    Eigen::Vector3d a = world_transform*in.col(i);
     Eigen::Vector3d b = user_xyz.col(i);
     int id1 = user_ip(0, i);
     int id2 = user_ip(1, i);

@@ -18,6 +18,12 @@
 
 #include <sparse_mapping/utilities.h>
 
+DEFINE_int32(num_extra_localization_db_images, 0,
+             "Match this many extra images from the Vocab DB, only keep num_similar.");
+
+DEFINE_bool(verbose_localization, false,
+            "If true, list the images most similar to the one being localized.");
+
 namespace sparse_mapping {
 // A non-member Localize() function that can be invoked for a non-fully
 // formed map.

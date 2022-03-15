@@ -93,6 +93,7 @@ struct ReprojectionError {
   Eigen::Vector2d observed;
 };
 
+// TODO(rsoussan): Pass sparse map database instead of all these individual params?
 void BundleAdjust(std::vector<std::map<int, int> > const& pid_to_cid_fid,
                   std::vector<Eigen::Matrix2Xd> const& cid_to_keypoint_map, double focal_length,
                   std::vector<Eigen::Affine3d>* cid_to_cam_t_global, std::vector<Eigen::Vector3d>* pid_to_xyz,

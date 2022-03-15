@@ -103,7 +103,7 @@ class SparseMapTest : public ::testing::Test {
     EXPECT_GT(surf_map->GetNumLandmarks(), 30u);
     // should probably do some sanity check on the landmarks...
 
-    EXPECT_EQ(surf_map->GetRansacIterations(), 1000);
+    EXPECT_EQ(surf_map->params().num_ransac_iterations, 1000);
     EXPECT_EQ(surf_map->GetRansacInlierTolerance(), 3);
     EXPECT_NEAR(surf_map->GetCameraParameters().GetFocalLength(), 258.5, 1e-5);
   }
@@ -143,8 +143,6 @@ TEST_F(SparseMapTest, Registration) {
   files.push_back(xyz_points);
   bool verification = false;
   sparse_mapping::RegistrationOrVerification(files, verification, surf_map);
-  double scale = pow(surf_map->GetWorldTransform().linear().determinant(), 1.0/3.0);
-  EXPECT_GT(scale, 0);  // just a sanity check
 }
 
 // Run all the tests that were declared with TEST()
