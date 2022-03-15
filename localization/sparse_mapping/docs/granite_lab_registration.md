@@ -4,7 +4,7 @@
 
 The coordinates of four points on the granite table were measured. They are specified here:
 
-    $SOURCE_PATH/localization/sparse_mapping/granite_xyz_controlPoints.txt
+    $SOURCE_PATH/localization/sparse_mapping/docs/granite_xyz_controlPoints.txt
 
 The pictures below show the locations of those points. Look at the
 center of the cross next to the number "0" in a rectangle.

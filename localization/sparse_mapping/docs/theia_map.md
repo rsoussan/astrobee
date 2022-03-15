@@ -180,7 +180,7 @@ The work directory can be deleted later.
 This tool has the following command-line options:
 
     --theia_flags: The flags to pass to Theia. If not specified, use
-      localization/sparse_mapping/theia_flags.txt in the Astrobee repo.
+      localization/sparse_mapping/docs/theia_flags.txt in the Astrobee repo.
     --image_list: The list of distorted (original) nav cam images to
       use, one per line.
     --output_map: The resulting output map.

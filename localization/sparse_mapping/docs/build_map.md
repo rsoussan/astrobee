@@ -391,7 +391,7 @@ In the first terminal start the simulator:
 In the second, run:
 
     python $ASTROBEE_SOURCE_PATH/localization/sparse_mapping/tools/view_control_points.py \
-      $ASTROBEE_SOURCE_PATH/localization/sparse_mapping/iss_registration.txt
+      $ASTROBEE_SOURCE_PATH/localization/sparse_mapping/docs/iss_registration.txt
 
 Go back to the simulated ISS and examine the registration points.
 If the Rviz display looks too cluttered, most topics can be turned off.
@@ -429,7 +429,7 @@ Python command will refresh them.
 A set of 10 registration points were measured in the MGTF with the
 \ref total_station. They are in the file:
 
-    $ASTROBEE_SOURCE_PATH/localization/sparse_mapping/mgtf_registration.txt
+    $ASTROBEE_SOURCE_PATH/localization/sparse_mapping/docs/mgtf_registration.txt
 
 Two of these are on the back wall, and the rest are on the metal
 columns on the side walls, with four on each wall. Half of the points

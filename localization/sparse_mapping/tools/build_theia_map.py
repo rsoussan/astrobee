@@ -130,7 +130,7 @@ def process_args(args):
         dest="theia_flags",
         default="",
         help="The flags to pass to Theia. If not specified, use "
-        + "localization/sparse_mapping/theia_flags.txt in the astrobee repo.",
+        + "localization/sparse_mapping/docs/theia_flags.txt in the astrobee repo.",
     )
     parser.add_argument(
         "--image_list",
@@ -171,7 +171,7 @@ def process_args(args):
         sys.exit(1)
 
     if args.theia_flags == "":
-        args.theia_flags = os.path.dirname(src_path) + "/theia_flags.txt"
+        args.theia_flags = os.path.dirname(src_path) + "/docs/theia_flags.txt"
 
     sanity_checks(undistort_image_path, import_map_path, build_map_path, args)
 
