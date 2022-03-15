@@ -20,6 +20,7 @@
 #define SPARSE_MAPPING_TEMPLATED_FEATURE_VOCABULARY_H_
 
 #include <sparse_map.pb.h>
+#include <sparse_map/feature_vocabulary_params.h>
 
 // TODO(rsoussan): avoid this? check dbow2 templated voc and see if theres a virtual dtor there
 #pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
@@ -41,12 +42,9 @@ template<class TDescriptor, class F>
 class TemplatedFeatureVocabulary : public DBoW2::TemplatedVocabulary<TDescriptor, F> {
  public:
   // Create empty vocab
-  TemplatedFeatureVocabulary(const int k = 10, const int L = 5,
-          const DBoW2::WeightingType weighting = DBoW2::TF_IDF, const DBoW2::ScoringType scoring = DBoW2::L1_NORM);
+  explicit TemplatedFeatureVocabulary(const FeatureVocabularyParams& params);
   // Create vocab and add features
-  TemplatedFeatureVocabulary(const std::vector<cv::Mat>& features, const int k = 10, const int L = 5,
-                             const DBoW2::WeightingType weighting = DBoW2::TF_IDF,
-                             const DBoW2::ScoringType scoring = DBoW2::L1_NORM);
+  TemplatedFeatureVocabulary(const std::vector<cv::Mat>& features, const FeatureVocabularyParams& params);
   // Load vocab from a file
   explicit TemplatedFeatureVocabulary(google::protobuf::io::ZeroCopyInputStream* input);
   void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const;
@@ -54,16 +52,16 @@ class TemplatedFeatureVocabulary : public DBoW2::TemplatedVocabulary<TDescriptor
 };
 
 // Implementation
-template<class TDescriptor, class F>
-  TemplatedFeatureVocabulary<TDescriptor, F>::TemplatedFeatureVocabulary(const int k = 10, const int L = 5,
-          const DBoW2::WeightingType weighting = DBoW2::TF_IDF, const DBoW2::ScoringType scoring = DBoW2::L1_NORM) :
-      DBoW2::TemplatedVocabulary<TDescriptor, F>(k, L, weighting, scoring) {}
+template <class TDescriptor, class F>
+TemplatedFeatureVocabulary<TDescriptor, F>::TemplatedFeatureVocabulary(const FeatureVocabularyParams& params)
+    : DBoW2::TemplatedVocabulary<TDescriptor, F>(params.branching_factor, params.depth_levels, params.weighting,
+                                                 params.scoring) {}
 
 template <class TDescriptor, class F>
-TemplatedFeatureVocabulary<TDescriptor, F>::TemplatedFeatureVocabulary(
-  const std::vector<cv::Mat>& features, const int k = 10, const int L = 5,
-  const DBoW2::WeightingType weighting = DBoW2::TF_IDF, const DBoW2::ScoringType scoring = DBoW2::L1_NORM)
-    : DBoW2::TemplatedVocabulary<TDescriptor, F>(k, L, weighting, scoring) {
+TemplatedFeatureVocabulary<TDescriptor, F>::TemplatedFeatureVocabulary(const std::vector<cv::Mat>& features,
+                                                                       const FeatureVocabularyParams& params)
+    : DBoW2::TemplatedVocabulary<TDescriptor, F>(params.branching_factor, params.depth_levels, params.weighting,
+                                                 params.scoring) {
   create(features);
 }
 
