@@ -16,8 +16,10 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_FEATURE_VOCABULARY_PARAMS_H_
-#define SPARSE_MAPPING_FEATURE_VOCABULARY_PARAMS_H_
+#ifndef SPARSE_MAPPING_IMAGE_DATABASE_PARAMS_H_
+#define SPARSE_MAPPING_IMAGE_DATABASE_PARAMS_H_
+
+#include <sparse_mapping/feature_vocabulary_params.h>
 
 // TODO(rsoussan): avoid this? check dbow2 templated voc and see if theres a virtual dtor there
 #pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
@@ -26,11 +28,10 @@
 #pragma GCC diagnostic pop
 
 namespace sparse_mapping {
-struct FeatureVocabularyParams {
-  int branching_factor = 10;
-  int depth_levels = 5;
-  DBoW2::WeightingType weighting = DBoW2::TF_IDF;
-  DBoW2::ScoringType scoring = DBoW2::L1_NORM;
+struct ImageDatabaseParams {
+  FeatureVocabularyParams vocabulary;
+  bool use_direct_index;
+  int direct_index_levels;
 };
 }  // namespace sparse_mapping
-#endif  // SPARSE_MAPPING_FEATURE_VOCABULARY_PARAMS_H_
+#endif  // SPARSE_MAPPING_IMAGE_DATABASE_PARAMS_H_

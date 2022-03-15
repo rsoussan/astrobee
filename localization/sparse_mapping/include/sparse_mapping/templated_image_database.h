@@ -21,11 +21,12 @@
 
 #include <sparse_map.pb.h>
 #include <sparse_map/image_database.h>
+#include <sparse_map/image_database_params.h>
 #include <sparse_map/templated_feature_vocabulary.h>
 
 #pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
 #pragma GCC diagnostic push
-#include <DBoW2/DBoW2.h>      // BoW db that works with both float and binary descriptors
+#include <DBoW2/DBoW2.h>      // BoW db that works with both float and binary features
 #pragma GCC diagnostic pop
 
 #include <glog/logging.h>
@@ -37,19 +38,35 @@
 namespace sparse_mapping {
 
 template<class TDescriptor, class F>
-class TemplatedImageDatabase : public DBoW2::TemplatedDatabase<TDescriptor, F>, public BaseDatabase{
+class TemplatedImageDatabase : public DBoW2::TemplatedDatabase<TDescriptor, F>, public ImageDatabase{
  public:
-  explicit TemplatedImageDatabase(google::protobuf::io::ZeroCopyInputStream* input)
-     : DBoW2::TemplatedDatabase<TDescriptor, F>() {LoadProtobuf(input);}
-  TemplatedImageDatabase(TemplatedFeatureVocabulary<TDescriptor, F> const& voc, bool flag, int val) :
-     DBoW2::TemplatedDatabase<TDescriptor, F>(voc, flag, val) {}
-  std::vector<int> Query(const cv::Mat& descriptors, const int max_results) const override;
-  std::vector<int> Query(const std::vector<cv::Mat>& descriptors, const int max_results) const override;
+  explicit TemplatedImageDatabase(google::protobuf::io::ZeroCopyInputStream* input);
+  TemplatedImageDatabase(TemplatedFeatureVocabulary<TDescriptor, F> const& voc, const ImageDatabaseParams& params);
+  TemplatedImageDatabase(const std::vector<cv::Mat>& features, const ImageDatabaseParams& params);
+  std::vector<int> Query(const cv::Mat& features, const int max_results) const override;
+  std::vector<int> Query(const std::vector<cv::Mat>& features, const int max_results) const override;
   void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const override;
   void LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) override;
 };
 
 // Implementation
+template<class TDescriptor, class F>
+TemplatedImageDatabase<TDescriptor, F>::TemplatedImageDatabase(google::protobuf::io::ZeroCopyInputStream* input)
+     : DBoW2::TemplatedDatabase<TDescriptor, F>() {LoadProtobuf(input);}
+
+template <class TDescriptor, class F>
+TemplatedImageDatabase<TDescriptor, F>::TemplatedImageDatabase(
+  TemplatedFeatureVocabulary<TDescriptor, F> const& vocabulary, const ImageDatabaseParams& params)
+    : DBoW2::TemplatedDatabase<TDescriptor, F>(vocabulary, params.use_direct_index, params.direct_index_levels) {}
+
+template <class TDescriptor, class F>
+TemplatedImageDatabase<TDescriptor, F>::TemplatedImageDatabase(const std::vector<cv::Mat>& features,
+                                                               const ImageDatabaseParams& params)
+    : DBoW2::TemplatedDatabase<TDescriptor, F>(params.use_direct_index, params.direct_index_levels) {
+  const TemplatedFeatureVocabulary<TDescriptor, F> vocabulary(params.vocabulary);
+  setVocabulary(vocabulary);
+}
+
 template<class TDescriptor, class F>
 void TemplatedImageDatabase<TDescriptor, F>::LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) {
   TemplatedFeatureVocabulary<TDescriptor, F>* voc = new TemplatedFeatureVocabulary<TDescriptor, F>();
@@ -116,23 +133,23 @@ void TemplatedImageDatabase<TDescriptor, F>::SaveProtobuf(google::protobuf::io::
 // Return the indices of the images which are most similar to the current image.
 // TODO(rsoussan): Also return score?
 template <class TDescriptor, class F>
-std::vector<int> TemplatedImageDatabase<TDescriptor, F>::Query(const cv::Mat& descriptors,
+std::vector<int> TemplatedImageDatabase<TDescriptor, F>::Query(const cv::Mat& features,
                                                                const int max_results) {
-    std::vector<cv::Mat> descriptors_vec;
-    for (int row = 0; row < descriptors.rows; ++row) {
-      descriptors_vec.push_back(descriptors.row(row);
+    std::vector<cv::Mat> features_vec;
+    for (int row = 0; row < features.rows; ++row) {
+      features_vec.push_back(features.row(row);
     }
-    return Query(descriptors_vec, max_results);
+    return Query(features_vec, max_results);
 }
 
 // Return the indices of the images which are most similar to the current image.
 // TODO(rsoussan): Also return score?
 template <class TDescriptor, class F>
-std::vector<int> TemplatedImageDatabase<TDescriptor, F>::Query(const std::vector<cv::Mat>& descriptors,
+std::vector<int> TemplatedImageDatabase<TDescriptor, F>::Query(const std::vector<cv::Mat>& features,
                                                                const int max_results) {
   std::vector<int> indices;
   DBoW2::QueryResults results;
-  this->query(descriptors_vec, results, max_results);
+  this->query(features_vec, results, max_results);
   for (int i = 0; i < results.size(); ++i) {
       indices.push_back(results[i].Id);
     }
