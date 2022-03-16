@@ -56,23 +56,27 @@ class SparseMapDatabase {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
+  // TODO(rsoussan): Rename this to NumCids, return int
   size_t GetNumFrames() const {return cid_to_filename_.size();}
   /**
    * Get the filename of a keyframe in the map.
    **/
+  // TODO(rsoussan): Rename this to CidFilename
   const std::string & GetFrameFilename(int frame) const {return cid_to_filename_[frame];}
   /**
    * Get the global camera transform for a keyframe in the map.
    **/
+  // TODO(rsoussan): Rename this to GlobalTCid
   const Eigen::Affine3d & GetFrameGlobalTransform(int frame) const
         {return cid_to_cam_t_global_[frame];}
-
+  // TODO(rsoussan): Rename
   void SetFrameGlobalTransform(int frame, const Eigen::Affine3d & transform) {
     cid_to_cam_t_global_[frame] = transform;
   }
   /**
    * Get the keypoint coordinates in the specified frame.
    **/
+  // TODO(rsoussan): Rename
   const Eigen::Matrix2Xd & GetFrameKeypoints(int frame) const {return cid_to_keypoint_map_[frame];}
   /**
    * Get the descriptor for a frame and feature.
@@ -81,6 +85,7 @@ class SparseMapDatabase {
   /**
    * Returns map of feature ids to landmark ids for the specified frame.
    **/
+  // TODO(rsoussan): Rename
   const std::map<int, int> & GetFrameFidToPidMap(int frame) const {return cid_fid_to_pid_[frame];}
 
   // access map landmarks
@@ -120,11 +125,9 @@ class SparseMapDatabase {
   // construct from pid_to_cid_fid
   void InitializeCidFidToPid();
 
-  std::vector<cv::Mat> GetImageFeatures(const int image_id) const;
+  FeatureSet GetCidFeatures(const int cid) const;
 
-  // Returns the features for all images. Organized as a vector of image features, where the image
-  // features are a vector of cv::Mat features.
-  FetaureSets GetAllFeatures() const;
+  FetaureSets GetAllCidFeatures() const;
 
   int NumFeatures() const;
 

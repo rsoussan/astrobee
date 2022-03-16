@@ -547,37 +547,6 @@ void SparseMap::Save(const std::string & protobuf_file) const {
   close(output_fd);
 }
 
-
-void SparseMap::InitializeCidFidToPid() {
-  sparse_mapping::InitializeCidFidToPid(cid_to_filename_.size(),
-                                        pid_to_cid_fid_,
-                                        &cid_fid_to_pid_);
-}
-
-  std::vector<cv::Mat> SparseMap::GetImageFeatures(const int image_id) const {
-      std::vector<cv::Mat> features;
-      const int num_features = map->GetFrameKeypoints(image_id).outerSize();
-      for (int i = 0; i < num_features; ++i) {
-        features.emplace_back(map->GetDescriptor(cid, i));
-      }
-  }
-
-  std::vector<std::vector<cv::Mat>> SparseMap::GetAllFeatures() const {
-      std::vector<std::vector<cv::Mat>> all_features;
-      const int num_images = map->GetNumFrames();
-      for (int image_id = 0; image_id < num_images; ++image_id) {
-        all_features.emplace_back(GetImageFeatures(image_id));
-      }
-  }
-
-int SparseMap::NumFeatures() const {
-  int num_features = 0;
-  for (int cid = 0; cid < map.GetNumFrames(); ++cid) {
-    total_features += map.GetFrameKeypoints(cid).outerSize();
-  }
-  return num_features;
-}
-
 void SparseMap::DetectFeaturesFromFile(std::string const& filename,
                                        bool multithreaded,
                                        cv::Mat* descriptors,
