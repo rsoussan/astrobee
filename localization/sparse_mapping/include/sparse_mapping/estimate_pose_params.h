@@ -28,8 +28,6 @@ struct EstimatePoseParams {
     int early_break_landmarks;
     int histogram_equalization;
     int num_similar;
-    int num_cid;
-    boost::optional<std::vector<int>> cid_list;
     bool inlier_landmarks;
     bool inlier_observations;
 };

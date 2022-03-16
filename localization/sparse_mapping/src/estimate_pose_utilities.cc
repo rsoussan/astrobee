@@ -39,8 +39,7 @@ EstimatePoseResults EstimatePose(
   const cv::Mat& descriptors,  // TODO(rsoussan): change this to vector of descriptors
                                // TODO(rsoussan): change this to vector of Eigen::Vector2ds
   const Eigen::Matrix2Xd& keypoints, const SparseMap& map, const EstimatePoseParams& params) {
-  const auto indices = params.cid_list ? *params.cid_list : image_database.Query(descriptors, params.num_similar);
-  // TODO(rsoussan): Remove this?
+  const auto indices = image_database.Query(descriptors, params.num_similar);
   if (indices.empty()) {
     LOG(FATAL) << "No indices found.";
   }

@@ -100,23 +100,6 @@ class SparseMap : public SparseMapDatabase {
    **/
   void Save(const std::string & protobuf_file) const;
 
-  /**
-   * Estimate the camera pose for an image file.
-   **/
-  bool Localize(std::string const& img_file, camera::CameraModel* pose,
-      std::vector<Eigen::Vector3d>* inlier_landmarks = NULL,
-                std::vector<Eigen::Vector2d>* inlier_observations = NULL,
-                std::vector<int> * cid_list = NULL);
-  bool Localize(const cv::Mat & image,
-      camera::CameraModel* pose, std::vector<Eigen::Vector3d>* inlier_landmarks = NULL,
-                std::vector<Eigen::Vector2d>* inlier_observations = NULL,
-                std::vector<int> * cid_list = NULL);
-  bool Localize(const cv::Mat & test_descriptors, const Eigen::Matrix2Xd & test_keypoints,
-                camera::CameraModel* pose,
-                std::vector<Eigen::Vector3d>* inlier_landmarks,
-                std::vector<Eigen::Vector2d>* inlier_observations,
-                std::vector<int> * cid_list = NULL);
-
   int GetHistogramEqualization() const {return params_.histogram_equalization;}
   /**
    * Return the parameters of the camera used to construct the map.
