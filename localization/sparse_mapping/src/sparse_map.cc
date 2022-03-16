@@ -583,10 +583,7 @@ void SparseMap::DetectFeaturesFromFile(std::string const& filename,
                                        bool multithreaded,
                                        cv::Mat* descriptors,
                                        Eigen::Matrix2Xd* keypoints) {
-  cv::Mat image = cv::imread(filename, cv::IMREAD_GRAYSCALE);
-  if (image.rows == 0 || image.cols == 0)
-    LOG(FATAL) << "Found empty image in file: " << filename;
-
+  const auto image = LoadImage(filename);
   DetectFeatures(image, multithreaded, descriptors, keypoints);
 }
 
@@ -594,29 +591,15 @@ void SparseMap::DetectFeatures(const cv::Mat& image,
                                bool multithreaded,
                                cv::Mat* descriptors,
                                Eigen::Matrix2Xd* keypoints) {
-  // If using histogram equalization, need an extra image to store it
-  cv::Mat * image_ptr = const_cast<cv::Mat*>(&image);
   cv::Mat hist_image;
   if (histogram_equalization_) {
     cv::equalizeHist(image, hist_image);
-    image_ptr = &hist_image;
   }
-
-#if 0
-  // This is useful for debugging
-  std::cout << "Histogram equalization is " << histogram_equalization_ << std::endl;
-  static int count = 10000;
-  count++;
-  std::ostringstream oss;
-  oss << "image_" << count << ".jpg";
-  std::string image_file = oss.str();
-  std::cout << "Writing: " << image_file << std::endl;
-  cv::imwrite(image_file, *image_ptr);
-#endif
+  const auto& input_image = histogram_equalization_ ? hist_image : image;
 
   std::vector<cv::KeyPoint> storage;
   if (!multithreaded) {
-    detector_.Detect(*image_ptr, &storage, descriptors);
+    detector_.Detect(input_image, &storage, descriptors);
   } else {
     // When using multiple threads, need an individual detector
     // instance, to avoid a crash. This is being used only in
@@ -629,69 +612,22 @@ void SparseMap::DetectFeatures(const cv::Mat& image,
     interest_point::FeatureDetector local_detector(detector_.GetDetectorName(),
                                                    min_features, max_features, max_retries,
                                                    min_thresh, default_thresh, max_thresh);
-    local_detector.Detect(*image_ptr, &storage, descriptors);
+    local_detector.Detect(input_image, &storage, descriptors);
   }
 
-  if (FLAGS_verbose_localization)
-    std::cout << "Features detected " << storage.size() << std::endl;
+  LOG(DEBUG) << "Features detected " << storage.size();
 
   keypoints->resize(2, storage.size());
   Eigen::Vector2d output;
-
-  for (size_t j = 0; j < storage.size(); j++) {
+  for (int i = 0; i < static_cast<int>(storage.size()); ++i) {
     camera_params_.Convert<camera::DISTORTED_C, camera::UNDISTORTED_C>
-      (Eigen::Vector2d(storage[j].pt.x, storage[j].pt.y), &output);
-    keypoints->col(j) = output;
+      (Eigen::Vector2d(storage[i].pt.x, storage[i].pt.y), &output);
+    keypoints->col(i) = output;
   }
-}
-
-bool SparseMap::Localize(std::string const& img_file,
-                         camera::CameraModel* pose,
-                         std::vector<Eigen::Vector3d>* inlier_landmarks,
-                         std::vector<Eigen::Vector2d>* inlier_observations,
-                         std::vector<int> * cid_list) {
-  cv::Mat test_descriptors;
-  Eigen::Matrix2Xd test_keypoints;
-  bool multithreaded = false;
-  DetectFeaturesFromFile(img_file, multithreaded, &test_descriptors, &test_keypoints);
-  return sparse_mapping::Localize(test_descriptors, test_keypoints,
-                                  std::cref(camera_params_),
-                                  pose,
-                                  inlier_landmarks, inlier_observations,
-                                  cid_to_filename_.size(),
-                                  detector_.GetDetectorName(),
-                                  ImageDatabase(),
-                                  num_similar_,
-                                  cid_to_filename_,
-                                  cid_to_descriptor_map_,
-                                  cid_to_keypoint_map_,
-                                  cid_fid_to_pid_,
-                                  pid_to_xyz_,
-                                  params_.num_ransac_iterations_,
-                                  ransac_inlier_tolerance_,
-                                  early_break_landmarks_,
-                                  histogram_equalization_,
-                                  cid_list);
 }
 
 // delete all the features that do not match to a landmark but are still around!
 void SparseMap::PruneMap(void) {
-#if 0
-  // This is a good sanity check, print things before we start pruning
-  for (unsigned int cid = 0; cid < cid_fid_to_pid_.size(); cid++) {
-    for (int fid = 0; fid < cid_to_descriptor_map_[cid].rows; fid++) {
-      if (cid_fid_to_pid_[cid].count(fid) == 0)
-        continue;
-      int pid = cid_fid_to_pid_[cid][fid];
-      int rows = cid_to_keypoint_map_[cid].rows();  // must be equal to 2
-      std::cout << "Value before: "
-                << cid << ' ' << fid << ' ' << cid_to_descriptor_map_[cid].row(fid) << ' '
-                << pid  << ' '
-                <<  cid_to_keypoint_map_[cid].block(0, fid, rows, 1).transpose() << std::endl;
-    }
-  }
-#endif
-
   for (unsigned int cid = 0; cid < cid_fid_to_pid_.size(); cid++) {
     std::vector<int> deleted_features;
     for (int fid = 0; fid < cid_to_descriptor_map_[cid].rows; fid++) {
@@ -747,22 +683,6 @@ void SparseMap::PruneMap(void) {
 
   // This is not strictly necessary as all book-keeping was already done
   InitializeCidFidToPid();
-
-#if 0
-  // We must get everything same as before, except fid
-  for (unsigned int cid = 0; cid < cid_fid_to_pid_.size(); cid++) {
-    for (int fid = 0; fid < cid_to_descriptor_map_[cid].rows; fid++) {
-      if (cid_fid_to_pid_[cid].count(fid) == 0)
-        continue;
-      int pid = cid_fid_to_pid_[cid][fid];
-      int rows = cid_to_keypoint_map_[cid].rows();  // must be equal to 2
-      std::cout << "Value after: "
-                << cid << ' ' << fid << ' ' << cid_to_descriptor_map_[cid].row(fid) << ' '
-                << pid  << ' '
-                <<  cid_to_keypoint_map_[cid].block(0, fid, rows, 1).transpose() << std::endl;
-    }
-  }
-#endif
 }
 
 // Reorder the images in the map and the rest of the data accordingly
@@ -849,58 +769,5 @@ void SparseMap::BuildSurfImageDatabase() {
 
 void SparseMap::BuildBriskImageDatabase() {
   BuildImageDatabase<DBoW2::FBrisk::TDescriptor, DBoW2::FBrisk>();
-}
-
-bool SparseMap::Localize(const cv::Mat & image, camera::CameraModel* pose,
-                         std::vector<Eigen::Vector3d>* inlier_landmarks,
-                         std::vector<Eigen::Vector2d>* inlier_observations,
-                         std::vector<int> * cid_list) {
-  bool multithreaded = false;
-  cv::Mat test_descriptors;
-  Eigen::Matrix2Xd test_keypoints;
-  DetectFeatures(image, multithreaded, &test_descriptors, &test_keypoints);
-  return sparse_mapping::Localize(test_descriptors, test_keypoints,
-                                  std::cref(camera_params_),
-                                  pose,
-                                  inlier_landmarks, inlier_observations,
-                                  cid_to_filename_.size(),
-                                  detector_.GetDetectorName(),
-                                  ImageDatabase(),
-                                  num_similar_,
-                                  cid_to_filename_,
-                                  cid_to_descriptor_map_,
-                                  cid_to_keypoint_map_,
-                                  cid_fid_to_pid_,
-                                  pid_to_xyz_,
-                                  params_.num_ransac_iterations_,
-                                  ransac_inlier_tolerance_,
-                                  early_break_landmarks_,
-                                  histogram_equalization_,
-                                  cid_list);
-}
-
-bool SparseMap::Localize(const cv::Mat & test_descriptors, const Eigen::Matrix2Xd & test_keypoints,
-                         camera::CameraModel* pose,
-                         std::vector<Eigen::Vector3d>* inlier_landmarks,
-                         std::vector<Eigen::Vector2d>* inlier_observations,
-                         std::vector<int> * cid_list) {
-  return sparse_mapping::Localize(test_descriptors, test_keypoints,
-                                  std::cref(camera_params_),
-                                  pose,
-                                  inlier_landmarks, inlier_observations,
-                                  cid_to_filename_.size(),
-                                  detector_.GetDetectorName(),
-                                  ImageDatabase(),
-                                  num_similar_,
-                                  cid_to_filename_,
-                                  cid_to_descriptor_map_,
-                                  cid_to_keypoint_map_,
-                                  cid_fid_to_pid_,
-                                  pid_to_xyz_,
-                                  params_.num_ransac_iterations_,
-                                  ransac_inlier_tolerance_,
-                                  early_break_landmarks_,
-                                  histogram_equalization_,
-                                  cid_list);
 }
 }  // namespace sparse_mapping

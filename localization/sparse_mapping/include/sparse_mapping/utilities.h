@@ -19,14 +19,8 @@
 #ifndef SPARSE_MAPPING_UTILITIES_H_
 #define SPARSE_MAPPING_UTILITIES_H_
 
-#include <ff_common/eigen_vectors.h>
-#include <sparse_mapping/estimate_pose_params.h>
-#include <sparse_mapping/estimate_pose_results.h>
 #include <sparse_mapping/image_database.h>
-#include <camera/camera_model.h>
-#include <camera/camera_params.h>
 
-#include <Eigen/Geometry>
 #include <opencv2/core/core.hpp>
 
 #include <map>
@@ -34,20 +28,10 @@
 #include <vector>
 
 namespace sparse_mapping {
-
-// Non-member function InitializeCidFidToPid() that we will use within
-// this class and outside of it as well.
 void InitializeCidFidToPid(int num_cid,
                            std::vector<std::map<int, int> > const& pid_to_cid_fid,
                            std::vector<std::map<int, int> > * cid_fid_to_pid);
 
-/**
- * Estimate the camera pose for a set of image descriptors and keypoints.
- **/
-EstimatePoseResults EstimatePose(
-  const cv::Mat& descriptors,  // TODO(rsoussan): change this to vector of descriptors
-                               // TODO(rsoussan): change this to vector of Eigen::Vector2ds
-  const Eigen::Matrix2Xd& keypoints, const SparseMap& map, const EstimatePoseParams& params);
-
+cv::Mat LoadImage(const std::string& filename);
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_UTILITIES_H_

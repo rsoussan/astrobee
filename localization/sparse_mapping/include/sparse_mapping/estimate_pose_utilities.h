@@ -15,12 +15,16 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-#ifndef SPARSE_MAPPING_REPROJECTION_H_
-#define SPARSE_MAPPING_REPROJECTION_H_
+#ifndef SPARSE_MAPPING_ESTIMATE_POSE_UTILITIES_H_
+#define SPARSE_MAPPING_ESTIMATE_POSE_UTILITIES_H_
+
+#include <ff_common/eigen_vectors.h>
+#include <sparse_mapping/estimate_pose_params.h>
+#include <sparse_mapping/estimate_pose_results.h>
+
+#include <ceres/ceres.h>
 
 #include <Eigen/Geometry>
-#include <ff_common/eigen_vectors.h>
-#include <ceres/ceres.h>
 
 #include <map>
 #include <vector>
@@ -42,6 +46,19 @@ namespace cv {
 }
 
 namespace sparse_mapping {
+/**
+ * Estimate the camera pose for a set of image descriptors and keypoints.
+ **/
+EstimatePoseResults EstimatePose(
+  const cv::Mat& descriptors,  // TODO(rsoussan): change this to vector of descriptors
+                               // TODO(rsoussan): change this to vector of Eigen::Vector2ds
+  const Eigen::Matrix2Xd& keypoints, const SparseMap& map, const EstimatePoseParams& params);
+
+EstimatePoseResults EstimatePose(
+  const cv::Mat& image, const EstimatePoseParams& params, SparseMap& map);
+
+EstimatePoseResults EstimatePose(
+  const std::string& image_filename, const EstimatePoseParams& params, SparseMap& map);
 
   ceres::LossFunction* GetLossFunction(std::string cost_fun, double th);
 
@@ -140,4 +157,4 @@ void Find3DAffineTransform(Eigen::Matrix3Xd const& in,
                            Eigen::Affine3d* result);
 }  // namespace sparse_mapping
 
-#endif  // SPARSE_MAPPING_REPROJECTION_H_
+#endif  // SPARSE_MAPPING_ESTIMATE_POSE_UTILITIES_H_
