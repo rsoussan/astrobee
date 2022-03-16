@@ -18,123 +18,91 @@
 
 #include <sparse_mapping/utilities.h>
 
-DEFINE_int32(num_extra_localization_db_images, 0,
-             "Match this many extra images from the Vocab DB, only keep num_similar.");
-
-DEFINE_bool(verbose_localization, false,
-            "If true, list the images most similar to the one being localized.");
-
 namespace sparse_mapping {
-// A non-member Localize() function that can be invoked for a non-fully
-// formed map.
-bool Localize(cv::Mat const& test_descriptors,
-              Eigen::Matrix2Xd const& test_keypoints,
-              camera::CameraParameters const& camera_params,
-              camera::CameraModel* pose,
-              std::vector<Eigen::Vector3d>* inlier_landmarks,
-              std::vector<Eigen::Vector2d>* inlier_observations,
-              int num_cid,
-              std::string const& detector_name,
-              const ImageDatabas& image_database,
-              int num_similar,
-              std::vector<std::string> const& cid_to_filename,
-              std::vector<cv::Mat> const& cid_to_descriptor_map,
-              std::vector<Eigen::Matrix2Xd > const& cid_to_keypoint_map,
-              std::vector<std::map<int, int> > const& cid_fid_to_pid,
-              std::vector<Eigen::Vector3d> const& pid_to_xyz,
-              int num_ransac_iterations, int ransac_inlier_tolerance,
-              int early_break_landmarks, int histogram_equalization,
-              std::vector<int> * cid_list) {
-  std::vector<int> indices;
-  // Notice that we request more similar images than what we need. We'll prune them below.
-  // TODO(rsoussan): why?
-  const int max_results = num_similar + FLAGS_num_extra_localization_db_images;
-  // Query the vocab tree.
-  if (cid_list == NULL)
-    indices = image_database.Query(test_descriptors, max_results);
-  else
-    indices = *cid_list;
+EstimatePoseResults EstimatePose(
+  const cv::Mat& descriptors,  // TODO(rsoussan): change this to vector of descriptors
+                               // TODO(rsoussan): change this to vector of Eigen::Vector2ds
+  const Eigen::Matrix2Xd& keypoints, const SparseMap& map, const EstimatePoseParams& params) {
+  const auto indices = params.cid_list ? *params.cid_list : image_database.Query(descriptors, params.num_similar);
+  // TODO(rsoussan): Remove this?
   if (indices.empty()) {
-    LOG(WARNING) << "Localizing against all keyframes as the vocab database is missing.";
-    // Use all images, as no tree is available.
-    for (int cid = 0; cid < num_cid; cid++)
-      indices.push_back(cid);
+    LOG(FATAL) << "No indices found.";
   }
 
-  // To turn on verbose localization for debugging
-  // google::SetCommandLineOption("verbose_localization", "true");
-
-  // Find matches to each image in map. Do this in two passes. First,
-  // find matches to all map images, then keep only num_similar
-  // best matched images, then localize against those.
-
-  // We will not localize using all images having matches, there are too
-  // many false positives that way. Instead, limit ourselves to the images
-  // which have most observations in common with the current one.
+  // Check each image index for feature matches with given descriptors.
+  // Keep at most params.num_similar image match candidates, ordered by the number of matches per image candidate.
+  // Terminate early if the total number of features checked is larger than params.early_break_landmarks.
   std::vector<int> similarity_rank(indices.size(), 0);
   std::vector<std::vector<cv::DMatch> > all_matches(indices.size());
-  int total = 0;
+  int total_feature_matches = 0;
   // TODO(oalexan1): Use multiple threads here?
-  for (size_t i = 0; i < indices.size(); i++) {
-    int cid = indices[i];
-    interest_point::FindMatches(test_descriptors,
-                                cid_to_descriptor_map[cid],
-                                &all_matches[i]);
-
-    for (size_t j = 0; j < all_matches[i].size(); j++) {
-      if (cid_fid_to_pid[cid].count(all_matches[i][j].trainIdx) == 0)
-        continue;
-      similarity_rank[i]++;
+  for (const auto index : indices) {
+    const int cid = indices[index];
+    const auto& map_image_descriptors =  map.cid_to_descriptor_map_[cid];
+    std::vector<cv::DMatch>& matches = all_matches[index];
+    interest_point::FindMatches(descriptors,
+                                map_image_descriptors,
+                                &matches);
+    for (const auto& match : matches) {
+      const bool map_point_3d_exists = map.cid_fid_to_pid_[cid].count(match.trainIdx) > 0;
+      if (!map_point_3d_exists) continue;
+      ++similarity_rank[index];
     }
-    if (FLAGS_verbose_localization)
-      std::cout << "Overall matches and validated matches to: "
+
+    LOG(DEBUG) << "Overall matches and validated matches to: "
                 << cid_to_filename[cid] << ": "
-                << all_matches[i].size() << " "
-                << similarity_rank[i] << "\n";
-    total += similarity_rank[i];
-    if (total >= early_break_landmarks)
+                << matches.size() << " "
+                << similarity_rank[index];
+    total_feature_matches += similarity_rank[index];
+    if (total_feature_matches >= params.early_break_landmarks)
       break;
   }
 
   std::vector<Eigen::Vector2d> observations;
   std::vector<Eigen::Vector3d> landmarks;
-  std::vector<int> highly_ranked = ff_common::rv_order(similarity_rank);
-  int end = std::min(static_cast<int>(highly_ranked.size()), num_similar);
+  const std::vector<int> highly_ranked = ff_common::rv_order(similarity_rank);
+  const int end = std::min(static_cast<int>(highly_ranked.size()), num_similar);
   std::set<int> seen_landmarks;
-  if (FLAGS_verbose_localization)
-    std::cout << "Similar images: ";
-  for (int i = 0; i < end; i++) {
-    int cid = indices[highly_ranked[i]];
-    std::vector<cv::DMatch>* matches = &all_matches[highly_ranked[i]];
+  LOG(DEBUG) << "Similar images: ";
+  for (int i = 0; i < end; ++i) {
+    const int cid = indices[highly_ranked[i]];
+    const std::vector<cv::DMatch>& matches = all_matches[highly_ranked[i]];
     int num_matches = 0;
-    for (size_t j = 0; j < matches->size(); j++) {
-      if (cid_fid_to_pid[cid].count(matches->at(j).trainIdx) == 0)
-        continue;
-      const int landmark_id = cid_fid_to_pid.at(cid).at(matches->at(j).trainIdx);
-      if (seen_landmarks.count(landmark_id) > 0)
-        continue;
-      Eigen::Vector2d obs(test_keypoints.col(matches->at(j).queryIdx)[0],
-                          test_keypoints.col(matches->at(j).queryIdx)[1]);
-      observations.push_back(obs);
-      landmarks.push_back(pid_to_xyz[landmark_id]);
+    for (const auto& match : matches) {
+      const bool map_point_3d_exists = map.cid_fid_to_pid_[cid].count(match.trainIdx) > 0;
+      if (!map_point_3d_exists) continue;
+      const int landmark_id = map.cid_fid_to_pid_.at(cid).at(match.trainIdx);
+      if (seen_landmarks.count(landmark_id) > 0) continue;
+      const Eigen::Vector2d observation(keypoints.col(match.queryIdx)[0],
+                          keypoints.col(match.queryIdx)[1]);
+      observations.emplace_back(observation);
+      landmarks.push_back(map.pid_to_xyz_[landmark_id]);
       seen_landmarks.insert(landmark_id);
-      num_matches++;
+      ++num_matches;
     }
-    if (FLAGS_verbose_localization && num_matches > 0)
-      std::cout << " " << cid_to_filename[cid];
+    if (num_matches > 0)
+      LOG(DEBUG) << " " << cid_to_filename[cid];
   }
-  if (FLAGS_verbose_localization) std::cout << std::endl;
 
-  int ret = RansacEstimateCamera(landmarks, observations,
-                                 num_ransac_iterations,
-                                 ransac_inlier_tolerance, pose,
-                                 inlier_landmarks, inlier_observations,
-                                 FLAGS_verbose_localization);
-  return (ret == 0);
+  // TODO(rsoussan): Update this to return estimate pose results or use vision_common function
+std::vector<Eigen::Vector2d> inlier_landmarks_vec;
+std::vector<Eigen::Vector2d>* inlier_landmarks = params.inlier_landmarks ? &inlier_landmarks_vec : nullptr;
+std::vector<Eigen::Vector3d> inlier_observations_vec;
+std::vector<Eigen::Vector3d>* inlier_observations = params.inlier_observations ? &inlier_observations_vec : nullptr;
+camera::CameraModel camera_estimate;
+int ret = RansacEstimateCamera(landmarks, observations, params.num_ransac_iterations, params.ransac_inlier_tolerance,
+                               camera_estimate, inlier_landmarks, inlier_observations,
+                               // TODO(rsoussan): Change this to use LOG(DEBUG)
+                               FLAGS_verbose_localization);
+EstimatePoseResults results;
+if (ret) {
+  results.pose = camera_estimate;
+  if (params.inlier_landmarks) results.inlier_landmarks = *inlier_landmarks;
+  if (params.inlier_observations) results.inlier_observations = *inlier_observations;
+}
+  return results;
 }
 
-// Non-member InitializeCidFidToPid() function, useful
-// without a fully-formed map.
 // From pid_to_cid_fid, create cid_fid_to_pid for lookup.
 void InitializeCidFidToPid(int num_cid,
                            std::vector<std::map<int, int> > const& pid_to_cid_fid,

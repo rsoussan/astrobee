@@ -20,6 +20,8 @@
 #define SPARSE_MAPPING_UTILITIES_H_
 
 #include <ff_common/eigen_vectors.h>
+#include <sparse_mapping/estimate_pose_params.h>
+#include <sparse_mapping/estimate_pose_results.h>
 #include <sparse_mapping/image_database.h>
 #include <camera/camera_model.h>
 #include <camera/camera_params.h>
@@ -41,28 +43,11 @@ void InitializeCidFidToPid(int num_cid,
 
 /**
  * Estimate the camera pose for a set of image descriptors and keypoints.
- * Non-member function. We will invoke it both from within
- * the SparseMap class and from outside of it.
  **/
-// TODO(rsoussan): Make params file for this
-bool Localize(cv::Mat const& test_descriptors,
-              Eigen::Matrix2Xd const& test_keypoints,
-              camera::CameraParameters const& camera_params,
-              camera::CameraModel* pose,
-              std::vector<Eigen::Vector3d>* inlier_landmarks,
-              std::vector<Eigen::Vector2d>* inlier_observations,
-              int num_cid,
-              std::string const& detector_name,
-              const ImageDatabas& image_database,
-              int num_similar,
-              std::vector<std::string> const& cid_to_filename,
-              std::vector<cv::Mat> const& cid_to_descriptor_map,
-              std::vector<Eigen::Matrix2Xd > const& cid_to_keypoint_map,
-              std::vector<std::map<int, int> > const& cid_fid_to_pid,
-              std::vector<Eigen::Vector3d> const& pid_to_xyz,
-              int num_ransac_iterations, int ransac_inlier_tolerance,
-              int early_break_landmarks, int histogram_equalization,
-              std::vector<int> * cid_list);
+EstimatePoseResults EstimatePose(
+  const cv::Mat& descriptors,  // TODO(rsoussan): change this to vector of descriptors
+                               // TODO(rsoussan): change this to vector of Eigen::Vector2ds
+  const Eigen::Matrix2Xd& keypoints, const SparseMap& map, const EstimatePoseParams& params);
 
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_UTILITIES_H_
