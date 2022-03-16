@@ -67,7 +67,7 @@ namespace sparse_mapping {
 SparseMap::SparseMap(const std::vector<std::string>& filenames, const std::string& detector,
                      const camera::CameraParameters& camera_params)
     : cid_to_filename_(filenames), detector_(detector) {
-  LoadParams(camera_params);
+  SetParams(camera_params);
   cid_to_descriptor_map_.resize(cid_to_filename_.size());
   // TODO(bcoltin): only record scale and orientation for opensift?
   cid_to_keypoint_map_.resize(cid_to_filename_.size());
@@ -76,7 +76,7 @@ SparseMap::SparseMap(const std::vector<std::string>& filenames, const std::strin
 SparseMap::SparseMap(const std::string& protobuf_file, bool localization) : {
   camera::CameraParameters camera_params(Eigen::Vector2i(-1, -1), Eigen::Vector2d::Constant(-1),
                  Eigen::Vector2d(-1, -1));
-  LoadParams(camera_params);
+  SetParams(camera_params);
   // The above camera params used bad values because we are expected to reload
   // later.
   Load(protobuf_file, localization);
@@ -88,7 +88,7 @@ SparseMap::SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_t,
                      const std::string & detector,
                      const camera::CameraParameters & camera_params):
   detector_(detector) {
-  LoadParams(camera_params);
+  SetParams(camera_params);
   if (filenames.size() != cid_to_cam_t.size())
     LOG(FATAL) << "Expecting as many images as cameras";
 
@@ -114,7 +114,7 @@ SparseMap::SparseMap(bool bundler_format, std::string const& filename,
   // these are placeholders and must be changed
   const camera::CameraParameters camera_params(Eigen::Vector2i(640, 480), Eigen::Vector2d::Constant(300),
                                                Eigen::Vector2d(320, 240));
-  LoadParams(camera_params);
+  SetParams(camera_params);
   std::string ext = ff_common::file_extension(filename);
   boost::to_lower(ext);
 
@@ -217,7 +217,7 @@ SparseMap::SparseMap(bool bundler_format, std::string const& filename,
   InitializeCidFidToPid();
 }
 
-void SparseMap::LoadParams(const camera::CameraParameters & camera_params) {
+void SparseMap::SetParams(const camera::CameraParameters & camera_params) {
       params_.camera_params = camera_params;
         params_.num_similar = FLAGS_num_similar;
         params_.num_ransac_iterations = FLAGS_num_ransac_iterations;
@@ -555,7 +555,7 @@ void SparseMap::InitializeCidFidToPid() {
                                         &cid_fid_to_pid_);
 }
 
-  std::vector<cv::Mat> GetImageFeatures(const int image_id) const {
+  std::vector<cv::Mat> SparseMap::GetImageFeatures(const int image_id) const {
       std::vector<cv::Mat> features;
       const int num_features = map->GetFrameKeypoints(image_id).outerSize();
       for (int i = 0; i < num_features; ++i) {

@@ -83,7 +83,7 @@ class SparseMap : public SparseMapDatabase {
 
   SparseMap(bool bundler_format, std::string const& filename, std::vector<std::string> const& files);
 
-  void LoadParams(const camera::CameraParameters& camera_params);
+  void SetParams(const camera::CameraParameters& camera_params);
 
   void BuildDatabase(const FeatureSets& feature_sets);
 
