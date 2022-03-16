@@ -24,7 +24,7 @@
 #include <ff_common/init.h>
 #include <ff_common/thread.h>
 #include <camera/camera_model.h>
-#include <sparse_mapping/reprojection.h>
+#include <sparse_mapping/estimate_pose_utilities.h>
 
 #include <Eigen/Geometry>
 #include <ceres/ceres.h>

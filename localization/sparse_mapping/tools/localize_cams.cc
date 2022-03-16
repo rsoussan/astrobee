@@ -19,7 +19,7 @@
 #include <ff_common/thread.h>
 #include <sparse_mapping/sparse_map.h>
 #include <sparse_mapping/sparse_mapping.h>
-#include <sparse_mapping/reprojection.h>
+#include <sparse_mapping/estimate_pose_utilities.h>
 
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>

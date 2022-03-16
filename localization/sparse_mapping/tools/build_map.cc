@@ -21,7 +21,7 @@
 #include <config_reader/config_reader.h>
 #include <camera/camera_params.h>
 #include <sparse_mapping/sparse_map.h>
-#include <sparse_mapping/reprojection.h>
+#include <sparse_mapping/estimate_pose_utilities.h>
 #include <sparse_mapping/tensor.h>
 #include <sparse_mapping/sparse_mapping.h>
 

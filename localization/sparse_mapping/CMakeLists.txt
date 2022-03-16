@@ -72,8 +72,8 @@ include_directories(
 
 # Declare C++ libraries
 add_library(sparse_mapping
+  src/estimate_pose_utilities.cc
   src/ransac.cc
-  src/reprojection.cc
   src/sparse_map.cc
   src/sparse_mapping.cc
   src/tensor.cc

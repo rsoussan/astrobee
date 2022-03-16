@@ -19,9 +19,9 @@
 #include <ff_common/init.h>
 #include <ff_common/thread.h>
 #include <ff_common/utils.h>
+#include <sparse_mapping/estimate_pose_utilities.h>
 #include <sparse_mapping/tensor.h>
 #include <sparse_mapping/ransac.h>
-#include <sparse_mapping/reprojection.h>
 #include <sparse_mapping/sparse_mapping.h>
 #include <sparse_mapping/sparse_map.h>
 #include <sparse_mapping/vocab_tree.h>

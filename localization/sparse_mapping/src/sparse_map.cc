@@ -22,7 +22,6 @@
 #include <ff_common/thread.h>
 #include <ff_common/utils.h>
 #include <interest_point/matching.h>
-#include <sparse_mapping/reprojection.h>
 #include <sparse_mapping/sparse_mapping.h>
 #include <sparse_mapping/tensor.h>
 
