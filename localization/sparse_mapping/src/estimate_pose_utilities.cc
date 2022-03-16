@@ -101,20 +101,20 @@ EstimatePoseResults EstimatePose(
   }
 
   // TODO(rsoussan): Update this to return estimate pose results or use vision_common function
-std::vector<Eigen::Vector2d> inlier_landmarks_vec;
-std::vector<Eigen::Vector2d>* inlier_landmarks = params.inlier_landmarks ? &inlier_landmarks_vec : nullptr;
-std::vector<Eigen::Vector3d> inlier_observations_vec;
-std::vector<Eigen::Vector3d>* inlier_observations = params.inlier_observations ? &inlier_observations_vec : nullptr;
-camera::CameraModel camera_estimate;
-int ret = RansacEstimateCamera(landmarks, observations, params.num_ransac_iterations, params.ransac_inlier_tolerance,
-                               camera_estimate, inlier_landmarks, inlier_observations,
-                               // TODO(rsoussan): Change this to use LOG(DEBUG)
-                               FLAGS_verbose_localization);
-EstimatePoseResults results;
-if (ret) {
-  results.pose = camera_estimate;
-  if (params.inlier_landmarks) results.inlier_landmarks = *inlier_landmarks;
-  if (params.inlier_observations) results.inlier_observations = *inlier_observations;
+  std::vector<Eigen::Vector2d> inlier_landmarks_vec;
+  std::vector<Eigen::Vector2d>* inlier_landmarks = params.inlier_landmarks ? &inlier_landmarks_vec : nullptr;
+  std::vector<Eigen::Vector3d> inlier_observations_vec;
+  std::vector<Eigen::Vector3d>* inlier_observations = params.inlier_observations ? &inlier_observations_vec : nullptr;
+  camera::CameraModel camera_estimate;
+  int ret = RansacEstimateCamera(landmarks, observations, params.num_ransac_iterations, params.ransac_inlier_tolerance,
+                                 camera_estimate, inlier_landmarks, inlier_observations,
+                                 // TODO(rsoussan): Change this to use LOG(DEBUG)
+                                 FLAGS_verbose_localization);
+  EstimatePoseResults results;
+  if (ret) {
+    results.pose = camera_estimate;
+    if (params.inlier_landmarks) results.inlier_landmarks = *inlier_landmarks;
+    if (params.inlier_observations) results.inlier_observations = *inlier_observations;
 }
   return results;
 }
