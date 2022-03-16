@@ -23,7 +23,7 @@
 
 namespace sparse_mapping {
 struct EstimatePoseParams {
-       int num_ransac_iterations;
+      int num_ransac_iterations;
      int ransac_inlier_tolerance;
     int early_break_landmarks;
     int histogram_equalization;
