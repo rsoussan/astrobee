@@ -35,55 +35,46 @@ DEFINE_uint64(num_min_localization_inliers, 10,
               "If fewer than this many number of inliers, localization has failed.");
 
 namespace sparse_mapping {
-EstimatePoseResults EstimatePose(
-  const cv::Mat& descriptors,  // TODO(rsoussan): change this to vector of descriptors
-                               // TODO(rsoussan): change this to vector of Eigen::Vector2ds
-  const Eigen::Matrix2Xd& keypoints, const SparseMap& map, const EstimatePoseParams& params) {
-  const auto indices = image_database.Query(descriptors, params.num_similar);
-  if (indices.empty()) {
-    LOG(FATAL) << "No indices found.";
-  }
-
-  // Check each image index for feature matches with given descriptors.
-  // Keep at most params.num_similar image match candidates, ordered by the number of matches per image candidate.
-  // Terminate early if the total number of features checked is larger than params.early_break_landmarks.
-  std::vector<int> similarity_rank(indices.size(), 0);
-  std::vector<std::vector<cv::DMatch> > all_matches(indices.size());
-  int total_feature_matches = 0;
+std::vector<ImageMatch> FindAndSortMatches(const std::vector<int>& matching_cids, const SparseMap& map,
+                                           const int max_num_total_feature_matches, const bool check_point_3d_exists,
+                                           const int min_matches_per_image) {
+  std::vector<ImageMatch> sorted_image_matches;
+  int total_matches = 0;
   // TODO(oalexan1): Use multiple threads here?
-  for (const auto index : indices) {
-    const int cid = indices[index];
-    const auto& map_image_descriptors =  map.cid_to_descriptor_map_[cid];
-    std::vector<cv::DMatch>& matches = all_matches[index];
+  for (const auto cid : matching_cids) {
+    const auto& map_image_descriptors = map.cid_to_descriptor_map_[cid];
+    ImageMatch image_match;
+    image_match.cid = cid;
     interest_point::FindMatches(descriptors,
                                 map_image_descriptors,
-                                &matches);
-    for (const auto& match : matches) {
-      const bool map_point_3d_exists = map.cid_fid_to_pid_[cid].count(match.trainIdx) > 0;
-      if (!map_point_3d_exists) continue;
-      ++similarity_rank[index];
+                                &image_match.matches);
+    int num_valid_matches = 0;
+    if (!check_point_3d_exists) {
+      image_match.num_valid_matches = image_match.matches.size();
+    } else {
+      for (const auto& match : image_match.matches) {
+       const bool map_point_3d_exists = map.cid_fid_to_pid_[cid].count(match.trainIdx) > 0;
+        if (!map_point_3d_exists) continue;
+        ++image_match.num_valid_matches;
+      }
     }
 
-    LOG(DEBUG) << "Overall matches and validated matches to: "
-                << cid_to_filename[cid] << ": "
-                << matches.size() << " "
-                << similarity_rank[index];
-    total_feature_matches += similarity_rank[index];
-    if (total_feature_matches >= params.early_break_landmarks)
+    sorted_image_matches.emplace_back(image_match);
+    total_matches += image_match.num_valid_matches;
+    if (total_matches >= max_num_total_feature_matches)
       break;
   }
 
-  std::vector<Eigen::Vector2d> observations;
-  std::vector<Eigen::Vector3d> landmarks;
-  const std::vector<int> highly_ranked = ff_common::rv_order(similarity_rank);
-  const int end = std::min(static_cast<int>(highly_ranked.size()), num_similar);
+  std::sort(image_matches.begin(), image_matches.end(), std::greater<>());
+  return image_matches;
+}
+
+void GetMatchingObservationsAndLandmarks(const std::vector<ImageMatches>& image_matches, const SparseMap& map,
+                                         std::vector<Eigen::Vector2d>& observations,
+                                         std::vector<Eigen::Vector3d>& landmarks) {
   std::set<int> seen_landmarks;
-  LOG(DEBUG) << "Similar images: ";
-  for (int i = 0; i < end; ++i) {
-    const int cid = indices[highly_ranked[i]];
-    const std::vector<cv::DMatch>& matches = all_matches[highly_ranked[i]];
-    int num_matches = 0;
-    for (const auto& match : matches) {
+  for (const auto& image_match : image_matches) {
+    for (const auto& match : image_match.matches) {
       const bool map_point_3d_exists = map.cid_fid_to_pid_[cid].count(match.trainIdx) > 0;
       if (!map_point_3d_exists) continue;
       const int landmark_id = map.cid_fid_to_pid_.at(cid).at(match.trainIdx);
@@ -95,9 +86,21 @@ EstimatePoseResults EstimatePose(
       seen_landmarks.insert(landmark_id);
       ++num_matches;
     }
-    if (num_matches > 0)
-      LOG(DEBUG) << " " << cid_to_filename[cid];
   }
+}
+
+EstimatePoseResults EstimatePose(const cv::Mat& descriptors, const Eigen::Matrix2Xd& keypoints, const SparseMap& map,
+                                 const EstimatePoseParams& params) {
+  const auto matching_cids = map.image_database().Query(descriptors, params.max_image_matches);
+  if (matching_cids.empty()) {
+    LOG(FATAL) << "No matching cids found.";
+  }
+
+  const auto image_matches =
+    FindAndSortMatches(matching_cids, map, params.max_num_total_feature_matches, params.check_point_3d_exists);
+  std::vector<Eigen::Vector2d> observations;
+  std::vector<Eigen::Vector3d> landmarks;
+  GetMatchingObservationsAndLandmarks(image_matches, map, observations, landmarks);
 
   // TODO(rsoussan): Update this to return estimate pose results or use vision_common function
   std::vector<Eigen::Vector2d> inlier_landmarks_vec;

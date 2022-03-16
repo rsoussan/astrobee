@@ -69,6 +69,7 @@ void Localizer::ReadParams(config_reader::ConfigReader* config) {
   sparse_mapping::HistogramEqualizationCheck(map_->GetHistogramEqualization(),
                                              histogram_equalization);
   map_->SetCameraParameters(cam_params);
+  // TODO(rsoussan): Make estimateposeparams file and set these there!!!!!!
   map_->SetNumSimilar(num_similar);
   map_->SetRansacInlierTolerance(ransac_inlier_tolerance);
   map_->SetRansacIterations(ransac_iterations);

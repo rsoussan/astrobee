@@ -45,6 +45,8 @@ class TemplatedImageDatabase : public DBoW2::TemplatedDatabase<TDescriptor, F>, 
   TemplatedImageDatabase(TemplatedFeatureVocabulary<TDescriptor, F> const& voc, const ImageDatabaseParams& params);
   TemplatedImageDatabase(const FeatureSets feature_sets, const ImageDatabaseParams& params);
   std::vector<int> Query(const cv::Mat& features, const int max_results) const override;
+  // Return the cids of the images which are most similar to the current image in sorted order
+  // beginning with the best matching cids
   std::vector<int> Query(const FeatureSet& features, const int max_results) const override;
   void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const override;
   void LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) override;
@@ -134,8 +136,6 @@ void TemplatedImageDatabase<TDescriptor, F>::SaveProtobuf(google::protobuf::io::
   }
 }
 
-// Return the indices of the images which are most similar to the current image.
-// TODO(rsoussan): Also return score?
 template <class TDescriptor, class F>
 std::vector<int> TemplatedImageDatabase<TDescriptor, F>::Query(const cv::Mat& features,
                                                                const int max_results) {
@@ -146,18 +146,16 @@ std::vector<int> TemplatedImageDatabase<TDescriptor, F>::Query(const cv::Mat& fe
     return Query(feature_set, max_results);
 }
 
-// Return the indices of the images which are most similar to the current image.
-// TODO(rsoussan): Also return score?
 template <class TDescriptor, class F>
 std::vector<int> TemplatedImageDatabase<TDescriptor, F>::Query(const FeatureSet& features,
                                                                const int max_results) {
-  std::vector<int> indices;
+  std::vector<int> matching_cids;
   DBoW2::QueryResults results;
   this->query(features, results, max_results);
-  for (int i = 0; i < results.size(); ++i) {
-      indices.push_back(results[i].Id);
-    }
-  return indices;
+  for (const auto& result : results) {
+    matching_cids.push_back(result.Id);
+  }
+  return matching_cids;
 }
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_TEMPLATED_IMAGE_DATABASE_H_

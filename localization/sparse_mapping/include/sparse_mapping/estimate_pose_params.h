@@ -23,11 +23,13 @@
 
 namespace sparse_mapping {
 struct EstimatePoseParams {
-      int num_ransac_iterations;
-     int ransac_inlier_tolerance;
-    int early_break_landmarks;
+    int num_ransac_iterations;
+    int ransac_inlier_tolerance;
+      // TODO(rsoussan): Change this to a bool?
     int histogram_equalization;
-    int num_similar;
+    int max_num_total_feature_matches;
+    bool check_point_3d_exists;
+    int max_image_matches;
     bool inlier_landmarks;
     bool inlier_observations;
 };

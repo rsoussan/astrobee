@@ -40,11 +40,6 @@
 #include <utility>
 #include <limits>
 
-namespace cv {
-  class Mat;
-  class DMatch;
-}
-
 namespace sparse_mapping {
 /**
  * A class representing a sparse map, which consists of a collection

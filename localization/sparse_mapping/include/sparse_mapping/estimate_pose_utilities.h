@@ -46,6 +46,21 @@ namespace cv {
 }
 
 namespace sparse_mapping {
+struct ImageMatch {
+  std::vector<cv::DMatch> matches;
+  int num_valid_matches;
+  int cid;
+  bool operator<(const ImageMatch& rhs) { return num_valid_matches < rhs.num_valid_matches; }
+};
+
+void GetMatchingObservationsAndLandmarks(const std::vector<ImageMatches>& image_matches, const SparseMap& map,
+                                         std::vector<Eigen::Vector2d>& observations,
+                                         std::vector<Eigen::Vector3d>& landmarks);
+
+std::vector<ImageMatch> FindAndSortMatches(const std::vector<int>& matching_cids, const SparseMap& map,
+                                           const int max_num_total_feature_matches = 100,
+                                           const bool check_point_3d_exists = true,
+                                           const int min_matches_per_image = 5);
 /**
  * Estimate the camera pose for a set of image descriptors and keypoints.
  **/
