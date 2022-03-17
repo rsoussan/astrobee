@@ -15,24 +15,13 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-
-#ifndef VISION_COMMON_DYNAMIC_DETECTOR_PARAMS_H_
-#define VISION_COMMON_DYNAMIC_DETECTOR_PARAMS_H_
-
-#include <string>
+#include <vision_common/brisk_dynamic_detector.h>
+#include <vision_common/dynamic_brisk.h>
 
 namespace vision_common {
-struct DynamicDetectorParams {
-  std::string name;
-  int min_features;
-  int max_features;
-  int max_retries;
-  double min_threshold;
-  double default_threshold;
-  double max_threshold;
-  bool center_keypoints;
-  double increase_threshold_multiplier;
-  double decrease_threshold_multiplier;
-};
+    BriskDynamicDetector::BriskDynamicDetector(const BriskDynamicDetectorParams& params): DynamicDetector(params), params_(params) {}
+    void BriskDynamicDetector::InitializeDetector() {
+      detector_ = cv::DynamicBRISK::create(params_.threshold, params_.octaves, params_.float_pattern_scale);
+    }
+    void BriskDynamicDetector::SetThreshold(const double threshold) { detector_->setThreshold(static_cast<int>(threshold)); }
 }  // namespace vision_common
-#endif  // VISION_COMMON_DYNAMIC_DETECTOR_PARAMS_H_

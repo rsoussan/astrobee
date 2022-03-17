@@ -15,24 +15,22 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
+#ifndef VISION_COMMON_SURF_DYNAMIC_DETECTOR_H_
+#define VISION_COMMON_SURF_DYNAMIC_DETECTOR_H_
 
-#ifndef VISION_COMMON_DYNAMIC_DETECTOR_PARAMS_H_
-#define VISION_COMMON_DYNAMIC_DETECTOR_PARAMS_H_
-
-#include <string>
+#include <vision_common/dynamic_detector.h>
+#include <vision_common/surf_dynamic_detector_params.h>
 
 namespace vision_common {
-struct DynamicDetectorParams {
-  std::string name;
-  int min_features;
-  int max_features;
-  int max_retries;
-  double min_threshold;
-  double default_threshold;
-  double max_threshold;
-  bool center_keypoints;
-  double increase_threshold_multiplier;
-  double decrease_threshold_multiplier;
-};
+  class SurfDynamicDetector: public DynamicDetector {
+   public:
+    explicit SurfDynamicDetector(const SurfDynamicDetectorParams& params);
+    void InitializeDetector() final;
+    void SetThreshold(const double threshold) final;
+
+   private:
+    SurfDynamicDetectorParams params_;
+  };
 }  // namespace vision_common
-#endif  // VISION_COMMON_DYNAMIC_DETECTOR_PARAMS_H_
+
+#endif  // VISION_COMMON_SURF_DYNAMIC_DETECTOR_H_

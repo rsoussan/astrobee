@@ -26,7 +26,7 @@ namespace vision_common {
                                cv::Mat& descriptors) {
     for (int i = 0; i < params_.max_retries; ++i) {
       keypoints.clear();
-      Detect(image, keypoints);
+      detector_->detect(image, keypoints);
       if (keypoints.size() < params_.min_features)
         DecreaseThreshold();
       else if (keypoints.size() > params_.max_features)
@@ -34,7 +34,7 @@ namespace vision_common {
       else
         break;
     }
-    Compute(image, keypoints, descriptors);
+    detector_->compute(image, keypoints, descriptors);
 
     if (params_.center_keypoints) {
       for (auto& keypoint : keypoints) {
@@ -43,4 +43,14 @@ namespace vision_common {
       }
     }
   }
+    void IncreaseThreshold() {
+      dynamic_threshold_ = std::min(dynamic_threshold*params_.increase_threshold_multiplier, params_.max_threshold);
+      detector_->setThreshold(dynamic_threshold_);
+    }
+
+    void DecreaseThreshold() {
+      dynamic_threshold_ = std::max(dynamic_threshold*params_.decrease_threshold_multiplier, params_.min_threshold);
+      detector_->setThreshold(dynamic_threshold_);
+    }
+
 }  // namespace vision_common

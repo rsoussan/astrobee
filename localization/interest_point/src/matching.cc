@@ -125,14 +125,12 @@ namespace interest_point {
     }
     virtual void TooMany(void) {
       dynamic_thresh_ *= 1.25;
-      dynamic_thresh_ = static_cast<int>(dynamic_thresh_);  // for backwards compatibility
       if (dynamic_thresh_ > max_thresh_)
         dynamic_thresh_ = max_thresh_;
       brisk_->setThreshold(dynamic_thresh_);
     }
     virtual void TooFew(void) {
       dynamic_thresh_ *= 0.8;
-      dynamic_thresh_ = static_cast<int>(dynamic_thresh_);  // for backwards compatibility
       if (dynamic_thresh_ < min_thresh_)
         dynamic_thresh_ = min_thresh_;
       brisk_->setThreshold(dynamic_thresh_);

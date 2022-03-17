@@ -20,7 +20,7 @@
 
 namespace vision_common {
 struct SurfDetectorParams {
-  int surf_threshold;
+  int threshold;
 };
 }  // namespace vision_common
 
