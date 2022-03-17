@@ -78,7 +78,7 @@ class SparseMap : public SparseMapDatabase {
 
   SparseMap(bool bundler_format, std::string const& filename, std::vector<std::string> const& files);
 
-  void SetParams(const camera::CameraParameters& camera_params);
+  void SetParams(const std::string& detector, const camera::CameraParameters& camera_params);
 
   void BuildDatabase(const FeatureSets& feature_sets);
 
@@ -99,9 +99,9 @@ class SparseMap : public SparseMapDatabase {
   /**
    * Return the parameters of the camera used to construct the map.
    **/
-  const camera::CameraParameters& camera_params() const {return params_.camera_params;}
+  const camera::CameraParameters& camera_params() const {return params_.camera;}
 
-  void SetCameraParameters(const camera::CameraParameters& camera_params) {params_.camera_params = camera_params;}
+  void SetCameraParameters(const camera::CameraParameters& camera_params) {params_.camera = camera_params;}
 
   // Load map. If localization is true, load only the parts of the map
   // needed for localization.

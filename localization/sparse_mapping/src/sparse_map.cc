@@ -65,29 +65,29 @@ namespace sparse_mapping {
 
 SparseMap::SparseMap(const std::vector<std::string>& filenames, const std::string& detector,
                      const camera::CameraParameters& camera_params)
-    : cid_to_filename_(filenames), detector_(detector) {
-  SetParams(camera_params);
+    : cid_to_filename_(filenames) {
+  SetParams(detector, camera_params);
   cid_to_descriptor_map_.resize(cid_to_filename_.size());
   // TODO(bcoltin): only record scale and orientation for opensift?
   cid_to_keypoint_map_.resize(cid_to_filename_.size());
 }
 
-SparseMap::SparseMap(const std::string& protobuf_file, bool localization) : {
-  camera::CameraParameters camera_params(Eigen::Vector2i(-1, -1), Eigen::Vector2d::Constant(-1),
-                 Eigen::Vector2d(-1, -1));
-  SetParams(camera_params);
+/*SparseMap::SparseMap(const std::string& protobuf_file, bool localization) : {
+ // camera::CameraParameters camera_params(Eigen::Vector2i(-1, -1), Eigen::Vector2d::Constant(-1),
+ //                Eigen::Vector2d(-1, -1));
+
   // The above camera params used bad values because we are expected to reload
   // later.
   Load(protobuf_file, localization);
-}
+  // TODO(rsoussan): need to update camera params somehow!!!!
+  SetParams(camera_params);
+}*/
 
 // Form a sparse map with given cameras/images, and no features
-SparseMap::SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_t,
-                     const std::vector<std::string> & filenames,
-                     const std::string & detector,
-                     const camera::CameraParameters & camera_params):
-  detector_(detector) {
-  SetParams(camera_params);
+SparseMap::SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_t, const std::vector<std::string>& filenames,
+                     const std::string& detector, const camera::CameraParameters& camera_params)
+    : {
+  SetParams(detector, camera_params);
   if (filenames.size() != cid_to_cam_t.size())
     LOG(FATAL) << "Expecting as many images as cameras";
 
@@ -106,14 +106,15 @@ SparseMap::SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_t,
   cid_to_descriptor_map_.resize(num_cams);
 }
 
-// Form a sparse map by reading a text file from disk. This is for comparing
+/*// Form a sparse map by reading a text file from disk. This is for comparing
 // bundler, nvm or theia maps.
 SparseMap::SparseMap(bool bundler_format, std::string const& filename,
                      std::vector<std::string> const& all_image_files) {
   // these are placeholders and must be changed
   const camera::CameraParameters camera_params(Eigen::Vector2i(640, 480), Eigen::Vector2d::Constant(300),
                                                Eigen::Vector2d(320, 240));
-  SetParams(camera_params);
+  // TODO(rsoussan): how to get detector params???
+  SetParams(detector, camera_params);
   std::string ext = ff_common::file_extension(filename);
   boost::to_lower(ext);
 
@@ -214,15 +215,13 @@ SparseMap::SparseMap(bool bundler_format, std::string const& filename,
 
   // Initialize this convenient mapping
   InitializeCidFidToPid();
-}
+}*/
 
-void SparseMap::SetParams(const camera::CameraParameters & camera_params) {
-      params_.camera_params = camera_params;
-        params_.num_similar = FLAGS_num_similar;
-        params_.num_ransac_iterations = FLAGS_num_ransac_iterations;
-        params_.ransac_inlier_tolerance = FLAGS_ransac_inlier_tolerance;
-        params_.early_break_landmarks = FLAGS_early_break_landmarks;
-        params_.histogram_equalization = FLAGS_histogram_equalization;
+void SparseMap::SetParams(const std::string& detector, const camera::CameraParameters & camera_params) {
+      params_.detector.name = detector;
+      // TODO(rsoussan): set other detector params?
+      params_.camera = camera_params;
+      // TODO(rsoussan): set image database params?
 }
 
 // TODO(rsoussan: move detectfeatures and localize code to utilities file)

@@ -26,8 +26,8 @@
 namespace sparse_mapping {
 struct SparseMapParams {
   ImageDatabaseParams image_database;
-  camera::CameraParameters camera_params;
-  DetectorParams params;
+  camera::CameraParameters camera;
+  DetectorParams detector;
 };
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_SPARSE_MAP_PARAMS_H_
