@@ -27,9 +27,10 @@ struct DynamicDetectorParams {
   int min_features;
   int max_features;
   int max_retries;
-  double min_thresh;
-  double default_thresh;
-  double max_thresh;
+  double min_threshold;
+  double default_threshold;
+  double max_threshold;
+  bool center_keypoints;
 };
 }  // namespace vision_common
 #endif  // VISION_COMMON_DYNAMIC_DETECTOR_PARAMS_H_
