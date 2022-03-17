@@ -16,8 +16,8 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_DETECTOR_PARAMS_H_
-#define SPARSE_MAPPING_DETECTOR_PARAMS_H_
+#ifndef INTEREST_POINT_DETECTOR_PARAMS_H_
+#define INTEREST_POINT_DETECTOR_PARAMS_H_
 
 #include <string>
 
@@ -32,4 +32,4 @@ struct DetectorParams {
   double max_thresh;
 };
 }  // namespace sparse_mapping
-#endif  // SPARSE_MAPPING_DETECTOR_PARAMS_H_
+#endif  // INTEREST_POINT_DETECTOR_PARAMS_H_
