@@ -121,7 +121,7 @@ class SparseMap : public SparseMapDatabase {
   // delete feature descriptors with no matching landmark
   void PruneMap();
 
-  std::string GetDetectorName() { return detector_.GetDetectorName(); }
+  std::string GetDetectorName() { return params_.detector.name; }
 
   const ImageDatabase& image_database() const { return *image_database_; }
 
@@ -137,8 +137,6 @@ class SparseMap : public SparseMapDatabase {
   SparseMapParams& params() { return params_; }
 
   const SparseMapParams& params() const { return params_; }
-
-  interest_point::FeatureDetector detector_;
 
  private:
   std::unique_ptr<ImageDatabase> image_database_;

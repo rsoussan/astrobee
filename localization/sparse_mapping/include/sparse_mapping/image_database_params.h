@@ -30,8 +30,8 @@
 namespace sparse_mapping {
 struct ImageDatabaseParams {
   FeatureVocabularyParams vocabulary;
-  bool use_direct_index;
-  int direct_index_levels;
+  bool use_direct_index = true;
+  int direct_index_levels = 0;
 };
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_IMAGE_DATABASE_PARAMS_H_

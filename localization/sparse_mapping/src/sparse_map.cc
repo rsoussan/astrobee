@@ -219,7 +219,13 @@ SparseMap::SparseMap(bool bundler_format, std::string const& filename,
 
 void SparseMap::SetParams(const std::string& detector, const camera::CameraParameters & camera_params) {
       params_.detector.name = detector;
-      // TODO(rsoussan): set other detector params?
+      // TODO(rsoussan): Do this in a better way
+      {
+      interest_point::FeatureDetector d(detector);
+      d.GetDetectorParams(params_.detector.min_features, params_.detector.min_features, params_.detector.max_features,
+                          params_.detector.max_retries, params_.detector.min_thresh, params_.detector.default_thresh,
+                          params_.detector.max_thresh);
+      }
       params_.camera = camera_params;
       // TODO(rsoussan): set image database params?
 }
