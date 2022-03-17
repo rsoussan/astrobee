@@ -18,15 +18,11 @@ This folder consists of various sensing algorithms which serve as input to local
  
 \subpage imuintegration
 
-\subpage interestpoint
-
 \subpage localizationcommon
 
 \subpage localization_manager
 
 \subpage localizationmeasurements
-
-\subpage localization_node
 
 \subpage opticalflow
 
@@ -37,6 +33,8 @@ This folder consists of various sensing algorithms which serve as input to local
 \subpage markertracking
 
 \subpage sparsemapping
+
+\subpage sparsemapmatcher
 
 \subpage visioncommon 
 
