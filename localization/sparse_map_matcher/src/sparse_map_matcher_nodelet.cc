@@ -16,38 +16,36 @@
  * under the License.
  */
 
-#include <localization_node/localization_nodelet.h>
-
 #include <ff_common/init.h>
-#include <sparse_mapping/sparse_map.h>
-
-#include <ros/ros.h>
 #include <ff_msgs/CameraRegistration.h>
 #include <ff_msgs/VisualLandmarks.h>
+#include <msg_conversions/msg_conversions.h>
+#include <sparse_map_matcher/sparse_map_matcher_nodelet.h>
+#include <sparse_mapping/sparse_map.h>
+
 #include <geometry_msgs/TransformStamped.h>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
-#include <msg_conversions/msg_conversions.h>
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
+#include <ros/ros.h>
 #include <tf2_ros/transform_broadcaster.h>
 
-namespace localization_node {
-
-LocalizationNodelet::LocalizationNodelet() : ff_util::FreeFlyerNodelet(NODE_MAPPED_LANDMARKS),
+namespace sparse_map_matcher {
+SparseMapMatcherNodelet::SparseMapMatcherNodelet() : ff_util::FreeFlyerNodelet(NODE_MAPPED_LANDMARKS),
         enabled_(false), count_(0), processing_image_(true) {
   pthread_mutex_init(&mutex_features_, NULL);
   pthread_cond_init(&cond_features_, NULL);
 }
 
-LocalizationNodelet::~LocalizationNodelet(void) {
+SparseMapMatcherNodelet::~SparseMapMatcherNodelet() {
   thread_->join();
   pthread_mutex_destroy(&mutex_features_);
   pthread_cond_destroy(&cond_features_);
 }
 
 
-void LocalizationNodelet::Initialize(ros::NodeHandle* nh) {
+void SparseMapMatcherNodelet::Initialize(ros::NodeHandle* nh) {
   ff_common::InitFreeFlyerApplication(getMyArgv());
 
   config_.AddFile("cameras.config");
@@ -70,7 +68,7 @@ void LocalizationNodelet::Initialize(ros::NodeHandle* nh) {
       TOPIC_LOCALIZATION_ML_FEATURES, 10);
 
   // Subscribe to input video feed and publish output odometry info
-  image_sub_ = it_->subscribe(TOPIC_HARDWARE_NAV_CAM, 1, &LocalizationNodelet::ImageCallback, this);
+  image_sub_ = it_->subscribe(TOPIC_HARDWARE_NAV_CAM, 1, &SparseMapMatcherNodelet::ImageCallback, this);
 
   matched_features_on_ = false;
   all_features_on_ = false;
@@ -128,7 +126,7 @@ void LocalizationNodelet::Initialize(ros::NodeHandle* nh) {
   }
 
   // start a new thread to run everything
-  thread_.reset(new std::thread(&localization_node::LocalizationNodelet::Run, this));
+  thread_.reset(new std::thread(&SparseMapMatcherNodelet::Run, this));
 
   ReadParams();
 
@@ -139,12 +137,12 @@ void LocalizationNodelet::Initialize(ros::NodeHandle* nh) {
   cv::setNumThreads(num_threads);
 
   config_timer_ = nh->createTimer(ros::Duration(1), [this](ros::TimerEvent e) {
-      config_.CheckFilesUpdated(std::bind(&LocalizationNodelet::ReadParams, this));}, false, true);
+      config_.CheckFilesUpdated(std::bind(&SparseMapMatcherNodelet::ReadParams, this));}, false, true);
 
-  enable_srv_ = nh->advertiseService(SERVICE_LOCALIZATION_ML_ENABLE, &LocalizationNodelet::EnableService, this);
+  enable_srv_ = nh->advertiseService(SERVICE_LOCALIZATION_ML_ENABLE, &SparseMapMatcherNodelet::EnableService, this);
 }
 
-void LocalizationNodelet::ReadParams(void) {
+void SparseMapMatcherNodelet::ReadParams() {
   if (!config_.ReadFiles()) {
     ROS_ERROR("Failed to read config files.");
     return;
@@ -152,13 +150,13 @@ void LocalizationNodelet::ReadParams(void) {
   inst_->ReadParams(&config_);
 }
 
-bool LocalizationNodelet::EnableService(ff_msgs::SetBool::Request & req, ff_msgs::SetBool::Response & res) {
+bool SparseMapMatcherNodelet::EnableService(ff_msgs::SetBool::Request & req, ff_msgs::SetBool::Response & res) {
   enabled_ = req.enable;
   res.success = true;
   return true;
 }
 
-void LocalizationNodelet::ImageCallback(const sensor_msgs::ImageConstPtr& msg) {
+void SparseMapMatcherNodelet::ImageCallback(const sensor_msgs::ImageConstPtr& msg) {
   ros::Time timestamp = ros::Time::now();
   pthread_mutex_lock(&mutex_features_);
   bool cont = processing_image_;
@@ -185,7 +183,7 @@ void LocalizationNodelet::ImageCallback(const sensor_msgs::ImageConstPtr& msg) {
   pthread_mutex_unlock(&mutex_features_);
 }
 
-void LocalizationNodelet::Localize(void) {
+void SparseMapMatcherNodelet::Localize() {
   ff_msgs::VisualLandmarks vl;
   Eigen::Matrix2Xd image_keypoints;
 
@@ -244,7 +242,7 @@ void LocalizationNodelet::Localize(void) {
   br.sendTransform(transformStamped);
 }
 
-void LocalizationNodelet::Run(void) {
+void SparseMapMatcherNodelet::Run() {
   struct timespec ts;
   bool running = false;
   while (ros::ok()) {
@@ -254,7 +252,7 @@ void LocalizationNodelet::Run(void) {
     }
     if (!running) {
       if (enabled_) {
-        image_sub_ = it_->subscribe(TOPIC_HARDWARE_NAV_CAM, 1, &LocalizationNodelet::ImageCallback, this);
+        image_sub_ = it_->subscribe(TOPIC_HARDWARE_NAV_CAM, 1, &SparseMapMatcherNodelet::ImageCallback, this);
         running = true;
       } else {
         usleep(100000);
@@ -279,6 +277,6 @@ void LocalizationNodelet::Run(void) {
   }
 }
 
-};  // namespace localization_node
+};  // namespace sparse_map_matcher
 
-PLUGINLIB_EXPORT_CLASS(localization_node::LocalizationNodelet, nodelet::Nodelet)
+PLUGINLIB_EXPORT_CLASS(sparse_map_matcher::SparseMapMatcherNodelet, nodelet::Nodelet)

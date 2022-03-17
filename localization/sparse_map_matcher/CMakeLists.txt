@@ -16,7 +16,7 @@
 # under the License.
 
 cmake_minimum_required(VERSION 3.0)
-project(localization_node)
+project(sparse_map_matcher)
 
 ## Compile as C++14, supported in ROS Kinetic and newer
 add_compile_options(-std=c++14)
@@ -72,12 +72,12 @@ include_directories(
 )
 
 # Declare C++ libraries
-add_library(localization_node
-  src/localization.cc
-  src/localization_nodelet.cc
+add_library(sparse_map_matcher
+  src/sparse_map_matcher.cc
+  src/sparse_map_matcher_nodelet.cc
 )
-add_dependencies(localization_node ${catkin_EXPORTED_TARGETS})
-target_link_libraries(localization_node
+add_dependencies(sparse_map_matcher ${catkin_EXPORTED_TARGETS})
+target_link_libraries(sparse_map_matcher
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
   ${OPENMVG_LIBRARIES}
@@ -87,19 +87,19 @@ target_link_libraries(localization_node
 add_executable(extract_image_bag tools/extract_image_bag.cc)
 add_dependencies(extract_image_bag ${catkin_EXPORTED_TARGETS})
 target_link_libraries(extract_image_bag
-  localization_node gflags glog ${catkin_LIBRARIES})
+  sparse_map_matcher gflags glog ${catkin_LIBRARIES})
 
 ## Declare a C++ executable: interest_points_test_bag
 add_executable(interest_points_test_bag tools/interest_points_test_bag.cc)
 add_dependencies(interest_points_test_bag ${catkin_EXPORTED_TARGETS})
 target_link_libraries(interest_points_test_bag
-  localization_node gflags glog ${catkin_LIBRARIES})
+  sparse_map_matcher gflags glog ${catkin_LIBRARIES})
 
 ## Declare a C++ executable: merge_bags
 add_executable(merge_bags tools/merge_bags.cc)
 add_dependencies(merge_bags ${catkin_EXPORTED_TARGETS})
 target_link_libraries(merge_bags
-  localization_node gflags glog ${catkin_LIBRARIES})
+  sparse_map_matcher gflags glog ${catkin_LIBRARIES})
 
 #############
 ## Install ##

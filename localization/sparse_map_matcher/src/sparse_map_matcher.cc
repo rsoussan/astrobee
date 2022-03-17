@@ -16,25 +16,19 @@
  * under the License.
  */
 
-#include <localization_node/localization.h>
-
-#include <sparse_mapping/sparse_map.h>
+#include <camera/camera_params.h>
 #include <ff_msgs/VisualLandmarks.h>
 #include <msg_conversions/msg_conversions.h>
 #include <ros/ros.h>
+#include <sparse_map_matcher/sparse_map_matcher.h>
+#include <sparse_mapping/sparse_map.h>
 
-#include <camera/camera_params.h>
+namespace sparse_map_matcher {
 
-namespace localization_node {
+SparseMapMatcher::SparseMapMatcher(std::shared_ptr<sparse_mapping::SparseMap> map) :
+      map_(std::move(map)) {}
 
-Localizer::Localizer(sparse_mapping::SparseMap* comp_map_ptr) :
-      map_(comp_map_ptr) {
-}
-
-Localizer::~Localizer(void) {
-}
-
-void Localizer::ReadParams(config_reader::ConfigReader* config) {
+void SparseMapMatcher::ReadParams(config_reader::ConfigReader* config) {
   int num_similar, ransac_inlier_tolerance, ransac_iterations, early_break_landmarks, histogram_equalization;
   int min_features, max_features, detection_retries;
   double min_brisk_threshold, default_brisk_threshold, max_brisk_threshold;
@@ -84,7 +78,7 @@ void Localizer::ReadParams(config_reader::ConfigReader* config) {
                     min_thresh, default_thresh, max_thresh);
 }
 
-bool Localizer::Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLandmarks* vl,
+bool SparseMapMatcher::Match(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLandmarks* vl,
      Eigen::Matrix2Xd* image_keypoints) {
   cv::Mat image_descriptors;
   Eigen::Matrix2Xd keypoints;
@@ -126,8 +120,6 @@ bool Localizer::Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLa
     l.v = observations[i].y();
     vl->landmarks.push_back(l);
   }
-
   return true;
 }
-
-};  // namespace localization_node
+}  // namespace sparse_map_matcher

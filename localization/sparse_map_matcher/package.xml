@@ -1,8 +1,8 @@
 <package>
-  <name>localization_node</name>
+  <name>sparse_map_matcher</name>
   <version>1.0.0</version>
   <description>
-    This package localizes the Astrobee on a map.
+    This package registers images against the Astrobee map.
   </description>
   <license>
     Apache License, Version 2.0

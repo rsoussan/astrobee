@@ -16,28 +16,27 @@
  * under the License.
  */
 
-#ifndef LOCALIZATION_NODE_LOCALIZATION_H_
-#define LOCALIZATION_NODE_LOCALIZATION_H_
-
-#include <sparse_mapping/sparse_map.h>
+#ifndef SPARSE_MAP_MATCHER_SPARSE_MAP_MATCHER_H_
+#define SPARSE_MAP_MATCHER_SPARSE_MAP_MATCHER_H_
 
 #include <config_reader/config_reader.h>
 #include <cv_bridge/cv_bridge.h>
 #include <ff_msgs/VisualLandmarks.h>
+#include <sparse_mapping/sparse_map.h>
 
-namespace localization_node {
-class Localizer {
+namespace sparse_map_matcher {
+class SparseMapMatcher {
  public:
-  explicit Localizer(sparse_mapping::SparseMap* comp_map_ptr);
-  ~Localizer();
+  explicit SparseMapMatcher(std::shared_ptr<sparse_mapping::SparseMap> map);
+  // TODO(Rsoussan): change this?
   void ReadParams(config_reader::ConfigReader* config);
-  bool Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLandmarks* vl,
+  // TODO(rsoussan): change this interface?
+  bool Match(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLandmarks* vl,
      Eigen::Matrix2Xd* image_keypoints = NULL);
  private:
-  // TODO(rsoussan): make this a shared or unique ptr!
-  sparse_mapping::SparseMap* map_;
+  std::shared_ptr<sparse_mapping::SparseMap> map_;
   std::unique_ptr<interest_point::FeatureDetector> detector_;
 };
-}  // namespace localization_node
+}  // namespace sparse_map_matcher
 
-#endif  // LOCALIZATION_NODE_LOCALIZATION_H_
+#endif  // SPARSE_MAP_MATCHER_SPARSE_MAP_MATCHER_H_

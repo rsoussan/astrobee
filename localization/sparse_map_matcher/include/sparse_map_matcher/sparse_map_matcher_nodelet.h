@@ -16,38 +16,37 @@
  * under the License.
  */
 
-#ifndef LOCALIZATION_NODE_LOCALIZATION_NODELET_H_
-#define LOCALIZATION_NODE_LOCALIZATION_NODELET_H_
+#ifndef SPARSE_MAP_MATCHER_SPARSE_MAP_MATCHER_NODELET_H_
+#define SPARSE_MAP_MATCHER_SPARSE_MAP_MATCHER_NODELET_H_
 
-#include <localization_node/localization.h>
-
-#include <sparse_mapping/sparse_map.h>
 #include <config_reader/config_reader.h>
-
 #include <ff_msgs/SetBool.h>
 #include <ff_util/ff_nodelet.h>
+#include <sparse_mapping/sparse_map.h>
+#include <sparse_map_matcher/sparse_map_matcher.h>
+
 #include <nodelet/nodelet.h>
 #include <image_transport/image_transport.h>
 #include <thread>
 
-namespace localization_node {
+namespace sparse_map_matcher {
 
-class LocalizationNodelet : public ff_util::FreeFlyerNodelet {
+class SparseMapMatcherNodelet : public ff_util::FreeFlyerNodelet {
  public:
-  LocalizationNodelet();
-  virtual ~LocalizationNodelet();
+  SparseMapMatcherNodelet();
+  ~SparseMapMatcherNodelet();
 
  protected:
   virtual void Initialize(ros::NodeHandle* nh);
 
  private:
-  void ReadParams(void);
-  void Run(void);
-  void Localize(void);
+  void ReadParams();
+  void Run();
+  void Localize();
   void ImageCallback(const sensor_msgs::ImageConstPtr& msg);
   bool EnableService(ff_msgs::SetBool::Request & req, ff_msgs::SetBool::Response & res);
 
-  std::shared_ptr<Localizer> inst_;
+  std::shared_ptr<SparseMapMatcher> matcher_;
   std::shared_ptr<sparse_mapping::SparseMap> map_;
   std::shared_ptr<std::thread> thread_;
   config_reader::ConfigReader config_;
@@ -69,7 +68,7 @@ class LocalizationNodelet : public ff_util::FreeFlyerNodelet {
   pthread_cond_t cond_features_;
 };
 
-};  // namespace localization_node
+};  // namespace sparse_map_matcher
 
-#endif  // LOCALIZATION_NODE_LOCALIZATION_NODELET_H_
+#endif  // SPARSE_MAP_MATCHER_SPARSE_MAP_MATCHER_NODELET_H_
 

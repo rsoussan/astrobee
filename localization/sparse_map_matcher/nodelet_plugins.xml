@@ -1,0 +1,10 @@
+<library path="lib/libsparse_map_matcher">
+  <class name="sparse_map_matcher/SparseMapMatcherNodelet"
+	 type="sparse_map_matcher::SparseMapMatcherNodelet"
+	 base_class_type="nodelet::Nodelet">
+    <description>
+      This nodelet wraps registers images against the sparse map and publishes visual landmarks.
+    </description>
+  </class>
+</library>
+

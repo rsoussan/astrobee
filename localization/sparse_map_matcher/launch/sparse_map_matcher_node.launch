@@ -15,13 +15,13 @@
 <!-- implied. See the License for the specific language governing            -->
 <!-- permissions and limitations under the License.                          -->
 <launch>
-  <arg name="name" default="localization_node" />
+  <arg name="name" default="sparse_map_matcher" />
   <arg name="manager" default="" />
   <arg name="terminal" default="" />
   <include file="$(find ff_util)/launch/ff_nodelet.launch">
     <arg name="name" value="$(arg name)" />
     <arg name="manager" value="$(arg manager)" />
     <arg name="terminal" value="$(arg terminal)" />
-    <arg name="class" value="localization_node/LocalizationNodelet" />
+    <arg name="class" value="sparse_map_matcher/SparseMapMatcherNodelet" />
   </include>
 </launch>
