@@ -19,14 +19,14 @@
 #include <ff_common/init.h>
 #include <ff_common/thread.h>
 #include <ff_common/utils.h>
+#include <interest_point/matching.h>
 #include <sparse_mapping/estimate_pose_utilities.h>
-#include <sparse_mapping/tensor.h>
 #include <sparse_mapping/ransac.h>
 #include <sparse_mapping/sparse_mapping.h>
 #include <sparse_mapping/sparse_map.h>
+#include <sparse_mapping/tensor.h>
+#include <sparse_mapping/utilities.h>
 #include <sparse_mapping/vocab_tree.h>
-#include <interest_point/essential.h>
-#include <interest_point/matching.h>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -1975,7 +1975,7 @@ void BuildMapFindEssentialAndInliers(Eigen::Matrix2Xd const& keypoints1,
   double error_max = std::numeric_limits<double>::max();
   double max_expected_error = 2.5;
 
-  if (!interest_point::RobustEssential(k, k, observationsa, observationsb,
+  if (!RobustEssential(k, k, observationsa, observationsb,
                                        &e, &vec_inliers,
                                        image_size, image_size,
                                        &error_max,
@@ -2007,7 +2007,7 @@ void BuildMapFindEssentialAndInliers(Eigen::Matrix2Xd const& keypoints1,
   // Estimate the best possible R & T from the found Essential Matrix
   Eigen::Matrix3d r;
   Eigen::Vector3d t;
-  if (!interest_point::EstimateRTFromE(k, k, observationsa, observationsb,
+  if (!EstimateRTFromE(k, k, observationsa, observationsb,
                                        e, vec_inliers,
                                        &r, &t)) {
     VLOG(2) << cam_a_idx << " " << cam_b_idx

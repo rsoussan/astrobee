@@ -25,6 +25,7 @@
 
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace sparse_mapping {
@@ -39,5 +40,22 @@ void DetectFeatures(const cv::Mat& image,
                       interest_point::Detector& detector,
                       cv::Mat* descriptors,
                       Eigen::Matrix2Xd* keypoints);
+
+
+  // Performs a robust, ransac, solving for the essential matrix
+  // between interest point measurements in x1 and x2.
+bool RobustEssential(Eigen::Matrix3d const& k1, Eigen::Matrix3d const& k2, Eigen::Matrix2Xd const& x1,
+                     Eigen::Matrix2Xd const& x2, Eigen::Matrix3d* e, std::vector<size_t>* vec_inliers,
+                     std::pair<size_t, size_t> const& size1, std::pair<size_t, size_t> const& size2, double* error_max,
+                     double precision);
+
+// Solves for the RT (Rotation and Translation) from the essential
+// matrix and x1 and x2. There are 4 possible, and this returns the
+// best of the 4 solutions.
+bool EstimateRTFromE(Eigen::Matrix3d const& k1, Eigen::Matrix3d const& k2, Eigen::Matrix2Xd const& x1,
+                     Eigen::Matrix2Xd const& x2, Eigen::Matrix3d const& e, std::vector<size_t> const& vec_inliers,
+                     Eigen::Matrix3d* r, Eigen::Vector3d* t);
+
+
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_UTILITIES_H_
