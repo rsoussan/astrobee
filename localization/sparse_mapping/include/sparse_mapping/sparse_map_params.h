@@ -20,17 +20,14 @@
 #define SPARSE_MAPPING_SPARSE_MAP_PARAMS_H_
 
 #include <camera/camera_params.h>
+#include <sparse_mapping/detector_params.h>
 #include <sparse_mapping/image_database_params.h>
 
 namespace sparse_mapping {
 struct SparseMapParams {
   ImageDatabaseParams image_database;
   camera::CameraParameters camera_params;
-  int num_ransac_iterations = 1000;
-  int num_similar = 20;
-  int ransac_inlier_tolerance = 3;
-  int early_break_landmarks = 100;
-  int histogram_equalization = false;
+  DetectorParams params;
 };
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_SPARSE_MAP_PARAMS_H_

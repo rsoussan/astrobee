@@ -16,22 +16,20 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_ESTIMATE_POSE_PARAMS_H_
-#define SPARSE_MAPPING_ESTIMATE_POSE_PARAMS_H_
+#ifndef SPARSE_MAPPING_DETECTOR_PARAMS_H_
+#define SPARSE_MAPPING_DETECTOR_PARAMS_H_
 
-#include <vector>
+#include <string>
 
 namespace sparse_mapping {
-struct EstimatePoseParams {
-    int num_ransac_iterations = 1000;
-    int ransac_inlier_tolerance = 3;
-      // TODO(rsoussan): Change this to a bool?
-    int histogram_equalization = false;
-    int max_num_total_feature_matches = 100;
-    bool check_point_3d_exists = true;
-    int max_image_matches = 20;
-    bool inlier_landmarks;
-    bool inlier_observations;
+struct DetectorParams {
+  std::string name;
+  int min_features;
+  int max_features;
+  int retries;
+  double min_thresh;
+  double default_thresh;
+  double max_thresh;
 };
 }  // namespace sparse_mapping
-#endif  // SPARSE_MAPPING_ESTIMATE_POSE_PARAMS_H_
+#endif  // SPARSE_MAPPING_DETECTOR_PARAMS_H_
