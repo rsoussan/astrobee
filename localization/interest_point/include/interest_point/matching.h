@@ -83,14 +83,6 @@ namespace interest_point {
     }
   };
 
-  /**
-   * descriptor is what opencv descriptor was used to make the descriptors
-   * the descriptor maps are the features in the two images
-   * matches is output to contain the matching features between the two images
-   **/
-  void FindMatches(const cv::Mat & img1_descriptor_map,
-                   const cv::Mat & img2_descriptor_map,
-                   std::vector<cv::DMatch> * matches);
 }  // namespace interest_point
 
 #endif  // INTEREST_POINT_MATCHING_H_

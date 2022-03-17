@@ -15,20 +15,15 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-#ifndef VISION_COMMON_BRISK_FEATURE_DETECTOR_AND_MATCHER_PARAMS_H_
-#define VISION_COMMON_BRISK_FEATURE_DETECTOR_AND_MATCHER_PARAMS_H_
-
-#include <vision_common/brisk_detector_params.h>
+#ifndef VISION_COMMON_BRISK_DETECTOR_PARAMS_H_
+#define VISION_COMMON_BRISK_DETECTOR_PARAMS_H_
 
 namespace vision_common {
-struct BriskFeatureDetectorAndMatcherParams {
-  BriskDetectorParams brisk;
-  // Matching
-  int max_match_hamming_distance;
-  int flann_table_number;
-  int flann_key_size;
-  int flann_multi_probe_level;
+struct BriskDetectorParams {
+  int threshold;
+  int octaves;
+  float float_pattern_scale;
 };
 }  // namespace vision_common
 
-#endif  // VISION_COMMON_BRISK_FEATURE_DETECTOR_AND_MATCHER_PARAMS_H_
+#endif  // VISION_COMMON_BRISK_DETECTOR_PARAMS_H_

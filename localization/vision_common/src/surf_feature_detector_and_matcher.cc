@@ -25,7 +25,7 @@
 namespace vision_common {
 SurfFeatureDetectorAndMatcher::SurfFeatureDetectorAndMatcher(const SurfFeatureDetectorAndMatcherParams& params)
     : params_(params) {
-  detector_ = cv::xfeatures2d::SURF::create(params_.surf_threshold);
+  detector_ = cv::xfeatures2d::SURF::create(params_.surf.threshold);
 }
 FeatureMatches SurfFeatureDetectorAndMatcher::Match(const FeatureImage& source_image,
                                                     const FeatureImage& target_image) {

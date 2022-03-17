@@ -16,20 +16,20 @@
  * under the License.
  */
 
-#ifndef INTEREST_POINT_DETECTOR_PARAMS_H_
-#define INTEREST_POINT_DETECTOR_PARAMS_H_
+#ifndef VISION_COMMON_DYNAMIC_DETECTOR_PARAMS_H_
+#define VISION_COMMON_DYNAMIC_DETECTOR_PARAMS_H_
 
 #include <string>
 
-namespace sparse_mapping {
-struct DetectorParams {
+namespace vision_common {
+struct DynamicDetectorParams {
   std::string name;
   int min_features;
   int max_features;
-  int retries;
+  int max_retries;
   double min_thresh;
   double default_thresh;
   double max_thresh;
 };
-}  // namespace sparse_mapping
-#endif  // INTEREST_POINT_DETECTOR_PARAMS_H_
+}  // namespace vision_common
+#endif  // VISION_COMMON_DYNAMIC_DETECTOR_PARAMS_H_

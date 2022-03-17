@@ -18,9 +18,10 @@
 #ifndef VISION_COMMON_SURF_FEATURE_DETECTOR_AND_MATCHER_PARAMS_H_
 #define VISION_COMMON_SURF_FEATURE_DETECTOR_AND_MATCHER_PARAMS_H_
 
+#include <vision_common/surf_detector_params.h>
+
 namespace vision_common {
-struct SurfFeatureDetectorAndMatcherParams {
-  int surf_threshold;
+struct SurfFeatureDetectorAndMatcherParams : public SurfDetectorParams {
   double max_match_distance;
 };
 }  // namespace vision_common
