@@ -61,13 +61,13 @@ The references are:
    URL: http://www6.in.tum.de/Main/ResearchAgast
 */
 
-#include "interest_point/agast_score.h"
+#include "vision_common/agast_score.h"
 
 #include <opencv2/features2d.hpp>
 
 using namespace cv;
 
-namespace interest_point
+namespace vision_common
 {
 
 void makeAgastOffsets(int pixel[16], int rowStride, int type)
@@ -9883,4 +9883,4 @@ int agast_cornerScore<AgastFeatureDetector::OAST_9_16>(const uchar* ptr, const i
 
 #endif // !(defined __i386__ || defined(_M_IX86) || defined __x86_64__ || defined(_M_X64))
 
-} // namespace interest_point
+} // namespace vision_common

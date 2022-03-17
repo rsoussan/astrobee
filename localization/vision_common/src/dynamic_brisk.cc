@@ -73,10 +73,10 @@
 
 using namespace cv;
 
-namespace interest_point
+namespace vision_common
 {
 
-class DynamicBRISK_Impl : public interest_point::DynamicBRISK
+class DynamicBRISK_Impl : public DynamicBRISK
 {
 public:
     explicit DynamicBRISK_Impl(int thresh=30, int octaves=3, float patternScale=1.0f);
