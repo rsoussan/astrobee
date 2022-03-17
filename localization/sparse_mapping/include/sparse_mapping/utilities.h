@@ -56,6 +56,10 @@ bool EstimateRTFromE(Eigen::Matrix3d const& k1, Eigen::Matrix3d const& k2, Eigen
                      Eigen::Matrix2Xd const& x2, Eigen::Matrix3d const& e, std::vector<size_t> const& vec_inliers,
                      Eigen::Matrix3d* r, Eigen::Vector3d* t);
 
-
+  // TODO(rsoussan): Remove this/use vision_common code, remove detection of feature type
+  // base on descriptor
+  void FindMatches(const cv::Mat & img1_descriptor_map,
+                   const cv::Mat & img2_descriptor_map,
+                   std::vector<cv::DMatch> * matches);
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_UTILITIES_H_

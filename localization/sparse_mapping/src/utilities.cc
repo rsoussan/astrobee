@@ -157,4 +157,54 @@ bool EstimateRTFromE(Eigen::Matrix3d const& k1, Eigen::Matrix3d const& k2,
 
   return true;
 }
+  void FindMatches(const cv::Mat & img1_descriptor_map,
+                   const cv::Mat & img2_descriptor_map, std::vector<cv::DMatch> * matches) {
+    CHECK(img1_descriptor_map.depth() ==
+          img2_descriptor_map.depth())
+      << "Mixed descriptor types. Did you mash BRISK with SIFT/SURF?";
+
+    // Check for early exit conditions
+    matches->clear();
+    if (img1_descriptor_map.rows == 0 ||
+        img2_descriptor_map.rows == 0)
+      return;
+
+    if (img1_descriptor_map.depth() == CV_8U) {
+      // Binary descriptor
+
+      // cv::BFMatcher matcher(cv::NORM_HAMMING, true  /* Forward & Backward matching */);
+      cv::FlannBasedMatcher matcher(cv::makePtr<cv::flann::LshIndexParams>(3, 18, 2));
+      matcher.match(img1_descriptor_map, img2_descriptor_map, *matches);
+
+      // Select only inlier matches that meet a BRISK threshold of
+      // of FLAGS_hamming_distance.
+      // TODO(oalexan1) This needs further study.
+      std::vector<cv::DMatch> inlier_matches;
+      inlier_matches.reserve(matches->size());  // This saves time in allocation
+      for (cv::DMatch const& dmatch : *matches) {
+        if (dmatch.distance < FLAGS_hamming_distance) {
+          inlier_matches.push_back(dmatch);
+        }
+      }
+      matches->swap(inlier_matches);  // Doesn't invoke a copy of all elements.
+    } else {
+      // Traditional floating point descriptor
+      cv::FlannBasedMatcher matcher;
+      std::vector<std::vector<cv::DMatch> > possible_matches;
+      matcher.knnMatch(img1_descriptor_map, img2_descriptor_map, possible_matches, 2);
+      matches->clear();
+      matches->reserve(possible_matches.size());
+      for (std::vector<cv::DMatch> const& best_pair : possible_matches) {
+        if (best_pair.size() == 1) {
+          // This was the only best match, push it.
+          matches->push_back(best_pair.at(0));
+        } else {
+          // Push back a match only if it is 25% better than the next best.
+          if (best_pair.at(0).distance < FLAGS_goodness_ratio * best_pair.at(1).distance) {
+            matches->push_back(best_pair[0]);
+          }
+        }
+      }
+    }
+  }
 }  // namespace sparse_mapping
