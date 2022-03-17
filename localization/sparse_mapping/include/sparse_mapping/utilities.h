@@ -33,5 +33,11 @@ void InitializeCidFidToPid(int num_cid,
                            std::vector<std::map<int, int> > * cid_fid_to_pid);
 
 cv::Mat LoadImage(const std::string& filename);
+
+void DetectFeatures(const cv::Mat& image,
+                      const bool histogram_equalization,
+                      interest_point::Detector& detector,
+                      cv::Mat* descriptors,
+                      Eigen::Matrix2Xd* keypoints);
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_UTILITIES_H_

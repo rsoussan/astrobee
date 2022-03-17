@@ -24,10 +24,8 @@
 #include <config_reader/config_reader.h>
 #include <cv_bridge/cv_bridge.h>
 #include <ff_msgs/VisualLandmarks.h>
-#include <sensor_msgs/PointCloud2.h>
 
 namespace localization_node {
-
 class Localizer {
  public:
   explicit Localizer(sparse_mapping::SparseMap* comp_map_ptr);
@@ -36,9 +34,10 @@ class Localizer {
   bool Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLandmarks* vl,
      Eigen::Matrix2Xd* image_keypoints = NULL);
  private:
+  // TODO(rsoussan): make this a shared or unique ptr!
   sparse_mapping::SparseMap* map_;
+  std::unique_ptr<interest_point::FeatureDetector> detector_;
 };
-
-};  // namespace localization_node
+}  // namespace localization_node
 
 #endif  // LOCALIZATION_NODE_LOCALIZATION_H_

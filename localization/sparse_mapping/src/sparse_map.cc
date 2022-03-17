@@ -16,14 +16,14 @@
  * under the License.
  */
 
-#include <sparse_mapping/sparse_map.h>
-#include <sparse_mapping/utilities.h>
 #include <camera/camera_params.h>
 #include <ff_common/thread.h>
 #include <ff_common/utils.h>
 #include <interest_point/matching.h>
+#include <sparse_mapping/sparse_map.h>
 #include <sparse_mapping/sparse_mapping.h>
 #include <sparse_mapping/tensor.h>
+#include <sparse_mapping/utilities.h>
 
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <opencv2/highgui/highgui.hpp>
@@ -37,7 +37,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#include<boost/algorithm/string.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 
 #include <fstream>
@@ -230,18 +230,14 @@ void SparseMap::SetParams(const std::string& detector, const camera::CameraParam
       // TODO(rsoussan): set image database params?
 }
 
-// TODO(rsoussan: move detectfeatures and localize code to utilities file)
-// Detect features in given images
 void SparseMap::DetectFeatures() {
   ff_common::ThreadPool pool;
-  bool multithreaded = true;
   size_t num_files = cid_to_filename_.size();
   for (size_t cid = 0; cid < num_files; cid++) {
     ff_common::PrintProgressBar(stdout, static_cast<float>(cid) / static_cast<float>(num_files - 1));
 
     pool.AddTask(&SparseMap::DetectFeaturesFromFile, this,
                  std::ref(cid_to_filename_[cid]),
-                 multithreaded,
                  &cid_to_descriptor_map_[cid],
                  &cid_to_keypoint_map_[cid]);
   }
@@ -422,12 +418,6 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
   close(input_fd);
 }
 
-void SparseMap::SetDetectorParams(int min_features, int max_features, int retries,
-                                  double min_thresh, double default_thresh, double max_thresh) {
-  detector_.Reset(detector_.GetDetectorName(), min_features, max_features, retries,
-                  min_thresh, default_thresh, max_thresh);
-}
-
 void SparseMap::Save(const std::string & protobuf_file) const {
   // For backward compatibility with old maps, allow a map to have its
   // histogram_equalization flag unspecified, but it is best to avoid
@@ -438,7 +428,7 @@ void SparseMap::Save(const std::string & protobuf_file) const {
               << "poor quality results." << std::endl;
 
   sparse_mapping_protobuf::Map map;
-  map.set_detector_name(detector_.GetDetectorName());
+  // map.set_detector_name(detector_.GetDetectorName());
   if (!cid_to_descriptor_map_.empty())
     map.set_descriptor_depth(cid_to_descriptor_map_[0].depth());
   else
@@ -552,51 +542,15 @@ void SparseMap::Save(const std::string & protobuf_file) const {
   close(output_fd);
 }
 
-void SparseMap::DetectFeaturesFromFile(std::string const& filename,
-                                       bool multithreaded,
+void SparseMap::DetectFeaturesFromFile(const std::string& filename,
                                        cv::Mat* descriptors,
                                        Eigen::Matrix2Xd* keypoints) {
   const auto image = LoadImage(filename);
-  DetectFeatures(image, multithreaded, descriptors, keypoints);
-}
+  interest_point::FeatureDetector detector(
+    params_.detector.name, params_.detector.min_features, params_.detector.max_features, params_.detector.max_retries,
+    params_.detector.min_thresh, params_.detector.default_thresh, params_.detector.max_thresh);
 
-void SparseMap::DetectFeatures(const cv::Mat& image,
-                               bool multithreaded,
-                               cv::Mat* descriptors,
-                               Eigen::Matrix2Xd* keypoints) {
-  cv::Mat hist_image;
-  if (histogram_equalization_) {
-    cv::equalizeHist(image, hist_image);
-  }
-  const auto& input_image = histogram_equalization_ ? hist_image : image;
-
-  std::vector<cv::KeyPoint> storage;
-  if (!multithreaded) {
-    detector_.Detect(input_image, &storage, descriptors);
-  } else {
-    // When using multiple threads, need an individual detector
-    // instance, to avoid a crash. This is being used only in
-    // map-building, rather than in localization which is more
-    // performance-sensitive.
-    int min_features, max_features, max_retries;
-    double min_thresh, default_thresh, max_thresh;
-    detector_.GetDetectorParams(min_features, max_features, max_retries,
-                                min_thresh, default_thresh, max_thresh);
-    interest_point::FeatureDetector local_detector(detector_.GetDetectorName(),
-                                                   min_features, max_features, max_retries,
-                                                   min_thresh, default_thresh, max_thresh);
-    local_detector.Detect(input_image, &storage, descriptors);
-  }
-
-  LOG(DEBUG) << "Features detected " << storage.size();
-
-  keypoints->resize(2, storage.size());
-  Eigen::Vector2d output;
-  for (int i = 0; i < static_cast<int>(storage.size()); ++i) {
-    camera_params_.Convert<camera::DISTORTED_C, camera::UNDISTORTED_C>
-      (Eigen::Vector2d(storage[i].pt.x, storage[i].pt.y), &output);
-    keypoints->col(i) = output;
-  }
+  DetectFeatures(image, params_.histogram_equalization, detector, descriptors, keypoints);
 }
 
 // delete all the features that do not match to a landmark but are still around!

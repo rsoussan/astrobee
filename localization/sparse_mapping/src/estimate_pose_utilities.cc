@@ -123,11 +123,10 @@ EstimatePoseResults EstimatePose(const cv::Mat& descriptors, const Eigen::Matrix
 
 EstimatePoseResults EstimatePose(
   const cv::Mat& image, const EstimatePoseParams& params, SparseMap& map) {
-  const bool multithreaded = false;
   cv::Mat descriptors;
   Eigen::Matrix2Xd keypoints;
-  map.DetectFeatures(image, multithreaded, &descriptors, &keypoints);
-  return EstimatePose(descriptors, keypoints, params);
+  DetectFeatures(image, map.params().histogram_equalization, &descriptors, &keypoints);
+  return EstimatePose(descriptors, keypoints, map, params);
 }
 
 EstimatePoseResults EstimatePose(const std::string& image_filename, const EstimatePoseParams& params, SparseMap& map) {

@@ -77,13 +77,16 @@ void Localizer::ReadParams(config_reader::ConfigReader* config) {
   map_->SetHistogramEqualization(histogram_equalization);
   map_->SetDetectorParams(min_features, max_features, detection_retries,
                           min_brisk_threshold, default_brisk_threshold, max_brisk_threshold);
+
+  // TODO(rsoussan): Add constructor for detector using params!!! move detector params here!
+  detector_ = std::make_unqiue<interest_point::FeatureDetector>(map_->params().detector.name,
+                    min_features, max_features, retries,
+                    min_thresh, default_thresh, max_thresh);
 }
 
 bool Localizer::Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLandmarks* vl,
      Eigen::Matrix2Xd* image_keypoints) {
-  bool multithreaded = false;
   cv::Mat image_descriptors;
-
   Eigen::Matrix2Xd keypoints;
   if (image_keypoints == NULL) {
     image_keypoints = &keypoints;
@@ -93,15 +96,16 @@ bool Localizer::Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLa
   vl->header.stamp = image_ptr->header.stamp;
   vl->header.frame_id = "world";
 
-  map_->DetectFeatures(image_ptr->image, multithreaded, &image_descriptors, image_keypoints);
+  sparse_mapping::DetectFeatures(image_ptr->image, map_->params().histogram_equalization, *detector_,
+                                 &image_descriptors, image_keypoints);
   camera::CameraModel camera(Eigen::Vector3d(),
                              Eigen::Matrix3d::Identity(),
                              map_->GetCameraParameters());
   std::vector<Eigen::Vector3d> landmarks;
   std::vector<Eigen::Vector2d> observations;
-  if (!map_->Localize(image_descriptors, *image_keypoints,
+  // TODO(rsoussan): Update this with new estimate pose interface!!! Add params, change results!
+  if (!map_->EstimatePose(image_descriptors, *image_keypoints,
                                &camera, &landmarks, &observations)) {
-    // LOG(INFO) << "Failed to localize image.";
     return false;
   }
 

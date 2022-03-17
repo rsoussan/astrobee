@@ -26,6 +26,7 @@ struct EstimatePoseParams {
     int num_ransac_iterations = 1000;
     int ransac_inlier_tolerance = 3;
       // TODO(rsoussan): Change this to a bool?
+    // TODO(rsoussan): should this be here or in sparse map params????
     int histogram_equalization = false;
     int max_num_total_feature_matches = 100;
     bool check_point_3d_exists = true;

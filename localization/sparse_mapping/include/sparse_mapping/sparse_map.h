@@ -82,9 +82,6 @@ class SparseMap : public SparseMapDatabase {
 
   void BuildDatabase(const FeatureSets& feature_sets);
 
-  void SetDetectorParams(int min_features, int max_features, int retries,
-                         double min_thresh, double default_thresh, double max_thresh);
-
   /**
    * Detect features in given images
    **/
@@ -107,16 +104,9 @@ class SparseMap : public SparseMapDatabase {
   // needed for localization.
   void Load(const std::string & protobuf_file, bool localization = false);
 
-  // TODO(rsoussan): Merge this with other detect features call?
-  // detect features with opencv
-  void DetectFeaturesFromFile(std::string const& filename,
-                              bool multithreaded,
+  void DetectFeaturesFromFile(const std::string& filename,
                               cv::Mat* descriptors,
                               Eigen::Matrix2Xd* keypoints);
-  void DetectFeatures(cv::Mat const& image,
-                      bool multithreaded,
-                      cv::Mat* descriptors,
-                      Eigen::Matrix2Xd* keypoints);
 
   // delete feature descriptors with no matching landmark
   void PruneMap();

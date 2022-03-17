@@ -28,6 +28,7 @@ struct SparseMapParams {
   ImageDatabaseParams image_database;
   camera::CameraParameters camera;
   DetectorParams detector;
+  bool histogram_equalization;
 };
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_SPARSE_MAP_PARAMS_H_
