@@ -23,7 +23,7 @@
 
 namespace sparse_mapping {
 struct EstimatePoseResults {
-  // TODO(rsoussan): Change this to Eigen::Affine3d
+  // TODO(rsoussan): Change this to Eigen::Isometry3d
   boost::optional<camera::CameraModel> pose;
   boost::optional<std::vector<Eigen::Vector3d>> inlier_landmarks;
   boost::optional<std::vector<Eigen::Vector2d>> inlier_observations;

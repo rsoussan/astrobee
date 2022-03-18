@@ -25,6 +25,7 @@
 #include <ros/ros.h>
 
 namespace sparse_map_matcher {
+namespace mc = msg_conversions;
 
 SparseMapMatcher::SparseMapMatcher(std::shared_ptr<sparse_mapping::SparseMap> map) :
       map_(std::move(map)) {}
@@ -79,6 +80,29 @@ void SparseMapMatcher::ReadParams(config_reader::ConfigReader* config) {
                     min_thresh, default_thresh, max_thresh);
 }
 
+ff_msgs::VisualLandmarks SparseMapMatcher::VlMsg(const Eigen::Isometry3d& world_T_camera, const ros::Time& timestamp,
+                                                 const std::vector<Eigen::Vector2d>& observations,
+                                                 const std::vector<Eigen::Vector3d>& landmarks) {
+  ff_msgs::VisualLandmarks vl_msg;
+  vl_msg.header = std_msgs::Header();
+  vl_msg.header.stamp = timestamp;
+  vl_msg.header.frame_id = "world";
+
+  mc::EigenPoseToMsg(world_T_camera, vl_msg.pose);
+  vl_msg.landmarks.reserve(landmarks.size());
+  for (int i = 0; i < static_cast<int>(landmarks.size()); ++i) {
+    ff_msgs::VisualLandmark l;
+    l.x = landmarks[i].x();
+    l.y = landmarks[i].y();
+    l.z = landmarks[i].z();
+    l.u = observations[i].x();
+    l.v = observations[i].y();
+    vl_msg.landmarks.push_back(l);
+  }
+  return vl_msg;
+}
+
+// TODO(rsoussan): change this to take cv::Mat and ros timestamp!!
 bool SparseMapMatcher::Match(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLandmarks* vl,
      Eigen::Matrix2Xd* image_keypoints) {
   cv::Mat image_descriptors;
@@ -86,10 +110,6 @@ bool SparseMapMatcher::Match(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::Visu
   if (image_keypoints == NULL) {
     image_keypoints = &keypoints;
   }
-
-  vl->header = std_msgs::Header();
-  vl->header.stamp = image_ptr->header.stamp;
-  vl->header.frame_id = "world";
 
   sparse_mapping::DetectFeatures(image_ptr->image, map_->params().histogram_equalization, *detector_,
                                  &image_descriptors, image_keypoints);
@@ -104,23 +124,8 @@ bool SparseMapMatcher::Match(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::Visu
     return false;
   }
 
-  Eigen::Affine3d global_pose = camera.GetTransform().inverse();
-  Eigen::Quaterniond quat(global_pose.rotation());
-
-  vl->pose.position = msg_conversions::eigen_to_ros_point(global_pose.translation());
-  vl->pose.orientation = msg_conversions::eigen_to_ros_quat(quat);
-  assert(landmarks.size() == observations.size());
-  vl->landmarks.reserve(landmarks.size());
-
-  for (size_t i = 0; i < landmarks.size(); i++) {
-    ff_msgs::VisualLandmark l;
-    l.x = landmarks[i].x();
-    l.y = landmarks[i].y();
-    l.z = landmarks[i].z();
-    l.u = observations[i].x();
-    l.v = observations[i].y();
-    vl->landmarks.push_back(l);
-  }
+  const Eigen::Isometry3d world_T_camera(camera.GetTransform().matrix());
+  *vl = VlMsg(world_T_camera, observations, landmarks);
   return true;
 }
 }  // namespace sparse_map_matcher
