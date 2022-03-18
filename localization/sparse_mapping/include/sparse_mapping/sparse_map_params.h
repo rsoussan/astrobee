@@ -20,14 +20,19 @@
 #define SPARSE_MAPPING_SPARSE_MAP_PARAMS_H_
 
 #include <camera/camera_params.h>
-#include <sparse_mapping/detector_params.h>
 #include <sparse_mapping/image_database_params.h>
+#include <vision_common/brisk_dynamic_detector_params.h>
+#include <vision_common/surf_dynamic_detector_params.h>
+
+#include <string>
 
 namespace sparse_mapping {
 struct SparseMapParams {
   ImageDatabaseParams image_database;
   camera::CameraParameters camera;
-  DetectorParams detector;
+  vision_common::BriskDynamicDetectorParams brisk_detector;
+  vision_common::SurfDynamicDetectorParams surf_detector;
+  std::string detector_name;
   bool histogram_equalization;
 };
 }  // namespace sparse_mapping

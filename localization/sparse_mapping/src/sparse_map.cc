@@ -19,57 +19,21 @@
 #include <camera/camera_params.h>
 #include <ff_common/thread.h>
 #include <ff_common/utils.h>
-#include <interest_point/matching.h>
 #include <sparse_mapping/sparse_map.h>
 #include <sparse_mapping/sparse_mapping.h>
 #include <sparse_mapping/tensor.h>
 #include <sparse_mapping/utilities.h>
 
 #include <google/protobuf/io/zero_copy_stream_impl.h>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/calib3d/calib3d.hpp>
-#include <opencv2/imgproc.hpp>
 #include <Eigen/Geometry>
 
 #include <sparse_map.pb.h>
 
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/time.h>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
-
-#include <fstream>
-#include <queue>
-#include <set>
-#include <thread>
-#include <limits>
-
-// TODO(rsoussan): Remove gflags
-DEFINE_int32(num_similar, 20,
-             "Use in localization this many images which "
-             "are most similar to the image to localize.");
-DEFINE_int32(num_ransac_iterations, 1000,
-             "Use in localization this many ransac iterations.");
-DEFINE_int32(ransac_inlier_tolerance, 3,
-             "Use in localization this inlier tolerance.");
-DEFINE_int32(early_break_landmarks, 100,
-             "Break early when we have this many landmarks during localization.");
-DEFINE_bool(histogram_equalization, false,
-            "If true, equalize the histogram for images to improve robustness to illumination conditions.");
-DEFINE_bool(verbose_localization, false,
-            "If true, list the images most similar to the one being localized.");
-
 namespace sparse_mapping {
 
-SparseMap::SparseMap(const std::vector<std::string>& filenames, const std::string& detector,
-                     const camera::CameraParameters& camera_params)
-    : cid_to_filename_(filenames) {
-  SetParams(detector, camera_params);
+SparseMap::SparseMap(const std::vector<std::string>& filenames, const SparseMapParams& params)
+    : params_(params), cid_to_filename_(filenames) {
   cid_to_descriptor_map_.resize(cid_to_filename_.size());
-  // TODO(bcoltin): only record scale and orientation for opensift?
-  cid_to_keypoint_map_.resize(cid_to_filename_.size());
 }
 
 /*SparseMap::SparseMap(const std::string& protobuf_file, bool localization) : {
@@ -84,18 +48,17 @@ SparseMap::SparseMap(const std::vector<std::string>& filenames, const std::strin
 }*/
 
 // Form a sparse map with given cameras/images, and no features
-SparseMap::SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_t, const std::vector<std::string>& filenames,
-                     const std::string& detector, const camera::CameraParameters& camera_params)
-    : {
-  SetParams(detector, camera_params);
-  if (filenames.size() != cid_to_cam_t.size())
+SparseMap::SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_T_global, const std::vector<std::string>& filenames,
+                     const SparseMapParams& params)
+    : params_(params) {
+  if (filenames.size() != cid_to_cam_T_global.size())
     LOG(FATAL) << "Expecting as many images as cameras";
 
   // Don't include images for which we have no camera information
-  for (size_t cid = 0; cid < cid_to_cam_t.size(); cid++) {
-    if (cid_to_cam_t[cid].linear() == Eigen::Matrix3d::Zero())
+  for (size_t cid = 0; cid < cid_to_cam_T_global.size(); cid++) {
+    if (cid_to_cam_T_global[cid].linear() == Eigen::Matrix3d::Zero())
       continue;
-    cid_to_cam_t_global_.push_back(cid_to_cam_t[cid]);
+    cid_to_cam_T_global_.push_back(cid_to_cam_T_global[cid]);
     cid_to_filename_.push_back(filenames[cid]);
   }
 
@@ -122,7 +85,7 @@ SparseMap::SparseMap(bool bundler_format, std::string const& filename,
     std::cout << "NVM format detected." << std::endl;
 
     sparse_mapping::ReadNVM(filename, &cid_to_keypoint_map_, &cid_to_filename_, &pid_to_cid_fid_, &pid_to_xyz_,
-                            &cid_to_cam_t_global_);
+                            &cid_to_cam_T_global_);
 
     // Descriptors are not saved, so let them be empty
     cid_to_descriptor_map_.resize(cid_to_keypoint_map_.size());
@@ -180,7 +143,7 @@ SparseMap::SparseMap(bool bundler_format, std::string const& filename,
     std::getline(is, line);  // empty line
     is >> num_cams;
     cid_to_filename_ = all_image_files;
-    cid_to_cam_t_global_.resize(num_cams);
+    cid_to_cam_T_global_.resize(num_cams);
     cid_to_filename_.resize(num_cams);
 
     for (int i = 0; i < num_cams; i++) {
@@ -204,8 +167,8 @@ SparseMap::SparseMap(bool bundler_format, std::string const& filename,
       for (int row = 0; row < P.size(); row++)
         is >> P[row];
 
-      cid_to_cam_t_global_[i].linear() = T;  // not sure
-      cid_to_cam_t_global_[i].translation() = P;
+      cid_to_cam_T_global_[i].linear() = T;  // not sure
+      cid_to_cam_T_global_[i].translation() = P;
     }
 
     // Initialize other data expected in the map
@@ -216,19 +179,6 @@ SparseMap::SparseMap(bool bundler_format, std::string const& filename,
   // Initialize this convenient mapping
   InitializeCidFidToPid();
 }*/
-
-void SparseMap::SetParams(const std::string& detector, const camera::CameraParameters & camera_params) {
-      params_.detector.name = detector;
-      // TODO(rsoussan): Do this in a better way
-      {
-      interest_point::FeatureDetector d(detector);
-      d.GetDetectorParams(params_.detector.min_features, params_.detector.min_features, params_.detector.max_features,
-                          params_.detector.max_retries, params_.detector.min_thresh, params_.detector.default_thresh,
-                          params_.detector.max_thresh);
-      }
-      params_.camera = camera_params;
-      // TODO(rsoussan): set image database params?
-}
 
 void SparseMap::DetectFeatures() {
   ff_common::ThreadPool pool;
@@ -303,7 +253,7 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
   cid_to_descriptor_map_.resize(num_frames);
   if (!localization) {
     cid_to_keypoint_map_.resize(num_frames);
-    cid_to_cam_t_global_.resize(num_frames);
+    cid_to_cam_T_global_.resize(num_frames);
   }
 
   // load each frame
@@ -349,10 +299,10 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
     // Load pose
     if (frame.has_pose() && !localization) {
       sparse_mapping_protobuf::Affine3d pose = frame.pose();
-      cid_to_cam_t_global_[cid].translation()
+      cid_to_cam_T_global_[cid].translation()
         << pose.t0(), pose.t1(), pose.t2();
 
-      cid_to_cam_t_global_[cid].linear() <<
+      cid_to_cam_T_global_[cid].linear() <<
         pose.r00(), pose.r01(), pose.r02(),
         pose.r10(), pose.r11(), pose.r12(),
         pose.r20(), pose.r21(), pose.r22();
@@ -491,9 +441,9 @@ void SparseMap::Save(const std::string & protobuf_file) const {
     }
 
     // set the camera pose if available.
-    if (cid < cid_to_cam_t_global_.size()) {
+    if (cid < cid_to_cam_T_global_.size()) {
       sparse_mapping_protobuf::Affine3d* a = frame.mutable_pose();
-      Eigen::Matrix4d c = cid_to_cam_t_global_[cid].matrix();
+      Eigen::Matrix4d c = cid_to_cam_T_global_[cid].matrix();
       a->set_r00(c(0, 0));
       a->set_r01(c(0, 1));
       a->set_r02(c(0, 2));
@@ -546,11 +496,15 @@ void SparseMap::DetectFeaturesFromFile(const std::string& filename,
                                        cv::Mat* descriptors,
                                        Eigen::Matrix2Xd* keypoints) {
   const auto image = LoadImage(filename);
-  interest_point::FeatureDetector detector(
-    params_.detector.name, params_.detector.min_features, params_.detector.max_features, params_.detector.max_retries,
-    params_.detector.min_thresh, params_.detector.default_thresh, params_.detector.max_thresh);
-
-  DetectFeatures(image, params_.histogram_equalization, detector, descriptors, keypoints);
+  if (params_.detector_name == "surf") {
+    vision_common::SurfDynamicDetector surf_detector(params_.surf_detector);
+    DetectFeatures(image, params_.histogram_equalization, surf_detector, descriptors, keypoints);
+  } else if (params_.detector_name == "brisk") {
+    vision_common::BriskDynamicDetector brisk_detector(params_.brisk_detector);
+    DetectFeatures(image, params_.histogram_equalization, brisk_detector, descriptors, keypoints);
+  } else {
+    LOG(FATAL) << "Invalid detector: " << params_.detector_name;
+  }
 }
 
 // delete all the features that do not match to a landmark but are still around!
@@ -637,7 +591,7 @@ void SparseMap::reorderMap(std::map<int, int> const& old_cid_to_new_cid) {
   // Must create temporary structures
   std::vector<std::string>        new_cid_to_filename(num_cid);
   std::vector<Eigen::Matrix2Xd>   new_cid_to_keypoint_map(num_cid);
-  std::vector<Eigen::Affine3d>    new_cid_to_cam_t_global(num_cid);
+  std::vector<Eigen::Affine3d>    new_cid_to_cam_T_global(num_cid);
   std::vector<cv::Mat>            new_cid_to_descriptor_map(num_cid);
   std::vector<std::map<int, int>> new_pid_to_cid_fid(pid_to_cid_fid_.size());
 
@@ -653,7 +607,7 @@ void SparseMap::reorderMap(std::map<int, int> const& old_cid_to_new_cid) {
 
     new_cid_to_filename[new_cid] = cid_to_filename_[old_cid];
     new_cid_to_keypoint_map[new_cid] = cid_to_keypoint_map_[old_cid];
-    new_cid_to_cam_t_global[new_cid] = cid_to_cam_t_global_[old_cid];
+    new_cid_to_cam_T_global[new_cid] = cid_to_cam_T_global_[old_cid];
     new_cid_to_descriptor_map[new_cid] = cid_to_descriptor_map_[old_cid];
   }
 
@@ -678,7 +632,7 @@ void SparseMap::reorderMap(std::map<int, int> const& old_cid_to_new_cid) {
   // Swap in the new values
   cid_to_filename_.swap(new_cid_to_filename);
   cid_to_keypoint_map_.swap(new_cid_to_keypoint_map);
-  cid_to_cam_t_global_.swap(new_cid_to_cam_t_global);
+  cid_to_cam_T_global_.swap(new_cid_to_cam_T_global);
   cid_to_descriptor_map_.swap(new_cid_to_descriptor_map);
   pid_to_cid_fid_.swap(new_pid_to_cid_fid);
 

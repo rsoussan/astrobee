@@ -170,14 +170,6 @@ add_dependencies(parse_cam ${catkin_EXPORTED_TARGETS})
 target_link_libraries(parse_cam
   sparse_mapping gflags glog ${catkin_LIBRARIES})
 
-## Declare a C++ executable: select_images
-add_executable(select_images tools/select_images.cc)
-add_dependencies(select_images ${catkin_EXPORTED_TARGETS})
-target_link_libraries(select_images
-  sparse_mapping gflags glog ${catkin_LIBRARIES})
-endif (NOT USE_CTC)
-
-
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
 

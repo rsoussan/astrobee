@@ -54,7 +54,7 @@ cv::Mat LoadImage(const std::string& filename) {
 }
 
 void DetectFeatures(const cv::Mat& image, const bool histogram_equalization,
-                                interest_point::Detector& detector,
+                                vision_common::DynamicDetector& detector,
                                cv::Mat* descriptors,
                                Eigen::Matrix2Xd* keypoints) {
   cv::Mat hist_image;

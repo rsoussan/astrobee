@@ -20,6 +20,7 @@
 #define SPARSE_MAPPING_UTILITIES_H_
 
 #include <sparse_mapping/image_database.h>
+#include <vision_common/dynamic_detector.h>
 
 #include <opencv2/core/core.hpp>
 
@@ -40,7 +41,6 @@ void DetectFeatures(const cv::Mat& image,
                       vision_common::DynamicDetector& detector,
                       cv::Mat* descriptors,
                       Eigen::Matrix2Xd* keypoints);
-
 
   // Performs a robust, ransac, solving for the essential matrix
   // between interest point measurements in x1 and x2.

@@ -21,23 +21,17 @@
 
 #include <ff_common/eigen_vectors.h>
 #include <sparse_mapping/image_database.h>
-#include <sparse_mapping/params.h>
 #include <sparse_mapping/sparse_map_database.h>
+#include <sparse_mapping/sparse_map_params.h>
 #include <sparse_mapping/sparse_mapping.h>
-#include <camera/camera_model.h>
 #include <camera/camera_params.h>
 
 #include <Eigen/Geometry>
 #include <opencv2/core/core.hpp>
 
 #include <map>
-#include <mutex>
-#include <numeric>
-#include <set>
 #include <string>
 #include <vector>
-#include <utility>
-#include <limits>
 
 namespace sparse_mapping {
 /**
@@ -56,28 +50,23 @@ class SparseMap : public SparseMapDatabase {
    * detection instead. Does not perform bundle adjustment.
    **/
   SparseMap(const std::vector<std::string> & filenames,
-            const std::string & detector,
-            const camera::CameraParameters & params);
+            const SparseMapParams& params);
 
   /**
    * Constructs a new sparse map from a protobuf file, with specified
    * vocabulary tree and optional parameters.
    **/
-  SparseMap(const std::string & protobuf_file,
-            bool localization = false);
+  /*SparseMap(const std::string & protobuf_file,
+            bool localization = false);*/
 
   /**
      Form a sparse map with given cameras/images, and no features
   **/
-  SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_t,
+  SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
             const std::vector<std::string> & filenames,
-            const std::string & detector,
-            const camera::CameraParameters & params);
+            const SparseMapParams& params);
 
-
-  SparseMap(bool bundler_format, std::string const& filename, std::vector<std::string> const& files);
-
-  void SetParams(const std::string& detector, const camera::CameraParameters& camera_params);
+  // SparseMap(bool bundler_format, std::string const& filename, std::vector<std::string> const& files);
 
   void BuildDatabase(const FeatureSets& feature_sets);
 

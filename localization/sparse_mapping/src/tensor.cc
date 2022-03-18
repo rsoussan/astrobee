@@ -19,7 +19,6 @@
 #include <ff_common/init.h>
 #include <ff_common/thread.h>
 #include <ff_common/utils.h>
-#include <interest_point/matching.h>
 #include <sparse_mapping/estimate_pose_utilities.h>
 #include <sparse_mapping/ransac.h>
 #include <sparse_mapping/sparse_mapping.h>
@@ -165,7 +164,7 @@ void BuildMapPerformMatching(openMVG::matching::PairWiseMatches * match_map,
   Eigen::Matrix2Xd const& keypoints2 = cid_to_keypoint_map[j];
 
   std::vector<cv::DMatch> matches, inlier_matches;
-  interest_point::FindMatches(cid_to_descriptor_map[i],
+  FindMatches(cid_to_descriptor_map[i],
                               cid_to_descriptor_map[j],
                               &matches);
 

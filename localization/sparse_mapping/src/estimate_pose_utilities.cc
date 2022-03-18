@@ -18,6 +18,7 @@
 
 #include <sparse_mapping/estimate_pose_utilities.h>
 #include <sparse_mapping/sparse_mapping.h>
+#include <sparse_mapping/utilities.h>
 
 #include <ff_common/thread.h>
 #include <camera/camera_model.h>
@@ -45,7 +46,7 @@ std::vector<ImageMatch> FindAndSortMatches(const std::vector<int>& matching_cids
     const auto& map_image_descriptors = map.cid_to_descriptor_map_[cid];
     ImageMatch image_match;
     image_match.cid = cid;
-    interest_point::FindMatches(descriptors,
+    FindMatches(descriptors,
                                 map_image_descriptors,
                                 &image_match.matches);
     int num_valid_matches = 0;
