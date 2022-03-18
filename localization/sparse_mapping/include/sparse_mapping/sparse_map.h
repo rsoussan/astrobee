@@ -20,7 +20,6 @@
 #define SPARSE_MAPPING_SPARSE_MAP_H_
 
 #include <ff_common/eigen_vectors.h>
-#include <interest_point/matching.h>
 #include <sparse_mapping/image_database.h>
 #include <sparse_mapping/params.h>
 #include <sparse_mapping/sparse_map_database.h>

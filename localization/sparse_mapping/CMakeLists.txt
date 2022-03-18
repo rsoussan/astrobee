@@ -27,8 +27,8 @@ find_package(catkin2 REQUIRED COMPONENTS
   ff_msgs
   ff_common
   camera
-  interest_point
   config_reader
+  vision_common
 )
 
 # System dependencies are found with CMake's conventions
@@ -47,7 +47,7 @@ find_package(OpenCV331 REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES sparse_mapping
-  CATKIN_DEPENDS ff_msgs ff_common camera interest_point config_reader
+  CATKIN_DEPENDS ff_msgs ff_common camera config_reader vision_common
 )
 
 ###########
