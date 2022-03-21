@@ -88,8 +88,7 @@ The bags created on the ISS are likely split into many smaller bags,
 for easy and reliability of transfer. Those can be merged into one bag
 as follows:
 
-    $ASTROBEE_BUILD_PATH/devel/lib/sparse_map_matcher/merge_bags \
-      -output_bag <output bag> <input bags>
+    rosrun bag_processing merge_all_bags.py 
 
 ### Extracting images
 

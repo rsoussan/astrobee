@@ -89,18 +89,6 @@ add_dependencies(extract_image_bag ${catkin_EXPORTED_TARGETS})
 target_link_libraries(extract_image_bag
   sparse_map_matcher gflags glog ${catkin_LIBRARIES})
 
-## Declare a C++ executable: interest_points_test_bag
-add_executable(interest_points_test_bag tools/interest_points_test_bag.cc)
-add_dependencies(interest_points_test_bag ${catkin_EXPORTED_TARGETS})
-target_link_libraries(interest_points_test_bag
-  sparse_map_matcher gflags glog ${catkin_LIBRARIES})
-
-## Declare a C++ executable: merge_bags
-add_executable(merge_bags tools/merge_bags.cc)
-add_dependencies(merge_bags ${catkin_EXPORTED_TARGETS})
-target_link_libraries(merge_bags
-  sparse_map_matcher gflags glog ${catkin_LIBRARIES})
-
 #############
 ## Install ##
 #############
