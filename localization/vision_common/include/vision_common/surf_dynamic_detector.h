@@ -22,15 +22,15 @@
 #include <vision_common/surf_dynamic_detector_params.h>
 
 namespace vision_common {
-  class SurfDynamicDetector: public DynamicDetector {
-   public:
-    explicit SurfDynamicDetector(const SurfDynamicDetectorParams& params);
-    void InitializeDetector() final;
-    void SetThreshold(const double threshold) final;
+class SurfDynamicDetector : public DynamicDetector {
+ public:
+  explicit SurfDynamicDetector(const SurfDynamicDetectorParams& params);
+  void InitializeDetector() final;
+  void SetThreshold(const double threshold) final;
 
-   private:
-    SurfDynamicDetectorParams params_;
-  };
+ private:
+  SurfDynamicDetectorParams params_;
+};
 }  // namespace vision_common
 
 #endif  // VISION_COMMON_SURF_DYNAMIC_DETECTOR_H_

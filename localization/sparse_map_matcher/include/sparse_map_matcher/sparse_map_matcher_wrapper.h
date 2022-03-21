@@ -37,6 +37,7 @@ class SparseMapMatcherWrapper {
                                  const std::vector<Eigen::Vector3d>& landmarks) const;
 
   std::unique_ptr<SparseMapMatcher> matcher_;
+  int vl_msg_count_;
 };
 }  // namespace sparse_map_matcher
 

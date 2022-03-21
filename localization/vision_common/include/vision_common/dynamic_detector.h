@@ -23,23 +23,21 @@
 #include <vector>
 
 namespace vision_common {
-  class DynamicDetector {
-   public:
-    explicit DynamicDetector(const DynamicDetectorParams& params);
-    virtual ~DynamicDetector() {}
-    virtual void InitializeDetector() = 0;
-    virtual void SetThreshold(const double threshold) = 0;
-    void DetectAndCompute(const cv::Mat& image,
-                        std::vector<cv::KeyPoint>& keypoints,
-                        cv::Mat& descriptors);
-    void IncreaseThreshold();
-    void DecreaseThreshold();
+class DynamicDetector {
+ public:
+  explicit DynamicDetector(const DynamicDetectorParams& params);
+  virtual ~DynamicDetector() {}
+  virtual void InitializeDetector() = 0;
+  virtual void SetThreshold(const double threshold) = 0;
+  void DetectAndCompute(const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, cv::Mat& descriptors);
+  void IncreaseThreshold();
+  void DecreaseThreshold();
 
-   private:
-    DynamicDetectorParams params_;
-    cv::Ptr<cv::Feature2D> detector_;
-    double dynamic_threshold_;
-  };
+ private:
+  DynamicDetectorParams params_;
+  cv::Ptr<cv::Feature2D> detector_;
+  double dynamic_threshold_;
+};
 }  // namespace vision_common
 
 #endif  // VISION_COMMON_DYNAMIC_DETECTOR_H_

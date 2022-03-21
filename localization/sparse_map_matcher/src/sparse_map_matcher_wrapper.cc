@@ -24,7 +24,7 @@ namespace sparse_map_matcher {
 namespace lc = localization_common;
 namespace lm = localization_measurements;
 
-SparseMapMatcherWrapper::SparseMapMatcherWrapper() {
+SparseMapMatcherWrapper::SparseMapMatcherWrapper(): vl_msg_count_(0) {
   config_reader::ConfigReader config;
   config.AddFile("cameras.config");
   config.AddFile("sparse_map_matcher.config");
@@ -33,6 +33,7 @@ SparseMapMatcherWrapper::SparseMapMatcherWrapper() {
   }
   SparseMapMatcherParams params;
   LoadSparseMapMatcherParams(config, params);
+  cv::setNumThreads(params.num_cv_threads);
   matcher_.reset(std::make_unique<SparseMapMatcher>(params));
 }
 
@@ -43,6 +44,7 @@ ff_msgs::VisualLandmarks SparseMapMatcherWrapper::VlMsg(const Eigen::Isometry3d&
   ff_msgs::VisualLandmarks vl_msg;
   lc::TimeToHeader(timestamp, vl_msg.header);
   vl_msg.header.frame_id = "world";
+  vl.camera_id = vl_msg_count_++;
 
   mc::EigenPoseToMsg(world_T_camera, vl_msg.pose);
   vl_msg.landmarks.reserve(landmarks.size());

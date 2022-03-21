@@ -22,15 +22,15 @@
 #include <vision_common/dynamic_detector.h>
 
 namespace vision_common {
-  class BriskDynamicDetector: public DynamicDetector {
-   public:
-    explicit BriskDynamicDetector(const BriskDynamicDetectorParams& params);
-    void InitializeDetector() final;
-    void SetThreshold(const double threshold) final;
+class BriskDynamicDetector : public DynamicDetector {
+ public:
+  explicit BriskDynamicDetector(const BriskDynamicDetectorParams& params);
+  void InitializeDetector() final;
+  void SetThreshold(const double threshold) final;
 
-   private:
-    BriskDynamicDetectorParams params_;
-  };
+ private:
+  BriskDynamicDetectorParams params_;
+};
 }  // namespace vision_common
 
 #endif  // VISION_COMMON_BRISK_DYNAMIC_DETECTOR_H_

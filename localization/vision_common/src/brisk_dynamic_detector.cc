@@ -19,9 +19,12 @@
 #include <vision_common/dynamic_brisk.h>
 
 namespace vision_common {
-    BriskDynamicDetector::BriskDynamicDetector(const BriskDynamicDetectorParams& params): DynamicDetector(params), params_(params) {}
-    void BriskDynamicDetector::InitializeDetector() {
-      detector_ = cv::DynamicBRISK::create(params_.threshold, params_.octaves, params_.float_pattern_scale);
-    }
-    void BriskDynamicDetector::SetThreshold(const double threshold) { detector_->setThreshold(static_cast<int>(threshold)); }
+BriskDynamicDetector::BriskDynamicDetector(const BriskDynamicDetectorParams& params)
+    : DynamicDetector(params), params_(params) {}
+void BriskDynamicDetector::InitializeDetector() {
+  detector_ = cv::DynamicBRISK::create(params_.threshold, params_.octaves, params_.float_pattern_scale);
+}
+void BriskDynamicDetector::SetThreshold(const double threshold) {
+  detector_->setThreshold(static_cast<int>(threshold));
+}
 }  // namespace vision_common
