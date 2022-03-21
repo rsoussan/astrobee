@@ -38,8 +38,7 @@ void LoadLKOpticalFlowFeatureDetectorAndMatcherParams(config_reader::ConfigReade
                                                       LKOpticalFlowFeatureDetectorAndMatcherParams& params);
 void LoadSurfFeatureDetectorAndMatcherParams(config_reader::ConfigReader& config,
                                              SurfFeatureDetectorAndMatcherParams& params);
-void LoadBriskDetectorParams(config_reader::ConfigReader& config,
-                                              BriskDetectorParams& params);
+void LoadBriskDetectorParams(config_reader::ConfigReader& config, BriskDetectorParams& params);
 void LoadSurfDetectorParams(config_reader::ConfigReader& config, SurfDetectorParams& params);
 void LoadDynamicDetectorParams(config_reader::ConfigReader& config, DynamicDetectorParams& params);
 void LoadBriskDynamicDetectorParams(config_reader::ConfigReader& config, BriskDynamicDetectorParams& params);

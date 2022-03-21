@@ -60,16 +60,13 @@ void LoadSurfFeatureDetectorAndMatcherParams(config_reader::ConfigReader& config
   params.max_match_distance = mc::LoadDouble(config, "surf_max_match_distance");
 }
 
-void LoadBriskDetectorParams(config_reader::ConfigReader& config,
-                                              BriskDetectorParams& params) {
+void LoadBriskDetectorParams(config_reader::ConfigReader& config, BriskDetectorParams& params) {
   params.threshold = mc::LoadInt(config, "brisk_threshold");
   params.octaves = mc::LoadInt(config, "brisk_octaves");
   params.float_pattern_scale = mc::LoadFloat(config, "brisk_float_pattern_scale");
 }
 
-
-void LoadSurfDetectorParams(config_reader::ConfigReader& config,
-                                             SurfDetectorParams& params) {
+void LoadSurfDetectorParams(config_reader::ConfigReader& config, SurfDetectorParams& params) {
   params.threshold = mc::LoadInt(config, "surf_threshold");
 }
 

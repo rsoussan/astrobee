@@ -23,7 +23,7 @@
 #include <sparse_map_matcher/sparse_map_matcher_params.h>
 
 namespace sparse_map_matcher {
-  LoadSparseMapMatcherParams(config_reader::ConfigReader& config, SparseMapMatcherParams& params);
+LoadSparseMapMatcherParams(config_reader::ConfigReader& config, SparseMapMatcherParams& params);
 }  // namespace sparse_map_matcher
 
 #endif  // SPARSE_MAP_MATCHER_PARAMETER_READER_H_
