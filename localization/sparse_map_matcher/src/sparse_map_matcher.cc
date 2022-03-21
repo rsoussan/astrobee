@@ -22,20 +22,16 @@
 
 namespace sparse_map_matcher {
 namespace sm = sparse_mapping;
-namespace vc = vision_common;
 
-SparseMapMatcher::SparseMapMatcher(const SparseMapMatcherParams& params, std::shared_ptr<sparse_mapping::SparseMap> map)
-    : params_(params), map_(std::move(map)), detector_(params.detector) {
-  // TODO(rsoussan): construct pose estimate params!!!
+SparseMapMatcher::SparseMapMatcher(const SparseMapMatcherParams& params)
+    : params_(params), detector_(params.detector), map_(params.map_name, true) {
   sm::HistogramEqualizationCheck(map_->GetHistogramEqualization(), params_.histogram_equalization);
 }
 
-vc::EstimatePoseResults SparseMapMatcher::Match(const cv::Mat& image, const ros::Time& timestamp) {
+sm::EstimatePoseResults SparseMapMatcher::Match(const cv::Mat& image) {
   cv::Mat descriptors;
   Eigen::Matrix2Xd keypoints;
   sm::DetectFeatures(image, params_.histogram_equalization, detector_, &descriptors, &keypoints);
-  std::vector<Eigen::Vector3d> landmarks;
-  std::vector<Eigen::Vector2d> observations;
-  return sm::EstimatePose(descriptors, keypoints, *map_, params_.estimate_pose);
+  return sm::EstimatePose(descriptors, keypoints, map_, params_.estimate_pose);
 }
 }  // namespace sparse_map_matcher

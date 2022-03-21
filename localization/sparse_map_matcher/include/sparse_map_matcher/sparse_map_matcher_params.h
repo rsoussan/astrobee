@@ -16,25 +16,22 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAP_MATCHER_SPARSE_MAP_MATCHER_H_
-#define SPARSE_MAP_MATCHER_SPARSE_MAP_MATCHER_H_
+#ifndef SPARSE_MAP_MATCHER_SPARSE_MAP_MATCHER_PARAMS_H_
+#define SPARSE_MAP_MATCHER_SPARSE_MAP_MATCHER_PARAMS_H_
 
-#include <sparse_map_matcher/sparse_map_matcher_params.h>
-#include <sparse_mapping/estimate_pose_results.h>
-#include <sparse_mapping/sparse_map.h>
-#include <vision_common/brisk_dynamic_detector.h>
+#include <sparse_mapping/estimate_pose_params.h>
+#include <vision_common/brisk_dynamic_detector_params.h>
+
+#include <string>
 
 namespace sparse_map_matcher {
-class SparseMapMatcher {
- public:
-  explicit SparseMapMatcher(const SparseMapMatcherParams& params);
-  sparse_mapping::EstimatePoseResults Match(const cv::Mat& image);
-
- private:
-  SparseMapMatcherParams params_;
-  sparse_mapping::SparseMap map_;
-  vision_common::BriskDynamicDetector detector_;
+struct SparseMapMatcherParams {
+  int histogram_equalization;
+  std::string map_name;
+  sparse_mapping::EstimatePoseParams estimate_pose;
+  vision_common::BriskDynamicDetectorParams brisk_detector;
+  int num_cv_threads;
 };
 }  // namespace sparse_map_matcher
 
-#endif  // SPARSE_MAP_MATCHER_SPARSE_MAP_MATCHER_H_
+#endif  // SPARSE_MAP_MATCHER_SPARSE_MAP_MATCHER_PARAMS_H_
