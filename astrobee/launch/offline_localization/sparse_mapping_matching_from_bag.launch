@@ -16,7 +16,7 @@
 <!-- permissions and limitations under the License.                          -->
 
 
-<!-- Runs sparse mapping matcher (localization_node) live using images       -->
+<!-- Runs sparse mapping matcher live using images                           -->
 <!-- from the provided input bag.  Optionally records output to a given      -->
 <!-- ouput bagfile. Note this requires a sparse mapping map to be placed in  -->
 <!-- a astrobee/resources/maps/ directory and named iss.map or granite.map   -->
@@ -51,7 +51,7 @@
     </include>
   </group>
 
-  <include file="$(find localization_node)/launch/localization_node.launch">
+  <include file="$(find sparse_map_matcher)/launch/sparse_map_matcher.launch">
     <arg name="terminal" value="terminator -x"/>
   </include>
 

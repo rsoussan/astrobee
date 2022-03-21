@@ -333,8 +333,8 @@
      <arg name="default" value="false" />
    </include>
    <include file="$(find ff_util)/launch/ff_nodelet.launch">
-     <arg name="class" value="localization_node/LocalizationNodelet" />
-     <arg name="name" value="localization_node" />
+     <arg name="class" value="sparse_map_matcher/SparseMapMatcherNodelet" />
+     <arg name="name" value="sparse_map_matcher" />
      <arg name="manager" value="mlp_vision" />
      <arg name="spurn" value="$(arg spurn)" />
      <arg name="nodes" value="$(arg nodes)" />

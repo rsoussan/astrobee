@@ -67,7 +67,7 @@
     <include file="$(find lk_optical_flow)/launch/lk_optical_flow.launch">
       <arg name="terminal" value="terminator -x"/>
     </include>
-    <include file="$(find localization_node)/launch/localization_node.launch">
+    <include file="$(find sparse_map_matcher)/launch/sparse_map_matcher.launch">
       <arg name="terminal" value="terminator -x"/>
     </include>
   </group>
