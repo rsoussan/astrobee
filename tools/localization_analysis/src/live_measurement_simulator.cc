@@ -49,7 +49,7 @@ LiveMeasurementSimulator::LiveMeasurementSimulator(const LiveMeasurementSimulato
     exit(0);
   }
 
-  map_feature_matcher_.ReadParams(&config);
+  sparse_map_matcher_.reset(std::make_unique<SparseMapMatcher::SparseMapMatcherWrapper>());
   optical_flow_tracker_.ReadParams(&config);
   std::vector<std::string> topics;
   topics.push_back(std::string("/") + TOPIC_HARDWARE_IMU);
@@ -84,16 +84,9 @@ ff_msgs::Feature2dArray LiveMeasurementSimulator::GenerateOFFeatures(const senso
 
 bool LiveMeasurementSimulator::GenerateVLFeatures(const sensor_msgs::ImageConstPtr& image_msg,
                                                   ff_msgs::VisualLandmarks& vl_features) {
-  // Convert image to cv image
-  cv_bridge::CvImageConstPtr image;
-  try {
-    image = cv_bridge::toCvShare(image_msg, sensor_msgs::image_encodings::MONO8);
-  } catch (cv_bridge::Exception& e) {
-    ROS_ERROR("cv_bridge exception: %s", e.what());
-    return false;
-  }
-
-  if (!map_feature_matcher_.Localize(image, &vl_features)) return false;
+  const auto vl_msg = sparse_map_matcher_->ImageCallback(image_msg);
+  if (!vl_msg) return false;
+  vl_features = *vl_msg;
   return true;
 }
 

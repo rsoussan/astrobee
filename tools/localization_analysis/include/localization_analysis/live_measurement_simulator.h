@@ -29,7 +29,7 @@
 #include <localization_analysis/message_buffer.h>
 #include <lk_optical_flow/lk_optical_flow.h>
 #include <localization_common/time.h>
-#include <localization_node/localization.h>
+#include <sparse_map_matcher/sparse_map_matcher_wrapper.h>
 #include <sparse_mapping/sparse_map.h>
 
 #include <rosbag/view.h>
@@ -64,8 +64,8 @@ class LiveMeasurementSimulator {
 
   rosbag::Bag bag_;
   sparse_mapping::SparseMap map_;
-  localization_node::Localizer map_feature_matcher_;
   LiveMeasurementSimulatorParams params_;
+  std::unique_ptr<sparse_map_matcher::SparseMapMatcherWrapper> sparse_map_matcher_;
   lk_optical_flow::LKOpticalFlow optical_flow_tracker_;
   const std::string kImageTopic_;
   std::unique_ptr<rosbag::View> view_;
