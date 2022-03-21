@@ -79,7 +79,7 @@ void LoadDynamicDetectorParams(config_reader::ConfigReader& config, DynamicDetec
   params.max_features = mc::LoadInt(config, "max_features");
   params.max_retries = mc::LoadInt(config, "max_retries");
   params.min_threshold = mc::LoadDouble(config, "min_threshold");
-  params.default_threshold = mc::LoadDouble(config, "default_threshold");
+  params.starting_threshold = mc::LoadDouble(config, "starting_threshold");
   params.max_threshold = mc::LoadDouble(config, "max_threshold");
   params.center_keypoints = mc::LoadBool(config, "center_keypoints");
   params.increase_threshold_multiplier = mc::LoadDouble(config, "increase_threshold_multiplier");
@@ -89,10 +89,14 @@ void LoadDynamicDetectorParams(config_reader::ConfigReader& config, DynamicDetec
 void LoadBriskDynamicDetectorParams(config_reader::ConfigReader& config, BriskDynamicDetectorParams& params) {
   LoadDynamicDetectorParams(config, params);
   LoadBriskDetectorParams(config, params);
+  // Set starting threshold using Brisk threshold
+  params.starting_threshold = params.threshold;
 }
 
 void LoadSurfDynamicDetectorParams(config_reader::ConfigReader& config, SurfDynamicDetectorParams& params) {
   LoadDynamicDetectorParams(config, params);
   LoadSurfDetectorParams(config, params);
+  // Set starting threshold using Surf threshold
+  params.starting_threshold = params.threshold;
 }
 }  // namespace vision_common

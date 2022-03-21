@@ -19,7 +19,8 @@
 #include <vision_common/dynamic_detector.h>
 
 namespace vision_common {
-DynamicDetector::DynamicDetector(const DynamicDetectorParams& params) : params_(params), dynamic_threshold_(0) {}
+DynamicDetector::DynamicDetector(const DynamicDetectorParams& params)
+    : params_(params), dynamic_threshold_(params.starting_threshold) {}
 
 void DynamicDetector::DetectAndCompute(const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints,
                                        cv::Mat& descriptors) {
@@ -43,12 +44,12 @@ void DynamicDetector::DetectAndCompute(const cv::Mat& image, std::vector<cv::Key
   }
 }
 void IncreaseThreshold() {
-  dynamic_threshold_ = std::min(dynamic_threshold * params_.increase_threshold_multiplier, params_.max_threshold);
+  dynamic_threshold_ = std::min(dynamic_threshold_ * params_.increase_threshold_multiplier, params_.max_threshold);
   detector_->setThreshold(dynamic_threshold_);
 }
 
 void DecreaseThreshold() {
-  dynamic_threshold_ = std::max(dynamic_threshold * params_.decrease_threshold_multiplier, params_.min_threshold);
+  dynamic_threshold_ = std::max(dynamic_threshold_ * params_.decrease_threshold_multiplier, params_.min_threshold);
   detector_->setThreshold(dynamic_threshold_);
 }
 

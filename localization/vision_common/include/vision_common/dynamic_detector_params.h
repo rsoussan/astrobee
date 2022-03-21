@@ -28,7 +28,7 @@ struct DynamicDetectorParams {
   int max_features;
   int max_retries;
   double min_threshold;
-  double default_threshold;
+  double starting_threshold;
   double max_threshold;
   bool center_keypoints;
   double increase_threshold_multiplier;
