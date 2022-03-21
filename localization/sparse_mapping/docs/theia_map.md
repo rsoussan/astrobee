@@ -114,7 +114,7 @@ the steps are as follows.
 
 Extract the data from the bag:
 
-    $ASTROBEE_BUILD_PATH/devel/lib/localization_node/extract_image_bag \
+    $ASTROBEE_BUILD_PATH/devel/lib/sparse_map_matcher/extract_image_bag \
       bagfile.bag -use_timestamp_as_image_name                         \
       -image_topic /hw/cam_nav -output_directory image_dir
 

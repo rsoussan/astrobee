@@ -490,11 +490,11 @@ on MLP and LLP to replace the robot name with the robot you want to
 test. Please don't forget to undo your changes at the end, as otherwise
 this robot will give wrong results for other users.
 
-Then launch localization:
+Then launch the sparse map matcher:
 
     ssh llp
     roslaunch astrobee astrobee.launch llp:=disabled mlp:=mlp \
-      nodes:=framestore,dds_ros_bridge,localization_node
+      nodes:=framestore,dds_ros_bridge,sparse_map_matcher
 
 ### Play the bags (on MLP)
 
@@ -570,10 +570,10 @@ Sym link the map to test:
     rm -fv $ASTROBEE_SOURCE_PATH/astrobee/resources/maps/iss.map
     ln -s $(pwd)/mymap.map $ASTROBEE_SOURCE_PATH/astrobee/resources/maps/iss.map
 
-### Start localization
+### Start the sparse map matcher 
 
     roslaunch astrobee astrobee.launch mlp:=local llp:=disabled  \
-      nodes:=framestore,localization_node robot:=$ASTROBEE_ROBOT \
+      nodes:=framestore,sparse_map_matcher robot:=$ASTROBEE_ROBOT \
       output:=screen
 
 Note how we specify the robot name at the end. 

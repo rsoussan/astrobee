@@ -5,7 +5,7 @@ Depending on the context, flight software might switch localization systems. For
 The localization manager supports the following localization pipelines:
 
 1. None (NO) - Do not localize.
-2. Sparse mapping (ML) - Localize by finding correspondences between features seen from the navigation camera and those in a 3D map, build a priori. This relies on messages produced by localization_node (see localization/localization_node/readme.md for more information).
+2. Sparse mapping (ML) - Localize by finding correspondences between features seen from the navigation camera and those in a 3D map, build a priori. This relies on messages produced by the sparse_map_matcher (see localization/sparse_map_matcher/readme.md for more information).
 3. Marker tracking (AR) - Localize by detecting augmented reality (AR) markers on a target that has a known pose with respect to the world. This relies on messages produced by the marker_tracking node and optical flow.
 4. Handrail localization (HR) - Localize with respect to a specific handrail detected from a point cloud, with an unknwon pose with respect to the world. This relies on messages produced by the handrail_detect node.
 5. Ground truth (GT) - Localize using pose and twist feedback from a ground truth localization system, such as the HTC Vive or Gazebo simulator.  This relies on either the vive node (real experiement) or the Gazebo simulator.
