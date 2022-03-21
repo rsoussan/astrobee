@@ -36,7 +36,7 @@ if (USE_ROS)
     imu_augmentor
     imu_bias_tester
     lk_optical_flow
-    localization_node
+    sparse_map_matcher
   )
 
   # Find GTSAM
@@ -45,7 +45,7 @@ if (USE_ROS)
   catkin_package(
     LIBRARIES ${PROJECT_NAME} ${OpenCV_LIBRARIES} 
     INCLUDE_DIRS include
-    CATKIN_DEPENDS roscpp rosbag camera depth_odometry ff_util ff_msgs ff_common graph_localizer imu_augmentor imu_bias_tester lk_optical_flow localization_node 
+    CATKIN_DEPENDS roscpp rosbag camera depth_odometry ff_util ff_msgs ff_common graph_localizer imu_augmentor imu_bias_tester lk_optical_flow sparse_map_matcher 
   )
    
   ###########

@@ -43,7 +43,7 @@ def make_map(
     os.mkdir(bag_images_dir)
     bag_images = os.path.abspath(bag_images_dir)
     extract_images_command = (
-        "rosrun localization_node extract_image_bag "
+        "rosrun sparse_map_matcher extract_image_bag "
         + bagfile
         + " -use_timestamp_as_image_name -image_topic /mgt/img_sampler/nav_cam/image_record -output_directory "
         + bag_images
