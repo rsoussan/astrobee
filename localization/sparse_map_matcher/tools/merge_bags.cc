@@ -39,30 +39,27 @@
 // Merge bags
 // Usage: merge_bags -output_bag output.bag input1.bag input2.bag ...
 
-DEFINE_string(output_bag, "",
-              "The output bag.");
+DEFINE_string(output_bag, "", "The output bag.");
 
 // Read the list of topics in a bag while avoiding repetitions
-void readTopicsInBag(std::string const& bag_file, std::vector<std::string> & topics) {
+void readTopicsInBag(std::string const& bag_file, std::vector<std::string>& topics) {
   topics.clear();
 
   rosbag::Bag bag(bag_file.c_str());
   rosbag::View view(bag);
-  std::vector<const rosbag::ConnectionInfo *> connection_infos = view.getConnections();
+  std::vector<const rosbag::ConnectionInfo*> connection_infos = view.getConnections();
 
   // Read first in a set to deal with any repetitions
   std::set<std::string> topics_set;
-  BOOST_FOREACH(const rosbag::ConnectionInfo *info, connection_infos) {
-    topics_set.insert(info->topic);
-  }
+  BOOST_FOREACH(const rosbag::ConnectionInfo* info, connection_infos) { topics_set.insert(info->topic); }
 
   // Copy the unique names to a vector
-  for (auto it = topics_set.begin(); it != topics_set.end() ; it++) {
+  for (auto it = topics_set.begin(); it != topics_set.end(); it++) {
     topics.push_back(*it);
   }
 }
 
-int main(int argc, char ** argv) {
+int main(int argc, char** argv) {
   ff_common::InitFreeFlyerApplication(&argc, &argv);
 
   if (FLAGS_output_bag == "") {
@@ -72,8 +69,7 @@ int main(int argc, char ** argv) {
 
   // Make the directory where the output will go
   std::string out_dir = boost::filesystem::path(FLAGS_output_bag).parent_path().string();
-  if (out_dir == "")
-    out_dir = ".";
+  if (out_dir == "") out_dir = ".";
   if (!boost::filesystem::exists(out_dir)) {
     int status = mkdir(out_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (status && errno != EEXIST) {

@@ -27,8 +27,7 @@ namespace vc = vision_common;
 SparseMapMatcher::SparseMapMatcher(const SparseMapMatcherParams& params, std::shared_ptr<sparse_mapping::SparseMap> map)
     : params_(params), map_(std::move(map)), detector_(params.detector) {
   // TODO(rsoussan): construct pose estimate params!!!
-  sm::HistogramEqualizationCheck(map_->GetHistogramEqualization(),
-                                             params_.histogram_equalization);
+  sm::HistogramEqualizationCheck(map_->GetHistogramEqualization(), params_.histogram_equalization);
 }
 
 vc::EstimatePoseResults SparseMapMatcher::Match(const cv::Mat& image, const ros::Time& timestamp) {

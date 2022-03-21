@@ -26,43 +26,34 @@
 
 namespace sparse_map_matcher {
 
-SparseMapMatcher::SparseMapMatcher(std::shared_ptr<sparse_mapping::SparseMap> map) :
-      map_(std::move(map)) {}
+SparseMapMatcher::SparseMapMatcher(std::shared_ptr<sparse_mapping::SparseMap> map) : map_(std::move(map)) {}
 
 void SparseMapMatcher::ReadParams(config_reader::ConfigReader* config) {
   int num_similar, ransac_inlier_tolerance, ransac_iterations, early_break_landmarks, histogram_equalization;
   int min_features, max_features, detection_retries;
   double min_brisk_threshold, default_brisk_threshold, max_brisk_threshold;
   camera::CameraParameters cam_params(config, "nav_cam");
-  if (!config->GetInt("num_similar", &num_similar))
-    ROS_FATAL("num_similar not specified in localization.");
+  if (!config->GetInt("num_similar", &num_similar)) ROS_FATAL("num_similar not specified in localization.");
   if (!config->GetInt("ransac_inlier_tolerance", &ransac_inlier_tolerance))
     ROS_FATAL("ransac_inlier_tolerance not specified in localization.");
   if (!config->GetInt("ransac_iterations", &ransac_iterations))
     ROS_FATAL("ransac_iterations not specified in localization.");
-  if (!config->GetInt("min_features", &min_features))
-    ROS_FATAL("min_features not specified in localization.");
-  if (!config->GetInt("max_features", &max_features))
-    ROS_FATAL("max_features not specified in localization.");
+  if (!config->GetInt("min_features", &min_features)) ROS_FATAL("min_features not specified in localization.");
+  if (!config->GetInt("max_features", &max_features)) ROS_FATAL("max_features not specified in localization.");
   if (!config->GetInt("detection_retries", &detection_retries))
     ROS_FATAL("detection_retries not specified in localization.");
   if (!config->GetInt("histogram_equalization", &histogram_equalization))
     ROS_FATAL("histogram_equalization not specified in localization.");
 
   // For the brisk thresholds and other values, quietly assume some defaults
-  if (!config->GetReal("min_brisk_threshold", &min_brisk_threshold))
-    min_brisk_threshold = 20.0;
-  if (!config->GetReal("default_brisk_threshold", &default_brisk_threshold))
-    default_brisk_threshold = 90.0;
-  if (!config->GetReal("max_brisk_threshold", &max_brisk_threshold))
-    max_brisk_threshold = 110.0;
-  if (!config->GetInt("early_break_landmarks", &early_break_landmarks))
-    early_break_landmarks = 100;
+  if (!config->GetReal("min_brisk_threshold", &min_brisk_threshold)) min_brisk_threshold = 20.0;
+  if (!config->GetReal("default_brisk_threshold", &default_brisk_threshold)) default_brisk_threshold = 90.0;
+  if (!config->GetReal("max_brisk_threshold", &max_brisk_threshold)) max_brisk_threshold = 110.0;
+  if (!config->GetInt("early_break_landmarks", &early_break_landmarks)) early_break_landmarks = 100;
 
   // This check must happen before the histogram_equalization flag is set into the map
   // to compare with what is there already.
-  sparse_mapping::HistogramEqualizationCheck(map_->GetHistogramEqualization(),
-                                             histogram_equalization);
+  sparse_mapping::HistogramEqualizationCheck(map_->GetHistogramEqualization(), histogram_equalization);
   map_->SetCameraParameters(cam_params);
   // TODO(rsoussan): Make estimateposeparams file and set these there!!!!!!
   map_->SetNumSimilar(num_similar);
@@ -70,17 +61,16 @@ void SparseMapMatcher::ReadParams(config_reader::ConfigReader* config) {
   map_->SetRansacIterations(ransac_iterations);
   map_->SetEarlyBreakLandmarks(early_break_landmarks);
   map_->SetHistogramEqualization(histogram_equalization);
-  map_->SetDetectorParams(min_features, max_features, detection_retries,
-                          min_brisk_threshold, default_brisk_threshold, max_brisk_threshold);
+  map_->SetDetectorParams(min_features, max_features, detection_retries, min_brisk_threshold, default_brisk_threshold,
+                          max_brisk_threshold);
 
   // TODO(rsoussan): Add constructor for detector using params!!! move detector params here!
-  detector_ = std::make_unqiue<interest_point::FeatureDetector>(map_->params().detector.name,
-                    min_features, max_features, retries,
-                    min_thresh, default_thresh, max_thresh);
+  detector_ = std::make_unqiue<interest_point::FeatureDetector>(
+    map_->params().detector.name, min_features, max_features, retries, min_thresh, default_thresh, max_thresh);
 }
 
 bool SparseMapMatcher::Match(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLandmarks* vl,
-     Eigen::Matrix2Xd* image_keypoints) {
+                             Eigen::Matrix2Xd* image_keypoints) {
   cv::Mat image_descriptors;
   Eigen::Matrix2Xd keypoints;
   if (image_keypoints == NULL) {
@@ -93,14 +83,11 @@ bool SparseMapMatcher::Match(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::Visu
 
   sparse_mapping::DetectFeatures(image_ptr->image, map_->params().histogram_equalization, *detector_,
                                  &image_descriptors, image_keypoints);
-  camera::CameraModel camera(Eigen::Vector3d(),
-                             Eigen::Matrix3d::Identity(),
-                             map_->GetCameraParameters());
+  camera::CameraModel camera(Eigen::Vector3d(), Eigen::Matrix3d::Identity(), map_->GetCameraParameters());
   std::vector<Eigen::Vector3d> landmarks;
   std::vector<Eigen::Vector2d> observations;
   // TODO(rsoussan): Update this with new estimate pose interface!!! Add params, change results!
-  if (!map_->EstimatePose(image_descriptors, *image_keypoints,
-                               &camera, &landmarks, &observations)) {
+  if (!map_->EstimatePose(image_descriptors, *image_keypoints, &camera, &landmarks, &observations)) {
     return false;
   }
 

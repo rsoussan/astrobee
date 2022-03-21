@@ -37,7 +37,7 @@
 
 int histogram_equalization = 1;
 
-Eigen::Vector3f QuatToEuler(const Eigen::Quaternionf & q) {
+Eigen::Vector3f QuatToEuler(const Eigen::Quaternionf& q) {
   Eigen::Vector3f euler;
   float q2q2 = q.y() * q.y();
   euler.x() = atan2(2 * (q.x() * q.w() + q.y() * q.z()), 1 - 2 * (q.x() * q.x() + q2q2));
@@ -47,9 +47,8 @@ Eigen::Vector3f QuatToEuler(const Eigen::Quaternionf & q) {
   return euler;
 }
 
-void WriteResults(FILE* f, int matches, const Eigen::Vector3f & p, const Eigen::Quaternionf & q) {
-  if (f == NULL)
-    return;
+void WriteResults(FILE* f, int matches, const Eigen::Vector3f& p, const Eigen::Quaternionf& q) {
+  if (f == NULL) return;
   Eigen::Vector3f euler = QuatToEuler(q);
   fprintf(f, "%d ", matches);
   fprintf(f, "%g %g %g ", p.x(), p.y(), p.z());
@@ -66,28 +65,23 @@ void ReadParams(interest_point::FeatureDetector* detector) {
 
   int min_features, max_features, detection_retries;
   double min_brisk_threshold, default_brisk_threshold, max_brisk_threshold;
-  if (!config.GetInt("min_features", &min_features))
-    ROS_FATAL("min_features not specified in localization.");
-  if (!config.GetInt("max_features", &max_features))
-    ROS_FATAL("max_features not specified in localization.");
+  if (!config.GetInt("min_features", &min_features)) ROS_FATAL("min_features not specified in localization.");
+  if (!config.GetInt("max_features", &max_features)) ROS_FATAL("max_features not specified in localization.");
   if (!config.GetInt("detection_retries", &detection_retries))
     ROS_FATAL("detection_retries not specified in localization.");
   if (!config.GetInt("histogram_equalization", &histogram_equalization))
     ROS_FATAL("histogram_equalization not specified in localization.");
 
   // For the brisk thresholds, quietly assume some defaults
-  if (!config.GetReal("min_brisk_threshold", &min_brisk_threshold))
-    min_brisk_threshold = 20.0;
-  if (!config.GetReal("default_brisk_threshold", &default_brisk_threshold))
-    default_brisk_threshold = 90.0;
-  if (!config.GetReal("max_brisk_threshold", &max_brisk_threshold))
-    max_brisk_threshold = 110.0;
+  if (!config.GetReal("min_brisk_threshold", &min_brisk_threshold)) min_brisk_threshold = 20.0;
+  if (!config.GetReal("default_brisk_threshold", &default_brisk_threshold)) default_brisk_threshold = 90.0;
+  if (!config.GetReal("max_brisk_threshold", &max_brisk_threshold)) max_brisk_threshold = 110.0;
 
-  detector->Reset("ORGBRISK", min_features, max_features, detection_retries,
-                  min_brisk_threshold, default_brisk_threshold, max_brisk_threshold);
+  detector->Reset("ORGBRISK", min_features, max_features, detection_retries, min_brisk_threshold,
+                  default_brisk_threshold, max_brisk_threshold);
 }
 
-void DetectImageFeatures(interest_point::FeatureDetector & detector, sensor_msgs::ImageConstPtr & image_msg,
+void DetectImageFeatures(interest_point::FeatureDetector& detector, sensor_msgs::ImageConstPtr& image_msg,
                          cv::Mat* description) {
   std::vector<cv::KeyPoint> keypoints;
   cv_bridge::CvImageConstPtr image;
@@ -98,7 +92,7 @@ void DetectImageFeatures(interest_point::FeatureDetector & detector, sensor_msgs
     return;
   }
 
-  cv::Mat * image_ptr = const_cast<cv::Mat*>(&image->image);
+  cv::Mat* image_ptr = const_cast<cv::Mat*>(&image->image);
   cv::Mat hist_image;
   if (histogram_equalization) {
     cv::equalizeHist(image->image, hist_image);
@@ -108,15 +102,14 @@ void DetectImageFeatures(interest_point::FeatureDetector & detector, sensor_msgs
   detector.Detect(*image_ptr, &keypoints, description);
 }
 
-void InterpolateGroundTruth(const geometry_msgs::PoseStampedConstPtr & last_gt,
-                            const geometry_msgs::PoseStampedConstPtr & next_gt,
-                            const ros::Time & last_gt_time,
-                            const ros::Time & next_gt_time, const ros::Time & image_time,
-                            Eigen::Quaternionf * q, Eigen::Vector3f * p) {
-  Eigen::Quaternionf q_prev(last_gt->pose.orientation.w, last_gt->pose.orientation.x,
-                            last_gt->pose.orientation.y, last_gt->pose.orientation.z);
-  Eigen::Quaternionf q_next(next_gt->pose.orientation.w, next_gt->pose.orientation.x,
-                            next_gt->pose.orientation.y, next_gt->pose.orientation.z);
+void InterpolateGroundTruth(const geometry_msgs::PoseStampedConstPtr& last_gt,
+                            const geometry_msgs::PoseStampedConstPtr& next_gt, const ros::Time& last_gt_time,
+                            const ros::Time& next_gt_time, const ros::Time& image_time, Eigen::Quaternionf* q,
+                            Eigen::Vector3f* p) {
+  Eigen::Quaternionf q_prev(last_gt->pose.orientation.w, last_gt->pose.orientation.x, last_gt->pose.orientation.y,
+                            last_gt->pose.orientation.z);
+  Eigen::Quaternionf q_next(next_gt->pose.orientation.w, next_gt->pose.orientation.x, next_gt->pose.orientation.y,
+                            next_gt->pose.orientation.z);
   Eigen::Vector3f p_prev(last_gt->pose.position.x, last_gt->pose.position.y, last_gt->pose.position.z);
   Eigen::Vector3f p_next(next_gt->pose.position.x, next_gt->pose.position.y, next_gt->pose.position.z);
   float u = (image_time - last_gt_time).toSec() / (next_gt_time - last_gt_time).toSec();
@@ -124,7 +117,7 @@ void InterpolateGroundTruth(const geometry_msgs::PoseStampedConstPtr & last_gt,
   *p = p_prev + u * (p_next - p_prev);
 }
 
-int main(int argc, char ** argv) {
+int main(int argc, char** argv) {
   ff_common::InitFreeFlyerApplication(&argc, &argv);
 
   if (argc < 2) {
@@ -171,8 +164,8 @@ int main(int argc, char ** argv) {
     while (it_image != image_view.end() && (*it_image).getTime() < next_gt_time) {
       progress++;
       if (first && (*it_image).getTime() < last_gt_time) {
-          it_image++;
-          continue;
+        it_image++;
+        continue;
       }
       sensor_msgs::ImageConstPtr image_msg = (*it_image).instantiate<sensor_msgs::Image>();
 
@@ -202,9 +195,7 @@ int main(int argc, char ** argv) {
     last_gt = next_gt;
   }
   bag.close();
-  if (f != NULL)
-    fclose(f);
+  if (f != NULL) fclose(f);
   ff_common::PrintProgressBar(stdout, 1.0);
   printf("\n");
 }
-

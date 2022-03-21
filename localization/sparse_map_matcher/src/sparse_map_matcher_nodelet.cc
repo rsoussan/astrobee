@@ -22,20 +22,19 @@
 #include <pluginlib/class_list_macros.h>
 
 namespace sparse_map_matcher {
-SparseMapMatcherNodelet::SparseMapMatcherNodelet() : ff_util::FreeFlyerNodelet(NODE_MAPPED_LANDMARKS),
-        enabled_(false) {}
+SparseMapMatcherNodelet::SparseMapMatcherNodelet()
+    : ff_util::FreeFlyerNodelet(NODE_MAPPED_LANDMARKS), enabled_(false) {}
 
 void SparseMapMatcherNodelet::Initialize(ros::NodeHandle* nh) { SubscribeAndAdvertise(nh); }
 
 void SparseMapMatcherNodelet::SubscribeAndAdvertise(ros::NodeHandle* nh) {
   image_transport::ImageTransport image_transport(*nh);
   image_sub_ = image_transport.subscribe(TOPIC_HARDWARE_NAV_CAM, 1, &SparseMapMatcherNodelet::ImageCallback, this);
-  vl_pub_ = nh->advertise<ff_msgs::VisualLandmarks>(
-      TOPIC_LOCALIZATION_ML_FEATURES, 10);
+  vl_pub_ = nh->advertise<ff_msgs::VisualLandmarks>(TOPIC_LOCALIZATION_ML_FEATURES, 10);
   enable_srv_ = nh->advertiseService(SERVICE_LOCALIZATION_ML_ENABLE, &SparseMapMatcherNodelet::EnableService, this);
 }
 
-bool SparseMapMatcherNodelet::EnableService(ff_msgs::SetBool::Request & req, ff_msgs::SetBool::Response & res) {
+bool SparseMapMatcherNodelet::EnableService(ff_msgs::SetBool::Request& req, ff_msgs::SetBool::Response& res) {
   enabled_ = req.enable;
   res.success = true;
   return true;

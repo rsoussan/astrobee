@@ -41,30 +41,22 @@
 
 // Extract images from a ROS bag.
 
-DEFINE_string(image_topic, "/hw/cam_nav",
-              "Image topic that you want to write to disk.");
-DEFINE_string(output_directory, "",
-              "Directory for writing the output imagery.");
-DEFINE_string(output_format, "%06i",
-              "Format string for writing the output data.");
-DEFINE_double(start, 0,
-             "Start extracting this many seconds into the bag.");
-DEFINE_double(duration, 1e+100,
-             "Extract this many seconds from the bag. Default: extract the full bag.");
+DEFINE_string(image_topic, "/hw/cam_nav", "Image topic that you want to write to disk.");
+DEFINE_string(output_directory, "", "Directory for writing the output imagery.");
+DEFINE_string(output_format, "%06i", "Format string for writing the output data.");
+DEFINE_double(start, 0, "Start extracting this many seconds into the bag.");
+DEFINE_double(duration, 1e+100, "Extract this many seconds from the bag. Default: extract the full bag.");
 DEFINE_bool(use_timestamp_as_image_name, false,
-             "Let the acquisition timestamp (in seconds since Epoch) be the output image name.");
+            "Let the acquisition timestamp (in seconds since Epoch) be the output image name.");
 
-void form_filename(int seq, double timestamp,
-                   char* filename_buffer, int buffer_len) {
+void form_filename(int seq, double timestamp, char* filename_buffer, int buffer_len) {
   if (!FLAGS_use_timestamp_as_image_name)
-    snprintf(filename_buffer, buffer_len,
-             FLAGS_output_format.c_str(), seq);
+    snprintf(filename_buffer, buffer_len, FLAGS_output_format.c_str(), seq);
   else
-    snprintf(filename_buffer, buffer_len,
-             "%10.7f", timestamp);
+    snprintf(filename_buffer, buffer_len, "%10.7f", timestamp);
 }
 
-int main(int argc, char ** argv) {
+int main(int argc, char** argv) {
   ff_common::InitFreeFlyerApplication(&argc, &argv);
 
   if (argc < 2) {
@@ -107,15 +99,12 @@ int main(int argc, char ** argv) {
       curr_time = stamp.toSec();
 
       // Set up the output filename
-      form_filename(image_msg->header.seq, curr_time,
-                    filename_buffer, sizeof(filename_buffer));
+      form_filename(image_msg->header.seq, curr_time, filename_buffer, sizeof(filename_buffer));
       std::string name(filename_buffer);
       name = output_directory + "/" + name + ".jpg";
 
-      if (beg_time < 0)
-        beg_time = curr_time;
-      if (curr_time - beg_time < FLAGS_start ||
-          curr_time - beg_time > FLAGS_start + FLAGS_duration) {
+      if (beg_time < 0) beg_time = curr_time;
+      if (curr_time - beg_time < FLAGS_start || curr_time - beg_time > FLAGS_start + FLAGS_duration) {
         continue;
       }
 
@@ -131,8 +120,7 @@ int main(int argc, char ** argv) {
           // Note the same comment as earlier.
           image = cv_bridge::toCvShare(image_msg, "32FC1")->image;
         } catch (cv_bridge::Exception const& e) {
-          LOG(ERROR) << "Unable to convert " << image_msg->encoding.c_str()
-                     << " image to bgr8 or 32FC1";
+          LOG(ERROR) << "Unable to convert " << image_msg->encoding.c_str() << " image to bgr8 or 32FC1";
           continue;
         }
       }
@@ -142,22 +130,18 @@ int main(int argc, char ** argv) {
     }
 
     // Extract a compressed image
-    sensor_msgs::CompressedImage::ConstPtr comp_image_msg
-      = m.instantiate<sensor_msgs::CompressedImage>();
+    sensor_msgs::CompressedImage::ConstPtr comp_image_msg = m.instantiate<sensor_msgs::CompressedImage>();
     if (comp_image_msg) {
       ros::Time stamp = comp_image_msg->header.stamp;
       curr_time = stamp.toSec();
 
       // Set up the output filename
-      form_filename(comp_image_msg->header.seq, curr_time,
-                    filename_buffer, sizeof(filename_buffer));
+      form_filename(comp_image_msg->header.seq, curr_time, filename_buffer, sizeof(filename_buffer));
       std::string name(filename_buffer);
       name = output_directory + "/" + name + ".jpg";
 
-      if (beg_time < 0)
-        beg_time = curr_time;
-      if (curr_time - beg_time < FLAGS_start ||
-          curr_time - beg_time > FLAGS_start + FLAGS_duration) {
+      if (beg_time < 0) beg_time = curr_time;
+      if (curr_time - beg_time < FLAGS_start || curr_time - beg_time > FLAGS_start + FLAGS_duration) {
         continue;
       }
 

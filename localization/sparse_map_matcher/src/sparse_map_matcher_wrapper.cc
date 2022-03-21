@@ -24,7 +24,7 @@ namespace sparse_map_matcher {
 namespace lc = localization_common;
 namespace lm = localization_measurements;
 
-SparseMapMatcherWrapper::SparseMapMatcherWrapper(): vl_msg_count_(0) {
+SparseMapMatcherWrapper::SparseMapMatcherWrapper() : vl_msg_count_(0) {
   config_reader::ConfigReader config;
   config.AddFile("cameras.config");
   config.AddFile("sparse_map_matcher.config");
