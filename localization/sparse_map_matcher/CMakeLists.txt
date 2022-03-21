@@ -83,12 +83,6 @@ target_link_libraries(sparse_map_matcher
   ${OPENMVG_LIBRARIES}
 )
 
-## Declare a C++ executable: extract_image_bag
-add_executable(extract_image_bag tools/extract_image_bag.cc)
-add_dependencies(extract_image_bag ${catkin_EXPORTED_TARGETS})
-target_link_libraries(extract_image_bag
-  sparse_map_matcher gflags glog ${catkin_LIBRARIES})
-
 #############
 ## Install ##
 #############
@@ -111,20 +105,6 @@ install(DIRECTORY include/${PROJECT_NAME}/
   FILES_MATCHING PATTERN "*.h"
   PATTERN ".svn" EXCLUDE
 )
-
-# Install C++ executables
-install(TARGETS extract_image_bag DESTINATION bin)
-install(TARGETS interest_points_test_bag DESTINATION bin)
-install(TARGETS merge_bags DESTINATION bin)
-install(CODE "execute_process(
-  COMMAND ln -s ../../bin/extract_image_bag share/${PROJECT_NAME}
-  COMMAND ln -s ../../bin/interest_points_test_bag share/${PROJECT_NAME}
-  COMMAND ln -s ../../bin/merge_bags share/${PROJECT_NAME}
-  WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}
-  OUTPUT_QUIET
-  ERROR_QUIET
-  )")
-
 
 # Mark launch files for installation
 install(DIRECTORY launch/

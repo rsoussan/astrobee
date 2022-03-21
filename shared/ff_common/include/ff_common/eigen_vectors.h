@@ -24,6 +24,7 @@
 #ifndef FF_COMMON_EIGEN_VECTORS_H_
 #define FF_COMMON_EIGEN_VECTORS_H_
 
+#include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <Eigen/StdVector>
 

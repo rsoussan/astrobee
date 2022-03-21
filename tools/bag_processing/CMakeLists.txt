@@ -24,11 +24,30 @@ if (USE_ROS)
 
   ## Find catkin macros and libraries
   find_package(catkin2 REQUIRED COMPONENTS
+    ff_common
+    localization_common
     rosbag
   )
 
   catkin_package(
     LIBRARIES ${PROJECT_NAME}
-    CATKIN_DEPENDS rosbag
+    CATKIN_DEPENDS ff_common localization_common rosbag
   )
+
+## Declare a C++ executable: extract_images
+add_executable(extract_images tools/extract_images.cc)
+add_dependencies(extract_images ${catkin_EXPORTED_TARGETS})
+target_include_directories(extract_images PRIVATE ${catkin_INCLUDE_DIRS})
+target_link_libraries(extract_images
+  glog ${catkin_LIBRARIES})
+
+# Install C++ executables
+install(TARGETS extract_images DESTINATION bin)
+install(CODE "execute_process(
+  COMMAND ln -s ../../bin/extract_images share/${PROJECT_NAME}
+  WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}
+  OUTPUT_QUIET
+  ERROR_QUIET
+  )")
+
 endif (USE_ROS)
