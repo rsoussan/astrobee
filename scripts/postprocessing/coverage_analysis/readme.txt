@@ -25,7 +25,7 @@ If it is not pointing to the map of interest, move the current map, and make it 
  "mv ~/astrobee/astrobee/resources/maps/iss.map ~/astrobee/astrobee/resources/maps/iss_backup.map"
  "ln -s ~/map/location/<mapOfInterest>.map ~/astrobee/astrobee/resources/maps/iss.map"
 Run in a terminal 
- "roslaunch astrobee astrobee.launch mlp:=local llp:=disabled nodes:=framestore,localization_node world:=iss".
+ "roslaunch astrobee astrobee.launch mlp:=local llp:=disabled nodes:=framestore,sparse_map_matcher world:=iss".
 In another terminal enable localization: 
  "rosservice call /loc/ml/enable true" and wait for it to return "success: True".
 In this same terminal, run 

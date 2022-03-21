@@ -64,7 +64,7 @@ node MLP {
     ' full name = lk_optical_flow
     loc_node([marker_tracking])
     loc_node([sparse_mapping])
-    ' sparse_mapping is actually named localization_node in the launch file!
+    ' sparse_mapping is actually named sparse_map_matcher in the launch file!
 !ifdef SHOW_EVERY_NODE
     loc_node([nav_cam_calibration]<<calibration>>)
     loc_node([dock_cam_calibration]<<calibration>>)

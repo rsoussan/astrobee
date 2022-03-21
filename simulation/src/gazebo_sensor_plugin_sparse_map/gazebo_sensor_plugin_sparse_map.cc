@@ -42,7 +42,7 @@ namespace gazebo {
 class GazeboSensorPluginSparseMap : public FreeFlyerSensorPlugin {
  public:
   GazeboSensorPluginSparseMap() :
-    FreeFlyerSensorPlugin("localization_node", "nav_cam", true),
+    FreeFlyerSensorPlugin("sparse_map_matcher", "nav_cam", true),
       active_(true) {}
 
   ~GazeboSensorPluginSparseMap() {}

@@ -9,7 +9,7 @@
 
 fsw_build=${HOME}/build/amd64/ff_develop
 
-extract_imgs=${fsw_build}/devel/lib/localization_node/extract_image_bag
+extract_imgs=${fsw_build}/devel/lib/sparse_map_matcher/extract_image_bag
 
 for b in *.bag
 do
