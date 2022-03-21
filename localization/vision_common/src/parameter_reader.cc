@@ -85,4 +85,14 @@ void LoadDynamicDetectorParams(config_reader::ConfigReader& config, DynamicDetec
   params.increase_threshold_multiplier = mc::LoadDouble(config, "increase_threshold_multiplier");
   params.decrease_threshold_multiplier = mc::LoadDouble(config, "decrease_threshold_multiplier");
 }
+
+void LoadBriskDynamicDetectorParams(config_reader::ConfigReader& config, BriskDynamicDetectorParams& params) {
+  LoadDynamicDetectorParams(config, params);
+  LoadBriskDetectorParams(config, params);
+}
+
+void LoadSurfDynamicDetectorParams(config_reader::ConfigReader& config, SurfDynamicDetectorParams& params) {
+  LoadDynamicDetectorParams(config, params);
+  LoadSurfDetectorParams(config, params);
+}
 }  // namespace vision_common
