@@ -19,9 +19,11 @@
 #define VISION_COMMON_PARAMETER_READER_H_
 
 #include <config_reader/config_reader.h>
+#include <vision_common/brisk_detector_params.h>
 #include <vision_common/brisk_feature_detector_and_matcher_params.h>
 #include <vision_common/good_features_to_track_detector_params.h>
 #include <vision_common/lk_optical_flow_feature_detector_and_matcher_params.h>
+#include <vision_common/surf_detector_params.h>
 #include <vision_common/surf_feature_detector_and_matcher_params.h>
 
 namespace vision_common {
@@ -33,5 +35,8 @@ void LoadLKOpticalFlowFeatureDetectorAndMatcherParams(config_reader::ConfigReade
                                                       LKOpticalFlowFeatureDetectorAndMatcherParams& params);
 void LoadSurfFeatureDetectorAndMatcherParams(config_reader::ConfigReader& config,
                                              SurfFeatureDetectorAndMatcherParams& params);
+void LoadBriskDetectorParams(config_reader::ConfigReader& config,
+                                              BriskDetectorParams& params);
+void LoadSurfDetectorParams(config_reader::ConfigReader& config, SurfDetectorParams& params);
 }  // namespace vision_common
 #endif  // VISION_COMMON_PARAMETER_READER_H_

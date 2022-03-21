@@ -25,9 +25,7 @@ namespace mc = msg_conversions;
 
 void LoadBriskFeatureDetectorAndMatcherParams(config_reader::ConfigReader& config,
                                               BriskFeatureDetectorAndMatcherParams& params) {
-  params.brisk.threshold = mc::LoadInt(config, "brisk_threshold");
-  params.brisk.octaves = mc::LoadInt(config, "brisk_octaves");
-  params.brisk.float_pattern_scale = mc::LoadFloat(config, "brisk_float_pattern_scale");
+  LoadBriskDetectorParams(config, params);
   params.max_match_hamming_distance = mc::LoadInt(config, "brisk_max_match_hamming_distance");
   params.flann_table_number = mc::LoadInt(config, "brisk_flann_table_number");
   params.flann_key_size = mc::LoadInt(config, "brisk_flann_key_size");
@@ -58,7 +56,20 @@ void LoadLKOpticalFlowFeatureDetectorAndMatcherParams(config_reader::ConfigReade
 
 void LoadSurfFeatureDetectorAndMatcherParams(config_reader::ConfigReader& config,
                                              SurfFeatureDetectorAndMatcherParams& params) {
-  params.surf.threshold = mc::LoadInt(config, "surf_threshold");
+  LoadSurfDetectorParams(config, params);
   params.max_match_distance = mc::LoadDouble(config, "surf_max_match_distance");
+}
+
+void LoadBriskDetectorParams(config_reader::ConfigReader& config,
+                                              BriskDetectorParams& params) {
+  params.threshold = mc::LoadInt(config, "brisk_threshold");
+  params.octaves = mc::LoadInt(config, "brisk_octaves");
+  params.float_pattern_scale = mc::LoadFloat(config, "brisk_float_pattern_scale");
+}
+
+
+void LoadSurfDetectorParams(config_reader::ConfigReader& config,
+                                             SurfDetectorParams& params) {
+  params.threshold = mc::LoadInt(config, "surf_threshold");
 }
 }  // namespace vision_common
