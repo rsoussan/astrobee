@@ -17,12 +17,17 @@
  */
 
 #include <sparse_map_matcher/parameter_reader.h>
+#include <sparse_mapping/parameter_reader.h>
+#include <vision_common/parameter_reader.h>
 
 namespace sparse_map_matcher {
+namespace sm = sparse_mapping;
+namespace vc = vision_common;
+
   LoadSparseMapMatcherParams(config_reader::ConfigReader& config, SparseMapMatcherParams& params) {
     params.map_name = mc::LoadString(config, "world_vision_map_filename");
-    sparse_mapping::EstimatePoseParams estimate_pose;
-    vision_common::BriskDynamicDetectorParams brisk_detector;
+    params.estimate_pose = sm::LoadEstimatePoseParams(config, params);
+    params.brisk_detector = vc::LoadBriskDynamicDetectorParams(config, params);
     params.histogram_equalization = mc::LoadInt(config, "histogram_equalization");
     params.num_cv_threads = mc::LoadInt(config, "num_cv_threads");
 }
