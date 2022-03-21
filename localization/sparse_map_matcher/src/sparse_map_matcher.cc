@@ -25,7 +25,7 @@ namespace sm = sparse_mapping;
 
 SparseMapMatcher::SparseMapMatcher(const SparseMapMatcherParams& params)
     : params_(params), detector_(params.detector), map_(params.map_name, true) {
-  sm::HistogramEqualizationCheck(map_->GetHistogramEqualization(), params_.histogram_equalization);
+  sm::HistogramEqualizationCheck(map_.GetHistogramEqualization(), params_.histogram_equalization);
 }
 
 sm::EstimatePoseResults SparseMapMatcher::Match(const cv::Mat& image) {
