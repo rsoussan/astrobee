@@ -41,7 +41,7 @@ LiveMeasurementSimulator::LiveMeasurementSimulator(const LiveMeasurementSimulato
   config_reader::ConfigReader config;
   config.AddFile("cameras.config");
   config.AddFile("geometry.config");
-  config.AddFile("localization.config");
+  config.AddFile("localization/sparse_map_matcher.config");
   config.AddFile("optical_flow.config");
 
   if (!config.ReadFiles()) {

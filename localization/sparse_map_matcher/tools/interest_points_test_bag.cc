@@ -57,7 +57,7 @@ void WriteResults(FILE* f, int matches, const Eigen::Vector3f& p, const Eigen::Q
 
 void ReadParams(interest_point::FeatureDetector* detector) {
   config_reader::ConfigReader config;
-  config.AddFile("localization.config");
+  config.AddFile("localization/sparse_map_matcher.config");
   if (!config.ReadFiles()) {
     ROS_ERROR("Failed to read config files.");
     return;

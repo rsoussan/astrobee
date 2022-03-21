@@ -208,9 +208,9 @@ This functionality is implemented in the localize_cams tool. Usage:
 
 Here we use values that are different from 
 
-    $ASTROBEE_SOURCE_PATH/astrobee/config/localization.config 
+    $ASTROBEE_SOURCE_PATH/astrobee/config/localization/sparse_map_matcher.config 
 
-which are used for localization on the robot, since those are optimized
+which are used for sparse map matching on the robot, since those are optimized
 for speed and here we want more accuracy.
 
 ### Testing localization using a bag 
@@ -443,7 +443,7 @@ which submap (or portions of it) are not necessary for the whole map's
 cohesiveness.
 
 Also note that the grow_map.py script takes a lot of other parameters
-on input that must be the same as in localization.config.
+on input that must be the same as in sparse_map_matcher.config.
 
 ### Reducing the number of images in a map
 

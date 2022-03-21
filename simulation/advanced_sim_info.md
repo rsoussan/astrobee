@@ -6,7 +6,6 @@ To run only localization nodes, and visualize localization running on a rosbag c
 1: Move a map file for your chosen world to astrobee/resources/rviz.  For example, astrobee/resources/rviz/iss.map
 2: Launch rviz using the loc_only command.  For example: 'roslaunch astrobee sim.launch default:=false rviz:=true loc_only:=true'
 3: In a separate command prompt, launch the astrobee localization software, and provide a global path to your rosbag.  For example: 'roslaunch astrobee astrobee.launch robot:=bumble world:=iss loc_only:=true bag:=/path/to/bag/MyBag.bag'
-There are several visualizations that can be enabled in the file astrobee/config/localization.config.  matched_features_on enables a live camera feed with all sparse mapping features in use overlayed over each frame.  all_features_on enables a live camera feed with all detected features in each frame overlayed.  map_cloud_on draws the entire stored sparse map in rviz.
 
 # Collisions and performance
 

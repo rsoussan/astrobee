@@ -26,10 +26,10 @@
 
 namespace sparse_map_matcher {
 struct SparseMapMatcherParams {
-  int histogram_equalization;
   std::string map_name;
   sparse_mapping::EstimatePoseParams estimate_pose;
   vision_common::BriskDynamicDetectorParams brisk_detector;
+  int histogram_equalization;
   int num_cv_threads;
 };
 }  // namespace sparse_map_matcher

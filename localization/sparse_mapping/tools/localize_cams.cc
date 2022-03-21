@@ -62,7 +62,7 @@ DEFINE_double(error_thresh, 0.05,
 
 DECLARE_bool(histogram_equalization);  // its value will be pulled from sparse_map.cc
 
-// These are synched up with localization.config. Note that
+// These are synched up with sparse_map_matcher.config. Note that
 // -num_similar and -ransac_inlier_tolerance and
 // -num_ransac_iterations need not be defined as flags here, since
 // they already exist in sparse_map.cc.

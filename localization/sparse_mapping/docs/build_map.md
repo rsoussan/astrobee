@@ -560,9 +560,9 @@ use the correct robot name below.
     export ASTROBEE_ROBOT=bumble # your robot's name may be different
     export ROS_MASTER_URI=http://127.0.0.1:11311/
 
-Examine the localization configuration file:
+Examine the sparse map matcher configuration file:
 
-    astrobee/config/localization.config
+    astrobee/config/localization/sparse_map_matcher.config
 
 Sym link the map to test:
 
