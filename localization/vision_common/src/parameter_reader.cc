@@ -72,4 +72,17 @@ void LoadSurfDetectorParams(config_reader::ConfigReader& config,
                                              SurfDetectorParams& params) {
   params.threshold = mc::LoadInt(config, "surf_threshold");
 }
+
+void LoadDynamicDetectorParams(config_reader::ConfigReader& config, DynamicDetectorParams& params) {
+  params.name = mc::LoadString(config, "detector_name");
+  params.min_features = mc::LoadInt(config, "min_features");
+  params.max_features = mc::LoadInt(config, "max_features");
+  params.max_retries = mc::LoadInt(config, "max_retries");
+  params.min_threshold = mc::LoadDouble(config, "min_threshold");
+  params.default_threshold = mc::LoadDouble(config, "default_threshold");
+  params.max_threshold = mc::LoadDouble(config, "max_threshold");
+  params.center_keypoints = mc::LoadBool(config, "center_keypoints");
+  params.increase_threshold_multiplier = mc::LoadDouble(config, "increase_threshold_multiplier");
+  params.decrease_threshold_multiplier = mc::LoadDouble(config, "decrease_threshold_multiplier");
+}
 }  // namespace vision_common
