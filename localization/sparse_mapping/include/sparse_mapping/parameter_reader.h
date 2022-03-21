@@ -15,22 +15,13 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
+#ifndef SPARSE_MAPPING_PARAMETER_READER_H_
+#define SPARSE_MAPPING_PARAMETER_READER_H_
 
-#ifndef SPARSE_MAPPING_ESTIMATE_POSE_PARAMS_H_
-#define SPARSE_MAPPING_ESTIMATE_POSE_PARAMS_H_
+#include <config_reader/config_reader.h>
+#include <sparse_mapping/estimate_pose_params.h>
 
 namespace sparse_mapping {
-struct EstimatePoseParams {
-    int num_ransac_iterations = 1000;
-    int ransac_inlier_tolerance = 3;
-      // TODO(rsoussan): Change this to a bool?
-    // TODO(rsoussan): should this be here or in sparse map params????
-    int histogram_equalization = false;
-    int max_num_total_feature_matches = 100;
-    bool check_point_3d_exists = true;
-    int max_image_matches = 20;
-    bool inlier_landmarks;
-    bool inlier_observations;
-};
+void LoadEstimatePoseParams(config_reader::ConfigReader& config, EstimatePoseParams& params);
 }  // namespace sparse_mapping
-#endif  // SPARSE_MAPPING_ESTIMATE_POSE_PARAMS_H_
+#endif  // SPARSE_MAPPING_PARAMETER_READER_H_
