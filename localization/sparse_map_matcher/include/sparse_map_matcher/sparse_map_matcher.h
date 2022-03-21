@@ -19,11 +19,8 @@
 #ifndef SPARSE_MAP_MATCHER_SPARSE_MAP_MATCHER_H_
 #define SPARSE_MAP_MATCHER_SPARSE_MAP_MATCHER_H_
 
-#include <ff_msgs/VisualLandmarks.h>
 #include <sparse_map_matcher/sparse_map_matcher_params.h>
 #include <sparse_mapping/sparse_map.h>
-
-#include <ros/Time.h>
 
 #include <vector>
 

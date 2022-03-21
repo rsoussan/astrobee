@@ -70,6 +70,8 @@ FeaturePointsMeasurement MakeFeaturePointsMeasurement(const ff_msgs::Feature2dAr
 
 FanSpeedMode ConvertFanSpeedMode(const uint8_t speed);
 
+boost::optional<ImageMeasurement> MakeImageMeasurement(const sensor_msgs::ImageConstPtr& image_msg);
+
 boost::optional<ImageMeasurement> MakeImageMeasurement(const sensor_msgs::ImageConstPtr& image_msg,
                                                        const std::string& encoding);
 

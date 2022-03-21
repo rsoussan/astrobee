@@ -16,10 +16,14 @@
  * under the License.
  */
 
-#include <localization_common/logger.h>l
+#include <localization_common/logger.h>
+#include <localization_measurements/measurement_conversions.h>
 #include <sparse_map_matcher/sparse_map_matcher_wrapper.h>
 
 namespace sparse_map_matcher {
+namespace lc = localization_common;
+namespace lm = localization_measurements;
+
 SparseMapMatcherWrapper::SparseMapMatcherWrapper() {
   config_reader::ConfigReader config;
   config.AddFile("cameras.config");
@@ -32,10 +36,35 @@ SparseMapMatcherWrapper::SparseMapMatcherWrapper() {
   matcher_.reset(std::make_unique<SparseMapMatcher>(params));
 }
 
-void SparseMapMatcherWrapper::ImageCallback(const sensor_msgs::ImageConstPtr& image_msg) {
-  // TODO(rsoussan): convert msg to cv::Mat!!!
-  // TODO(rsoussan): move vl_msg creation to wrapper!!
-  const auto vl_msg = matcher_.ImageCallback(image_msg);
-  if (vl_msg) vl_publisher_.publish(*vl_msg);
+ff_msgs::VisualLandmarks SparseMapMatcherWrapper::VlMsg(const Eigen::Isometry3d& world_T_camera,
+                                                        const lc::Time& timestamp,
+                                                        const std::vector<Eigen::Vector2d>& observations,
+                                                        const std::vector<Eigen::Vector3d>& landmarks) const {
+  ff_msgs::VisualLandmarks vl_msg;
+  lc::TimeToHeader(timestamp, vl_msg.header);
+  vl_msg.header.frame_id = "world";
+
+  mc::EigenPoseToMsg(world_T_camera, vl_msg.pose);
+  vl_msg.landmarks.reserve(landmarks.size());
+  for (int i = 0; i < static_cast<int>(landmarks.size()); ++i) {
+    ff_msgs::VisualLandmark l;
+    l.x = landmarks[i].x();
+    l.y = landmarks[i].y();
+    l.z = landmarks[i].z();
+    l.u = observations[i].x();
+    l.v = observations[i].y();
+    vl_msg.landmarks.push_back(l);
+  }
+  return vl_msg;
+}
+
+boost::optional<ff_msgs::VisualLandmarks> SparseMapMatcherWrapper::ImageCallback(
+  const sensor_msgs::ImageConstPtr& image_msg) {
+  const auto image_measurement = lm::MakeImageMeasurement(image_msg);
+  const auto pose_estimate = matcher_.ImageCallback(image_measurement.image);
+  if (!pose_estimate.pose) return boost::none;
+  const Eigen::Isometry3d world_T_camera(pose_estimate.pose->GetTransform().matrix());
+  return VlMsg(world_T_camera, image_measurement.timestamp, *(pose_estimate->inlier_observations),
+               *(pose_estimate->inlier_landmarks));
 }
 }  // namespace sparse_map_matcher

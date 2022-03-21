@@ -19,15 +19,23 @@
 #ifndef SPARSE_MAP_MATCHER_SPARSE_MAP_MATCHER_WRAPPER_H_
 #define SPARSE_MAP_MATCHER_SPARSE_MAP_MATCHER_WRAPPER_H_
 
+#include <ff_msgs/VisualLandmarks.h>
+#include <localization_common/time.h>
 #include <sparse_map_matcher/sparse_map_matcher.h>
+
+#include <vector>
 
 namespace sparse_map_matcher {
 class SparseMapMatcherWrapper {
  public:
   SparseMapMatcherWrapper();
-  void ImageCallback(const sensor_msgs::ImageConstPtr& msg);
+  boost::optional<ff_msgs::VisualLandmarks> ImageCallback(const sensor_msgs::ImageConstPtr& image_msg);
 
  private:
+  ff_msgs::VisualLandmarks VlMsg(const Eigen::Isometry3d& world_T_camera, const localization_common::Time& timestamp,
+                                 const std::vector<Eigen::Vector2d>& observations,
+                                 const std::vector<Eigen::Vector3d>& landmarks) const;
+
   std::unique_ptr<SparseMapMatcher> matcher_;
 };
 }  // namespace sparse_map_matcher

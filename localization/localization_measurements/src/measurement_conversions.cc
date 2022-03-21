@@ -140,6 +140,10 @@ FanSpeedMode ConvertFanSpeedMode(const uint8_t speed) {
   return FanSpeedMode::kOff;
 }
 
+boost::optional<ImageMeasurement> MakeImageMeasurement(const sensor_msgs::ImageConstPtr& image_msg) {
+  return MakeImageMeasurement(image_msg, image_msg->encoding);
+}
+
 boost::optional<ImageMeasurement> MakeImageMeasurement(const sensor_msgs::ImageConstPtr& image_msg,
                                                        const std::string& encoding) {
   cv_bridge::CvImagePtr cv_image;
