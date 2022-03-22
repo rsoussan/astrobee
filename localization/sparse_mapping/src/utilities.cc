@@ -16,7 +16,7 @@
  * under the License.
  */
 
-#include <sparse_mapping/sparse_mapping.h>
+#include <sparse_mapping/utilities.h>
 namespace sparse_mapping {
 // Logic for implementing if two histogram equalization flags are compatible.
 // This flag can be either 0 (false), 1 (true), or 2 (unknown). Be tolerant

@@ -16,8 +16,8 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_SPARSE_MAPPING_H_
-#define SPARSE_MAPPING_SPARSE_MAPPING_H_
+#ifndef SPARSE_MAPPING_UTILITIES_H_
+#define SPARSE_MAPPING_UTILITIES_H_
 
 #include <map>
 #include <string>
@@ -36,4 +36,4 @@ namespace sparse_mapping {
                      std::map<int, int>* map);
 }  // namespace sparse_mapping
 
-#endif  // SPARSE_MAPPING_SPARSE_MAPPING_H_
+#endif  // SPARSE_MAPPING_UTILITIES_H_
