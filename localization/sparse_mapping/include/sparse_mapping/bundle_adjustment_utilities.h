@@ -16,8 +16,8 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_TENSOR_H_
-#define SPARSE_MAPPING_TENSOR_H_
+#ifndef SPARSE_MAPPING_BUNDLE_ADJUSTMENT_UTILITIES_H_
+#define SPARSE_MAPPING_BUNDLE_ADJUSTMENT_UTILITIES_H_
 
 #include <camera/camera_model.h>
 #include <ff_common/eigen_vectors.h>
@@ -36,27 +36,12 @@
 
 EIGEN_DEFINE_STL_VECTOR_SPECIALIZATION(std::array<std::pair<std::pair<int, int>, Eigen::Affine3d>, 3>)
 
-namespace std {
-  class mutex;
-}
-
-namespace cv {
-  class Mat;
-  class DMatch;
-}
-
 namespace sparse_mapping {
-
   typedef std::map<std::pair<int, int>, Eigen::Affine3d, std::less<std::pair<int, int> >,
                    Eigen::aligned_allocator<std::pair<std::pair<int , int > const, Eigen::Affine3d> > >
                    CIDPairAffineMap;
   typedef std::array<std::pair<std::pair<int, int>, Eigen::Affine3d>, 3> CIDAffineTuple;
   typedef std::vector<CIDAffineTuple, Eigen::aligned_allocator<CIDAffineTuple> > CIDAffineTupleVec;
-
-  class SparseMap;
-
-  // functions for building a map
-
   /**
    * Create the initial map by feature matching and essential affine computation.
    **/
@@ -129,16 +114,6 @@ namespace sparse_mapping {
                                   bool verification,
                                   sparse_mapping::SparseMap * s);
 
-  // I/O Functions for writing and reading affine solutions.
-  void WriteAffineCSV(CIDPairAffineMap const& relative_affines,
-                      std::string const& output_filename);
-  void WriteAffineCSV(CIDAffineTupleVec const& relative_affines,
-                      std::string const& output_filename);
-  void ReadAffineCSV(std::string const& input_filename,
-                     CIDPairAffineMap* relative_affines);
-  void ReadAffineCSV(std::string const& input_filename,
-                     CIDAffineTupleVec* relative_affines);
-
   // Other auxiliary functions
 
   void PrintTrackStats(std::vector<std::map<int, int> >const& pid_to_cid_fid,
@@ -155,28 +130,6 @@ namespace sparse_mapping {
                                        std::vector<cv::DMatch> * inlier_matches,
                                        bool compute_rays_angle,
                                        double * rays_angle);
-
-  // Helper utility to speed up our query times into the map. The
-  // SparseMap object appears to have this ability now. Possibly don't
-  // need this function anymore.
-  void GenerateCIDToPIDFIDMap(std::vector<std::map<int, int> > const& pid_to_cid_fid,
-                              size_t num_of_cameras,
-                              std::vector<std::map<int, int> > * cid_to_pid_fid);
-
-  // List all the possible tuples (cameras paired in threes) that are
-  // available from the found camera pairwise affines.
-  void GenerateTupleListing(CIDPairAffineMap const& relative_affines,
-                            std::set<std::tuple<int, int, int> > * tuple_listing);
-
-  // Triangulates all points given camera positions. This is better
-  // than what is in sparse map as it uses multiple view information.
-  void Triangulate(bool rm_invalid_xyz, double focal_length,
-                   std::vector<Eigen::Affine3d> const& cid_to_cam_t_global,
-                   std::vector<Eigen::Matrix2Xd> const& cid_to_keypoint_map,
-                   std::vector<std::map<int, int> > * pid_to_cid_fid,
-                   std::vector<Eigen::Vector3d> * pid_to_xyz,
-                   std::vector<std::map<int, int> > * cid_fid_to_pid);
-
 }  // namespace sparse_mapping
 
-#endif  // SPARSE_MAPPING_TENSOR_H_
+#endif  // SPARSE_MAPPING_BUNDLE_ADJUSTMENT_UTILITIES_H_

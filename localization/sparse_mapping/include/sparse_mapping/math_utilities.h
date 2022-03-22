@@ -40,6 +40,15 @@ namespace sparse_mapping {
                    Eigen::Vector3d const& cam2_t_cam1,
                    double* error);
 
+  // Triangulates all points given camera positions. This is better
+  // than what is in sparse map as it uses multiple view information.
+  void Triangulate(bool rm_invalid_xyz, double focal_length,
+                   std::vector<Eigen::Affine3d> const& cid_to_cam_t_global,
+                   std::vector<Eigen::Matrix2Xd> const& cid_to_keypoint_map,
+                   std::vector<std::map<int, int> > * pid_to_cid_fid,
+                   std::vector<Eigen::Vector3d> * pid_to_xyz,
+                   std::vector<std::map<int, int> > * cid_fid_to_pid);
+
   // Decompose Fundamental Matrix into Essential Matrix given known
   // Intrinsics Matrix.
   void DecomposeFMatIntoEMat(Eigen::Matrix3d const& fundamental,

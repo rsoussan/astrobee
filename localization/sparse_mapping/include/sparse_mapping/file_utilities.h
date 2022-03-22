@@ -102,6 +102,16 @@ void InitializeCidFidToPid(int num_cid,
                            std::vector<std::map<int, int> > * cid_fid_to_pid);
 
 cv::Mat LoadImage(const std::string& filename);
+
+  // I/O Functions for writing and reading affine solutions.
+  void WriteAffineCSV(CIDPairAffineMap const& relative_affines,
+                      std::string const& output_filename);
+  void WriteAffineCSV(CIDAffineTupleVec const& relative_affines,
+                      std::string const& output_filename);
+  void ReadAffineCSV(std::string const& input_filename,
+                     CIDPairAffineMap* relative_affines);
+  void ReadAffineCSV(std::string const& input_filename,
+                     CIDAffineTupleVec* relative_affines);
 }  // namespace sparse_mapping
 
 #endif  // SPARSE_MAPPING_FILE_UTILITIES_H_
