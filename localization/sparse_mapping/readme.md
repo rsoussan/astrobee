@@ -94,9 +94,8 @@ as follows:
 
 To extract images from a bag file:
 
-    $ASTROBEE_BUILD_PATH/devel/lib/sparse_map_matcher/extract_image_bag \
-      <bagfile.bag> -use_timestamp_as_image_name                       \
-      -image_topic /hw/cam_nav -output_directory <output dir>
+    rosrun bag_processing extract_images \
+    bagfile.bag -o image_dir
 
 The above assumes that the software was built with ROS on.
 

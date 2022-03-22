@@ -43,9 +43,9 @@ def make_map(
     os.mkdir(bag_images_dir)
     bag_images = os.path.abspath(bag_images_dir)
     extract_images_command = (
-        "rosrun sparse_map_matcher extract_image_bag "
+        "rosrun bag_processing extract_images "
         + bagfile
-        + " -use_timestamp_as_image_name -image_topic /mgt/img_sampler/nav_cam/image_record -output_directory "
+        + " -i /mgt/img_sampler/nav_cam/image_record -o "
         + bag_images
     )
     utilities.run_command_and_save_output(extract_images_command, "extract_images.txt")

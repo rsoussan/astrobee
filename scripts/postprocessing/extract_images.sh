@@ -9,7 +9,7 @@
 
 fsw_build=${HOME}/build/amd64/ff_develop
 
-extract_imgs=${fsw_build}/devel/lib/sparse_map_matcher/extract_image_bag
+extract_imgs=${fsw_build}/devel/lib/bag_processing/extract_images
 
 for b in *.bag
 do
@@ -23,7 +23,7 @@ do
 	echo "  extracting nav_cam images..."
 	nav_dir=../images/${ts}/nav_cam
 	mkdir -p $nav_dir
-	$extract_imgs -image_topic=/mgt/img_sampler/nav_cam/image_record -output_directory=$nav_dir -output_format "%04i.jpg" $b
+	$extract_imgs -i /mgt/img_sampler/nav_cam/image_record -o $nav_dir -u -f "%04i.jpg" $b
     fi
 
     
@@ -33,7 +33,7 @@ do
 	echo "  extracting dock_cam images..."
 	dock_dir=../images/${ts}/dock_cam
 	mkdir -p $dock_dir
-	$extract_imgs -image_topic=/mgt/img_sampler/dock_cam/image_record -output_directory=$dock_dir -output_format "%04i.jpg" $b
+	$extract_imgs -i /mgt/img_sampler/dock_cam/image_record -o $dock_dir -u -f "%04i.jpg" $b
     fi
 
 done

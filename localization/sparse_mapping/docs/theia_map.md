@@ -114,9 +114,8 @@ the steps are as follows.
 
 Extract the data from the bag:
 
-    $ASTROBEE_BUILD_PATH/devel/lib/sparse_map_matcher/extract_image_bag \
-      bagfile.bag -use_timestamp_as_image_name                         \
-      -image_topic /hw/cam_nav -output_directory image_dir
+    rosrun bag_processing extract_images \
+      bagfile.bag -o image_dir
 
 If the images were recorded with the image sampler, the nav_cam image
 topic needs to be changed to:
