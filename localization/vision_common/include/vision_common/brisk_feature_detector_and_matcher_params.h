@@ -21,8 +21,7 @@
 #include <vision_common/brisk_detector_params.h>
 
 namespace vision_common {
-struct BriskFeatureDetectorAndMatcherParams {
-  BriskDetectorParams brisk;
+struct BriskFeatureDetectorAndMatcherParams : public BriskDetectorParams {
   // Matching
   int max_match_hamming_distance;
   int flann_table_number;

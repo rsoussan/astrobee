@@ -19,6 +19,7 @@
 #define VISION_COMMON_BRISK_DYNAMIC_DETECTOR_PARAMS_H_
 
 #include <vision_common/brisk_detector_params.h>
+#include <vision_common/dynamic_detector_params.h>
 
 namespace vision_common {
 struct BriskDynamicDetectorParams : public DynamicDetectorParams, public BriskDetectorParams {};

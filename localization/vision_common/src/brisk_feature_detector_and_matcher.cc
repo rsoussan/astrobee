@@ -25,7 +25,7 @@ BriskFeatureDetectorAndMatcher::BriskFeatureDetectorAndMatcher(const BriskFeatur
     : params_(params),
       flann_matcher_(cv::makePtr<cv::flann::LshIndexParams>(params_.flann_table_number, params_.flann_key_size,
                                                             params_.flann_multi_probe_level)) {
-  detector_ = cv::BRISK::create(params_.brisk.threshold, params_.brisk.octaves, params_.brisk.float_pattern_scale);
+  detector_ = cv::BRISK::create(params_.threshold, params_.octaves, params_.float_pattern_scale);
 }
 
 FeatureMatches BriskFeatureDetectorAndMatcher::Match(const FeatureImage& source_image,

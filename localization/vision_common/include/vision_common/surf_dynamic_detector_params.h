@@ -18,6 +18,7 @@
 #ifndef VISION_COMMON_SURF_DYNAMIC_DETECTOR_PARAMS_H_
 #define VISION_COMMON_SURF_DYNAMIC_DETECTOR_PARAMS_H_
 
+#include <vision_common/dynamic_detector_params.h>
 #include <vision_common/surf_detector_params.h>
 
 namespace vision_common {
