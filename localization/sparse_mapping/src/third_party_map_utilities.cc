@@ -21,9 +21,9 @@
 namespace sparse_mapping {
 // TODO(rsoussan): update code
 // Form a sparse map by reading a text file from disk. This is for comparing
-// bundler, nvm or theia maps.
-SparseMap::SparseMap(bool bundler_format, std::string const& filename,
-                     std::vector<std::string> const& all_image_files) {
+// nvm or theia maps.
+SparseMap::SparseMap(const std::string& filename,
+                     const std::vector<std::string>& all_image_files) {
   // these are placeholders and must be changed
   const camera::CameraParameters camera_params(Eigen::Vector2i(640, 480), Eigen::Vector2d::Constant(300),
                                                Eigen::Vector2d(320, 240));
@@ -31,9 +31,6 @@ SparseMap::SparseMap(bool bundler_format, std::string const& filename,
   SetParams(detector, camera_params);
   std::string ext = ff_common::file_extension(filename);
   boost::to_lower(ext);
-
-  if (ext == "nvm") {
-    std::cout << "NVM format detected." << std::endl;
 
     sparse_mapping::ReadNVM(filename, &cid_to_keypoint_map_, &cid_to_filename_, &pid_to_cid_fid_, &pid_to_xyz_,
                             &cid_to_cam_T_global_);
@@ -83,49 +80,6 @@ SparseMap::SparseMap(bool bundler_format, std::string const& filename,
 
     // Apply the permutation
     reorderMap(old_cid_to_new_cid);
-
-  } else if (bundler_format) {
-    std::cout << "Bundler format detected." << std::endl;
-
-    int num_cams = 0;
-
-    std::ifstream is(filename.c_str());
-    std::string line;
-    std::getline(is, line);  // empty line
-    is >> num_cams;
-    cid_to_filename_ = all_image_files;
-    cid_to_cam_T_global_.resize(num_cams);
-    cid_to_filename_.resize(num_cams);
-
-    for (int i = 0; i < num_cams; i++) {
-      std::string line;
-      std::getline(is, line);  // empty line
-      std::getline(is, line);  // focal length, etc.
-
-      // Rotation
-      Eigen::Matrix3d T;
-      for (int row = 0; row < T.rows(); row++) {
-        for (int col = 0; col < T.cols(); col++) {
-          is >> T(row, col);
-        }
-      }
-      // This is needed for when bundler fails
-      if (T.determinant() < 1e-8)
-        T = Eigen::Matrix3d::Identity();
-
-      // Translation
-      Eigen::Vector3d P;
-      for (int row = 0; row < P.size(); row++)
-        is >> P[row];
-
-      cid_to_cam_T_global_[i].linear() = T;  // not sure
-      cid_to_cam_T_global_[i].translation() = P;
-    }
-
-    // Initialize other data expected in the map
-    cid_to_keypoint_map_.resize(num_cams);
-    cid_to_descriptor_map_.resize(num_cams);
-  }
 
   // Initialize this convenient mapping
   InitializeCidFidToPid();

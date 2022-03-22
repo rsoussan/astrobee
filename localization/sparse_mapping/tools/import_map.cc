@@ -36,8 +36,6 @@ DEFINE_string(input_map, "",
               "Input map created with undistorted images, in a text file.");
 DEFINE_string(output_map, "output.map",
               "Output sparse map as expected by Astrobee software.");
-DEFINE_bool(bundler_map, false,
-            "If true, read the Bundler format. This will be ignored for input .nvm files.");
 DEFINE_string(undistorted_camera_params, "",
               "Intrinsics of the undistorted camera. Not needed if --distorted_images_list "
               "is specified, as then the camera is set via ASTROBEE_ROBOT. Specify as: "
@@ -115,7 +113,7 @@ int main(int argc, char** argv) {
   }
 
   std::cout << "Reading map: " << FLAGS_input_map << std::endl;
-  sparse_mapping::SparseMap map(FLAGS_bundler_map, FLAGS_input_map, undist_images);
+  sparse_mapping::SparseMap map(FLAGS_input_map, undist_images);
 
   if (FLAGS_distorted_images_list == "") {
     // Must overwrite the camera parameters with what is passed on input
