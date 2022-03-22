@@ -38,20 +38,23 @@ namespace po = boost::program_options;
 std::string Filename(const int seq, const double timestamp, const bool use_timestamp_as_image_name,
                      const std::string& non_timestamp_name_format) {
   const boost::format format =
-    use_timestamp_as_image_name ? boost::format("%10.7f%") % timestamp : boost::format(non_timestamp_name_format) % seq;
+    use_timestamp_as_image_name ? boost::format("%10.7f") % timestamp : boost::format(non_timestamp_name_format) % seq;
   return format.str();
 }
 
 void ExtractImages(const std::string& input_bagname, const std::string& output_directory,
                    const std::string& output_format, const std::string& image_topic, const double start_time = 0,
-                   const double duration = 1e10, const bool use_timestamp_as_image_name = true) {
+                   const double duration = 1e5, const bool use_timestamp_as_image_name = true) {
   rosbag::Bag input_bag(input_bagname, rosbag::bagmode::Read);
   rosbag::View start_view(input_bag);
   const ros::Time bag_start_time = start_view.getBeginTime() + ros::Duration(start_time);
   const ros::Time bag_end_time = bag_start_time + ros::Duration(duration);
   rosbag::View view(input_bag, rosbag::TopicQuery({image_topic}), bag_start_time, bag_end_time);
+  if (view.size() == 0) {
+    LogFatal("No images for topic " << image_topic << " in bagfile.");
+  }
+  LogInfo("Copying at most " << view.size() << " frames from the bag file.");
 
-  std::cout << "Copying at most " << view.size() << " frames from the bag file.\n";
   for (const auto& msg : view) {
     cv::Mat image;
     // Try to extract normal image
@@ -67,7 +70,7 @@ void ExtractImages(const std::string& input_bagname, const std::string& output_d
           // Note the same comment as earlier.
           image = cv_bridge::toCvShare(image_msg, "32FC1")->image;
         } catch (cv_bridge::Exception const& e) {
-          LOG(ERROR) << "Unable to convert " << image_msg->encoding.c_str() << " image to bgr8 or 32FC1";
+          LogError("Unable to convert " << image_msg->encoding.c_str() << " image to bgr8 or 32FC1");
           continue;
         }
       }
@@ -79,7 +82,7 @@ void ExtractImages(const std::string& input_bagname, const std::string& output_d
           // convert compressed image data to cv::Mat
           image = cv::imdecode(cv::Mat(image_msg->data), cv::IMREAD_COLOR);
         } catch (cv_bridge::Exception const& e) {
-          LOG(ERROR) << "Unable to convert compressed image to bgr8.";
+          LogError("Unable to convert compressed image to bgr8.");
           continue;
         }
       }
@@ -110,7 +113,7 @@ int main(int argc, char** argv) {
     "output-directory,o", po::value<std::string>(&output_directory)->default_value(""),
     "Output directory for extracted image files.")("start-time,s", po::value<double>(&start_time)->default_value(0),
                                                    "Begin extracting images this many seconds into the bagfile.")(
-    "duration,d", po::value<double>(&duration)->default_value(1e10),
+    "duration,d", po::value<double>(&duration)->default_value(1e5),
     "Extract images for this many seconds of the bagfile. Default behavior extracts images from the entire bag.")(
     "use-sequence-value-as-filename,u", po::bool_switch(&use_timestamp_as_image_name)->default_value(true),
     "Use the sequence value from the message header as the saved image filename. Default behavior uses the timestamp "
