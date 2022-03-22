@@ -61,13 +61,10 @@ void ExtractImages(const std::string& input_bagname, const std::string& output_d
     const auto image_msg = msg.instantiate<sensor_msgs::Image>();
     if (image_msg) {
       try {
-        // Note that the assignment below is shallow, the image
-        // will be valid only for as long as image_msg is valid,
-        // which can result in issues in other situations.
+        // TODO(rsoussan): This will convert all images to color, is that desired?
         image = cv_bridge::toCvShare(image_msg, "bgr8")->image;
       } catch (cv_bridge::Exception const& e) {
         try {
-          // Note the same comment as earlier.
           image = cv_bridge::toCvShare(image_msg, "32FC1")->image;
         } catch (cv_bridge::Exception const& e) {
           LogError("Unable to convert " << image_msg->encoding.c_str() << " image to bgr8 or 32FC1");
@@ -79,7 +76,6 @@ void ExtractImages(const std::string& input_bagname, const std::string& output_d
       const auto image_msg = msg.instantiate<sensor_msgs::CompressedImage>();
       if (image_msg) {
         try {
-          // convert compressed image data to cv::Mat
           image = cv::imdecode(cv::Mat(image_msg->data), cv::IMREAD_COLOR);
         } catch (cv_bridge::Exception const& e) {
           LogError("Unable to convert compressed image to bgr8.");
