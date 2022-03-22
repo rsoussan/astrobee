@@ -19,7 +19,7 @@
 #include <ff_common/thread.h>
 #include <sparse_mapping/sparse_map.h>
 #include <sparse_mapping/sparse_mapping.h>
-#include <sparse_mapping/estimate_pose_utilities.h>
+#include <sparse_mapping/reprojection.h>
 
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -62,7 +62,7 @@ DEFINE_double(error_thresh, 0.05,
 
 DECLARE_bool(histogram_equalization);  // its value will be pulled from sparse_map.cc
 
-// These are synched up with sparse_map_matcher.config. Note that
+// These are synched up with localization.config. Note that
 // -num_similar and -ransac_inlier_tolerance and
 // -num_ransac_iterations need not be defined as flags here, since
 // they already exist in sparse_map.cc.

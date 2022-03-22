@@ -60,19 +60,6 @@ To see what topics a bag file contains one can use the command
 
     rosbag info bagfile.bag
 
-### Filter the bag
-
-Usually the bags are acquired at a very high frame rate, and they are
-huge. A preliminary filtering of the bag images while still on the
-robot can be done with the command:
-
-    rosbag filter input.bag output.bag                           \
-      "(topic == '/hw/cam_nav') and (float(t.nsecs)/1e+9 <= 0.1)"
-
-Here, for every second of recorded data, we keep only the first tenth
-of a second. This number may need to be adjusted. Later, a further
-selection of the images can be done.
-
 ### Copy the bag from the robot
 
 From the local machine, fetch the bag:
@@ -160,61 +147,10 @@ invoked as:
 
     nvm_visualize -enable_image_deletion <image dir>/*jpg
 
-### Localize a single frame
-
-All the commands below assume that the environment was set up, 
-as specified in the \ref map_building section.
-
-To test localization of a single frame, use the command:
-
-    localize <map.map> <image.jpg> -histogram_equalization
-
-If invoked with the option -verbose_localization, it will list the
-images most similar to the one being localized. To increase the 
-number of similar images, use the -num_similar option. Another
-useful flag is --v 2 when it will print more verbose information.
-Most of the options of the localize_cams tool (see below)
-are also accepted. 
-
-### Testing localization using two maps
-
-To test localization of many images, one can acquire two sets of
-images of the same indoor environment, and create two maps ready for
-localization. That is, maps are built, registered to the world
-coordinate system, rebuilt with BRISK, and then a vocabulary database
-is created. Name those maps reference and source.
-
-For each image in the source map, one can localize it against the
-reference map, and compare its camera position and orientation after
-localization with the "known" position and orientation from the source
-map.
-
-This is not a fool-proof test, since neither of the two maps contains
-measured ground truth, rather a simulated version of it, yet it can be
-useful, assuming that maps are individually accurate enough and
-well-registered.
-
-This functionality is implemented in the localize_cams tool. Usage:
-
-    localize_cams -num_similar 20 -ransac_inlier_tolerance 5      \
-      -num_ransac_iterations 200 -min_brisk_features 400          \
-      -max_brisk_features 800 -min_brisk_threshold 20             \
-      -default_brisk_threshold 90 -max_brisk_threshold 110        \
-      -detection_retries 5 -num_threads 2                         \
-      -early_break_landmarks 100 -histogram_equalization          \
-      -reference_map ref.map -source_map source.map
-
-Here we use values that are different from 
-
-    $ASTROBEE_SOURCE_PATH/astrobee/config/localization/sparse_map_matcher.config 
-
-which are used for sparse map matching on the robot, since those are optimized
-for speed and here we want more accuracy.
-
 ### Testing localization using a bag 
 
-See the \ref ekfbag page for how to study how well a BRISK map
-with a vocabulary database does when localizing images from a bag.
+See the \ref localizationanalysis page for how to visualize localization 
+results using a BRISK map using images from a bag.
 
 ### Extract sub-maps
 

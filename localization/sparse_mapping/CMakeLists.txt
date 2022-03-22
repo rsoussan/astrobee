@@ -98,34 +98,10 @@ add_dependencies(build_map ${catkin_EXPORTED_TARGETS})
 target_link_libraries(build_map
   sparse_mapping gflags glog ${catkin_LIBRARIES})
 
-## Declare a C++ executable: evaluate_camera
-add_executable(evaluate_camera tools/evaluate_camera.cc)
-add_dependencies(evaluate_camera ${catkin_EXPORTED_TARGETS})
-target_link_libraries(evaluate_camera
-  sparse_mapping gflags glog ${catkin_LIBRARIES})
-
-## Declare a C++ executable: evaluate_localization
-add_executable(evaluate_localization tools/evaluate_localization.cc)
-add_dependencies(evaluate_localization ${catkin_EXPORTED_TARGETS})
-target_link_libraries(evaluate_localization
-  sparse_mapping gflags glog ${catkin_LIBRARIES})
-
-## Declare a C++ executable: extract_camera_info
-add_executable(extract_camera_info tools/extract_camera_info.cc)
-add_dependencies(extract_camera_info ${catkin_EXPORTED_TARGETS})
-target_link_libraries(extract_camera_info
-  sparse_mapping gflags glog ${catkin_LIBRARIES})
-
 ## Declare a C++ executable: extract_submap
 add_executable(extract_submap tools/extract_submap.cc)
 add_dependencies(extract_submap ${catkin_EXPORTED_TARGETS})
 target_link_libraries(extract_submap
-  sparse_mapping gflags glog ${catkin_LIBRARIES})
-
-## Declare a C++ executable: generate_localization_test
-add_executable(generate_localization_test tools/generate_localization_test.cc)
-add_dependencies(generate_localization_test ${catkin_EXPORTED_TARGETS})
-target_link_libraries(generate_localization_test
   sparse_mapping gflags glog ${catkin_LIBRARIES})
 
 ## Declare a C++ executable: gen_trajectory
@@ -140,18 +116,6 @@ add_dependencies(import_map ${catkin_EXPORTED_TARGETS})
 target_link_libraries(import_map
   sparse_mapping gflags glog ${catkin_LIBRARIES})
 
-## Declare a C++ executable: localize_cams
-add_executable(localize_cams tools/localize_cams.cc)
-add_dependencies(localize_cams ${catkin_EXPORTED_TARGETS})
-target_link_libraries(localize_cams
-  sparse_mapping gflags glog ${catkin_LIBRARIES})
-
-## Declare a C++ executable: localize
-add_executable(localize tools/localize.cc)
-add_dependencies(localize ${catkin_EXPORTED_TARGETS})
-target_link_libraries(localize
-  sparse_mapping gflags glog ${catkin_LIBRARIES})
-
 ## Declare a C++ executable: merge_maps 
 add_executable(merge_maps tools/merge_maps.cc)
 add_dependencies(merge_maps ${catkin_EXPORTED_TARGETS})
@@ -162,12 +126,6 @@ target_link_libraries(merge_maps
 add_executable(nvm_visualize tools/nvm_visualize.cc)
 add_dependencies(nvm_visualize ${catkin_EXPORTED_TARGETS})
 target_link_libraries(nvm_visualize
-  sparse_mapping gflags glog ${catkin_LIBRARIES})
-
-## Declare a C++ executable: parse_cam
-add_executable(parse_cam tools/parse_cam.cc)
-add_dependencies(parse_cam ${catkin_EXPORTED_TARGETS})
-target_link_libraries(parse_cam
   sparse_mapping gflags glog ${catkin_LIBRARIES})
 
 if(CATKIN_ENABLE_TESTING)
