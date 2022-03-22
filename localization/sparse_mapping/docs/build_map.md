@@ -76,7 +76,7 @@ on the order of 3/4 to 4/5 of overlap. This tool is not perfect. One
 should inspect the images in the ``eog`` viewer, and delete redundant
 ones from it manually, using the Delete key.
 
-The images can also be inspected and deleted with ``nvm_visualize``, a
+The images can also be inspected and deleted with ``visualize_map``, a
 tool included with this software. See \ref sparsemapping for
 details.  This tool, unlike ``eog``, echoes each image name as it is
 displayed, which can be useful with image manipulation tasks.

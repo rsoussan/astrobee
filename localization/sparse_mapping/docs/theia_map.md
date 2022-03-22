@@ -141,7 +141,7 @@ remaining images with ``eog`` as:
     eog image_dir/*.jpg
 
 and use the ``Delete`` key to remove redundant ones. The
-``nvm_visualize`` tool (see \ref sparsemapping) can be used exactly as
+``visualize_map`` tool (see \ref sparsemapping) can be used exactly as
 ``eog``, and it has the advantage that it echoes the current image
 name in the terminal, which can be useful in some occasions.
 
@@ -169,7 +169,7 @@ perhaps made up of 10 images. A 700-image dataset may take perhaps 6
 hours on a machine with a couple of dozen cores and use up perhaps 20
 GB of RAM.
 
-The obtained map can be examined with ``nvm_visualize``, as described
+The obtained map can be examined with ``visualize_map``, as described
 in \ref sparsemapping.
 
 The work directory can be deleted later.

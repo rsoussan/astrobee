@@ -110,10 +110,10 @@ add_dependencies(merge_maps ${catkin_EXPORTED_TARGETS})
 target_link_libraries(merge_maps
   sparse_mapping gflags glog ${catkin_LIBRARIES})
 
-## Declare a C++ executable: nvm_visualize
-add_executable(nvm_visualize tools/nvm_visualize.cc)
-add_dependencies(nvm_visualize ${catkin_EXPORTED_TARGETS})
-target_link_libraries(nvm_visualize
+## Declare a C++ executable: visualize_map
+add_executable(visualize_map tools/visualize_map.cc)
+add_dependencies(visualize_map ${catkin_EXPORTED_TARGETS})
+target_link_libraries(visualize_map
   sparse_mapping gflags glog ${catkin_LIBRARIES})
 
 if(CATKIN_ENABLE_TESTING)

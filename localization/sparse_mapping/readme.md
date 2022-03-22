@@ -101,7 +101,7 @@ Theia package and import it into Astrobee.
 
 To visualize a map, or just a list of images, use the command:
 
-    nvm_visualize [ <output.map> ] [ <image1.jpg> <image2.jpg> ... ]
+    visualize_map [ <output.map> ] [ <image1.jpg> <image2.jpg> ... ]
 
 In the viewer, press `a` and `d` (or the left and right arrow keys, or
 the Ins and Del keys on the num pad) to navigate through the
@@ -145,7 +145,7 @@ This tool can be invoked to look at just images, without any map being
 built. It can also delete images in this mode, with the 'x' key, if
 invoked as:
 
-    nvm_visualize -enable_image_deletion <image dir>/*jpg
+    visualize_map -enable_image_deletion <image dir>/*jpg
 
 ### Testing localization using a bag 
 
@@ -244,7 +244,7 @@ cautious way of building a map is to build it in portions (perhaps on
 different machines), examine them, and merge them with `merge_maps`.
 
 If map-building failed, parts of it could still be salvageable (one
-can use nvm_visualize for inspection). Valid submaps can be extracted
+can use visualize_map for inspection). Valid submaps can be extracted
 with `extract_submap`. Then those can be merged with `merge_maps`.
 
 When two maps to be merged overlap only in the middle, and they are
