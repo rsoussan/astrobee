@@ -96,6 +96,12 @@ namespace sparse_mapping {
                 std::vector<std::map<int, int> > const& pid_to_cid_fid, std::vector<Eigen::Vector3d> const& pid_to_xyz,
                 std::vector<Eigen::Affine3d> const& cid_to_cam_t_global,
                 std::vector<Eigen::Matrix2Xd> const& cid_to_keypoint_map);
+
+void InitializeCidFidToPid(int num_cid,
+                           std::vector<std::map<int, int> > const& pid_to_cid_fid,
+                           std::vector<std::map<int, int> > * cid_fid_to_pid);
+
+cv::Mat LoadImage(const std::string& filename);
 }  // namespace sparse_mapping
 
 #endif  // SPARSE_MAPPING_FILE_UTILITIES_H_

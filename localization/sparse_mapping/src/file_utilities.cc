@@ -672,4 +672,26 @@ bool WriteBAL(const std::string& filename,
   os.close();
   return true;
 }
+
+// From pid_to_cid_fid, create cid_fid_to_pid for lookup.
+// TODO(rsoussan): Move this to sparse_map_database!!
+void InitializeCidFidToPid(int num_cid,
+                           std::vector<std::map<int, int> > const& pid_to_cid_fid,
+                           std::vector<std::map<int, int> > * cid_fid_to_pid) {
+  cid_fid_to_pid->clear();
+  cid_fid_to_pid->resize(num_cid, std::map<int, int>());
+
+  for (size_t pid = 0; pid < pid_to_cid_fid.size(); pid++) {
+    for (std::pair<int, int> const& cid_fid : pid_to_cid_fid[pid]) {
+      (*cid_fid_to_pid)[cid_fid.first][cid_fid.second] = pid;
+    }
+  }
+}
+
+cv::Mat LoadImage(const std::string& filename) {
+  const cv::Mat image = cv::imread(filename, cv::IMREAD_GRAYSCALE);
+  if (image.rows == 0 || image.cols == 0)
+    LOG(FATAL) << "Found empty image in file: " << filename;
+  return image;
+}
 }  // namespace sparse_mapping
