@@ -98,18 +98,6 @@ add_dependencies(build_map ${catkin_EXPORTED_TARGETS})
 target_link_libraries(build_map
   sparse_mapping gflags glog ${catkin_LIBRARIES})
 
-## Declare a C++ executable: extract_submap
-add_executable(extract_submap tools/extract_submap.cc)
-add_dependencies(extract_submap ${catkin_EXPORTED_TARGETS})
-target_link_libraries(extract_submap
-  sparse_mapping gflags glog ${catkin_LIBRARIES})
-
-## Declare a C++ executable: gen_trajectory
-add_executable(gen_trajectory tools/gen_trajectory.cc)
-add_dependencies(gen_trajectory ${catkin_EXPORTED_TARGETS})
-target_link_libraries(gen_trajectory
-  sparse_mapping gflags glog ${catkin_LIBRARIES})
-
 ## Declare a C++ executable: import_map
 add_executable(import_map tools/import_map.cc)
 add_dependencies(import_map ${catkin_EXPORTED_TARGETS})
