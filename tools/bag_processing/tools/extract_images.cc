@@ -91,7 +91,7 @@ void ExtractImages(const std::string& input_bagname, const std::string& output_d
     if (!image.empty()) {
       const double timestamp = (image_msg->header.stamp).toSec();
       const auto filename = Filename(image_msg->header.seq, timestamp, use_timestamp_as_image_name, output_format);
-      const std::string name = (boost::filesystem::path(output_directory) / filename / ".jpg").string();
+      const std::string name = (boost::filesystem::path(output_directory) / (filename + ".jpg")).string();
       cv::imwrite(name, image);
     }
   }
