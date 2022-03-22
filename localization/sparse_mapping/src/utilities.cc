@@ -33,6 +33,7 @@
 
 namespace sparse_mapping {
 // From pid_to_cid_fid, create cid_fid_to_pid for lookup.
+// TODO(rsoussan): Move this to sparse_map_database!!
 void InitializeCidFidToPid(int num_cid,
                            std::vector<std::map<int, int> > const& pid_to_cid_fid,
                            std::vector<std::map<int, int> > * cid_fid_to_pid) {

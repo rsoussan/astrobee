@@ -53,20 +53,11 @@ class SparseMap : public SparseMapDatabase {
             const SparseMapParams& params);
 
   /**
-   * Constructs a new sparse map from a protobuf file, with specified
-   * vocabulary tree and optional parameters.
-   **/
-  /*SparseMap(const std::string & protobuf_file,
-            bool localization = false);*/
-
-  /**
      Form a sparse map with given cameras/images, and no features
   **/
   SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
             const std::vector<std::string> & cid_to_filename,
             const SparseMapParams& params);
-
-  // SparseMap(bool bundler_format, std::string const& filename, std::vector<std::string> const& files);
 
   void BuildDatabase(const FeatureSets& feature_sets);
 
@@ -75,11 +66,6 @@ class SparseMap : public SparseMapDatabase {
    **/
   void DetectFeatures();
 
-  /**
-   * Save the map to a protobuf file.
-   **/
-  void Save(const std::string & protobuf_file) const;
-
   int GetHistogramEqualization() const {return params_.histogram_equalization;}
   /**
    * Return the parameters of the camera used to construct the map.
@@ -87,10 +73,6 @@ class SparseMap : public SparseMapDatabase {
   const camera::CameraParameters& camera_params() const {return params_.camera;}
 
   void SetCameraParameters(const camera::CameraParameters& camera_params) {params_.camera = camera_params;}
-
-  // Load map. If localization is true, load only the parts of the map
-  // needed for localization.
-  void Load(const std::string & protobuf_file, bool localization = false);
 
   void DetectFeaturesFromFile(const std::string& filename,
                               cv::Mat* descriptors,
@@ -126,9 +108,6 @@ class SparseMap : public SparseMapDatabase {
   SparseMap();
   SparseMap(SparseMap &);
   SparseMap& operator=(const SparseMap&);
-
-  // Reorder the images in the map and the rest of the data accordingly
-  void reorderMap(std::map<int, int> const& old_cid_to_new_cid);
 };
 
 // Implementation
