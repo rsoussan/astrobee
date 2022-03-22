@@ -18,13 +18,19 @@
 
 #include <sparse_mapping/sparse_map_database.h>
 namespace sparse_mapping {
-void SparseMap::InitializeCidFidToPid() {
+void SparseMapDatabase::ResizeFeatureMaps() {
+  const int num_frames = GetNumFrames();
+  cid_to_keypoint_map_.resize(num_frames);
+  cid_to_descriptor_map_.resize(num_frames);
+}
+
+void SparseMapDatabase::InitializeCidFidToPid() {
   sparse_mapping::InitializeCidFidToPid(cid_to_filename_.size(),
                                         pid_to_cid_fid_,
                                         &cid_fid_to_pid_);
 }
 
-  std::vector<cv::Mat> SparseMap::GetCidFeatures(const int cid) const {
+  std::vector<cv::Mat> SparseMapDatabase::GetCidFeatures(const int cid) const {
       std::vector<cv::Mat> features;
       const int num_features = map->GetFrameKeypoints(cid).outerSize();
       for (int i = 0; i < num_features; ++i) {
@@ -32,7 +38,7 @@ void SparseMap::InitializeCidFidToPid() {
       }
   }
 
-  std::vector<std::vector<cv::Mat>> SparseMap::GetAllCidFeatures() const {
+  std::vector<std::vector<cv::Mat>> SparseMapDatabase::GetAllCidFeatures() const {
       std::vector<std::vector<cv::Mat>> all_features;
       const int num_images = map->GetNumFrames();
       for (int cid = 0; cid < num_images; ++cid) {
@@ -40,7 +46,7 @@ void SparseMap::InitializeCidFidToPid() {
       }
   }
 
-int SparseMap::NumFeatures() const {
+int SparseMapDatabase::NumFeatures() const {
   int num_features = 0;
   for (int cid = 0; cid < map.GetNumFrames(); ++cid) {
     total_features += map.GetFrameKeypoints(cid).outerSize();

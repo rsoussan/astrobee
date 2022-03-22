@@ -31,9 +31,24 @@
 
 namespace sparse_mapping {
 
-SparseMap::SparseMap(const std::vector<std::string>& filenames, const SparseMapParams& params)
-    : params_(params), cid_to_filename_(filenames) {
-  cid_to_descriptor_map_.resize(cid_to_filename_.size());
+SparseMap::SparseMap(const std::vector<std::string>& cid_to_filename, const SparseMapParams& params)
+    : params_(params), cid_to_filename_(cid_to_filename) {
+    ResizeFeatureMaps();
+}
+
+SparseMap::SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
+                     const std::vector<std::string>& cid_to_filename, const SparseMapParams& params)
+    : params_(params), cid_to_filename_(cid_to_filename), cid_to_cam_T_global_(cid_to_cam_T_global) {
+  ResizeFeatureMaps();
+  /*if (cid_to_filename.size() != cid_to_cam_T_global.size())
+    LOG(FATAL) << "Expecting as many images as cameras";
+  for (int cid = 0; cid < static_cast<int>(cid_to_cam_T_global.size()); ++cid) {
+    // TODO(rsoussan): Is this check necessary?
+    if (cid_to_cam_T_global[cid].linear() == Eigen::Matrix3d::Zero())
+      continue;
+    cid_to_cam_T_global_.emplace_back(cid_to_cam_T_global[cid]);
+    cid_to_filename_.emplace_back(cid_to_filename[cid]);
+  }*/
 }
 
 /*SparseMap::SparseMap(const std::string& protobuf_file, bool localization) : {
@@ -46,28 +61,6 @@ SparseMap::SparseMap(const std::vector<std::string>& filenames, const SparseMapP
   // TODO(rsoussan): need to update camera params somehow!!!!
   SetParams(camera_params);
 }*/
-
-// Form a sparse map with given cameras/images, and no features
-SparseMap::SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_T_global, const std::vector<std::string>& filenames,
-                     const SparseMapParams& params)
-    : params_(params) {
-  if (filenames.size() != cid_to_cam_T_global.size())
-    LOG(FATAL) << "Expecting as many images as cameras";
-
-  // Don't include images for which we have no camera information
-  for (size_t cid = 0; cid < cid_to_cam_T_global.size(); cid++) {
-    if (cid_to_cam_T_global[cid].linear() == Eigen::Matrix3d::Zero())
-      continue;
-    cid_to_cam_T_global_.push_back(cid_to_cam_T_global[cid]);
-    cid_to_filename_.push_back(filenames[cid]);
-  }
-
-  int num_cams = cid_to_filename_.size();
-
-  // Initialize other data expected in the map
-  cid_to_keypoint_map_.resize(num_cams);
-  cid_to_descriptor_map_.resize(num_cams);
-}
 
 /*// Form a sparse map by reading a text file from disk. This is for comparing
 // bundler, nvm or theia maps.
@@ -202,7 +195,7 @@ void SparseMap::DetectFeatures() {
     for (int fid = 0; fid < cid_to_keypoint_map_[cid].cols(); fid++) {
       std::map<int, int> cid_fid;
       cid_fid[cid] = fid;
-      pid_to_cid_fid_.push_back(cid_fid);
+      pid_to_cid_fid_.emplace_back(cid_fid);
     }
   }
   // Allocate space for landmarks
@@ -514,7 +507,7 @@ void SparseMap::PruneMap(void) {
     for (int fid = 0; fid < cid_to_descriptor_map_[cid].rows; fid++) {
       // delete if no matching landmark!
       if (cid_fid_to_pid_[cid].count(fid) == 0) {
-        deleted_features.push_back(fid);
+        deleted_features.emplace_back(fid);
       }
     }
     if (deleted_features.size() == 0)

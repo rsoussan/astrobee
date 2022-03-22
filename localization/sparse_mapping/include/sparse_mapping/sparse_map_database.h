@@ -63,6 +63,9 @@ class SparseMapDatabase {
    **/
   // TODO(rsoussan): Rename this to CidFilename
   const std::string & GetFrameFilename(int frame) const {return cid_to_filename_[frame];}
+
+  void ResizeFeatureMaps();
+
   /**
    * Get the global camera transform for a keyframe in the map.
    **/

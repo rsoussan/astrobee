@@ -49,7 +49,7 @@ class SparseMap : public SparseMapDatabase {
    * is set to false, it reads the image files and performs feature
    * detection instead. Does not perform bundle adjustment.
    **/
-  SparseMap(const std::vector<std::string> & filenames,
+  SparseMap(const std::vector<std::string> & cid_to_filename,
             const SparseMapParams& params);
 
   /**
@@ -63,7 +63,7 @@ class SparseMap : public SparseMapDatabase {
      Form a sparse map with given cameras/images, and no features
   **/
   SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
-            const std::vector<std::string> & filenames,
+            const std::vector<std::string> & cid_to_filename,
             const SparseMapParams& params);
 
   // SparseMap(bool bundler_format, std::string const& filename, std::vector<std::string> const& files);
