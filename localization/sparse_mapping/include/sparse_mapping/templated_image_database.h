@@ -19,7 +19,6 @@
 #ifndef SPARSE_MAPPING_TEMPLATED_IMAGE_DATABASE_H_
 #define SPARSE_MAPPING_TEMPLATED_IMAGE_DATABASE_H_
 
-#include <sparse_map.pb.h>
 #include <sparse_map/feature_set.h>
 #include <sparse_map/image_database.h>
 #include <sparse_map/image_database_params.h>
@@ -27,11 +26,8 @@
 
 #pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
 #pragma GCC diagnostic push
-#include <DBoW2/DBoW2.h>      // BoW db that works with both float and binary features
+#include <DBoW2/DBoW2.h>
 #pragma GCC diagnostic pop
-
-#include <glog/logging.h>
-#include <google/protobuf/io/zero_copy_stream_impl.h>
 
 #include <vector>
 #include <string>
@@ -41,22 +37,15 @@ namespace sparse_mapping {
 template<class TDescriptor, class F>
 class TemplatedImageDatabase : public DBoW2::TemplatedDatabase<TDescriptor, F>, public ImageDatabase{
  public:
-  explicit TemplatedImageDatabase(google::protobuf::io::ZeroCopyInputStream* input);
-  TemplatedImageDatabase(TemplatedFeatureVocabulary<TDescriptor, F> const& voc, const ImageDatabaseParams& params);
-  TemplatedImageDatabase(const FeatureSets feature_sets, const ImageDatabaseParams& params);
+  TemplatedImageDatabase(const TemplatedFeatureVocabulary<TDescriptor, F>& voc, const ImageDatabaseParams& params);
+  TemplatedImageDatabase(const FeatureSets& feature_sets, const ImageDatabaseParams& params);
   std::vector<int> Query(const cv::Mat& features, const int max_results) const override;
   // Return the cids of the images which are most similar to the current image in sorted order
   // beginning with the best matching cids
   std::vector<int> Query(const FeatureSet& features, const int max_results) const override;
-  void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const override;
-  void LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) override;
 };
 
 // Implementation
-template<class TDescriptor, class F>
-TemplatedImageDatabase<TDescriptor, F>::TemplatedImageDatabase(google::protobuf::io::ZeroCopyInputStream* input)
-     : DBoW2::TemplatedDatabase<TDescriptor, F>() {LoadProtobuf(input);}
-
 template <class TDescriptor, class F>
 TemplatedImageDatabase<TDescriptor, F>::TemplatedImageDatabase(
   TemplatedFeatureVocabulary<TDescriptor, F> const& vocabulary, const ImageDatabaseParams& params)
@@ -70,69 +59,6 @@ TemplatedImageDatabase<TDescriptor, F>::TemplatedImageDatabase(const FeatureSets
   setVocabulary(vocabulary);
   for (const auto& feature_set : feature_sets) {
     add(feature_set);
-  }
-}
-
-template<class TDescriptor, class F>
-void TemplatedImageDatabase<TDescriptor, F>::LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) {
-  TemplatedFeatureVocabulary<TDescriptor, F>* voc = new TemplatedFeatureVocabulary<TDescriptor, F>();
-  voc->LoadProtobuf(input);
-  this->m_voc = voc;
-
-  sparse_mapping_protobuf::DBoWDB db;
-
-  if (!ReadProtobufFrom(input, &db)) {
-    LOG(FATAL) << "Failed to parse db file.";
-  }
-
-  this->clear();  // resizes inverted file
-
-  this->m_nentries = db.num_entries();
-  this->m_use_di = 0;
-  this->m_dilevels = 0;
-
-  for (int i = 0; i < db.num_inverted_index(); ++i) {
-    sparse_mapping_protobuf::DBoWInvertedIndexEntry entry;
-    if (!ReadProtobufFrom(input, &entry)) {
-      LOG(FATAL) << "Failed to parse index entry.";
-    }
-    DBoW2::WordId wid = entry.word_id();
-    DBoW2::EntryId eid = entry.entry_id();
-    DBoW2::WordValue v = entry.weight();
-
-    this->m_ifile[wid].push_back(typename DBoW2::TemplatedDatabase<TDescriptor, F>::IFPair(eid, v));
-  }
-}
-
-template<class TDescriptor, class F>
-void TemplatedImageDatabase<TDescriptor, F>::SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const {
-  (dynamic_cast<TemplatedFeatureVocabulary<TDescriptor, F>* >(this->m_voc))->SaveProtobuf(output);
-
-  sparse_mapping_protobuf::DBoWDB db;
-
-  db.set_num_entries(this->m_nentries);
-
-  int num_inverted_index = 0;
-  typename DBoW2::TemplatedDatabase<TDescriptor, F>::InvertedFile::const_iterator iit;
-  for (iit = this->m_ifile.begin(); iit != this->m_ifile.end(); ++iit)
-    num_inverted_index += (*iit).size();
-  db.set_num_inverted_index(num_inverted_index);
-  if (!WriteProtobufTo(db, output)) {
-    LOG(FATAL) << "Failed to write db to file.";
-  }
-  typename DBoW2::TemplatedDatabase<TDescriptor, F>::IFRow::const_iterator irit;
-  int word_id = 0;
-  for (iit = this->m_ifile.begin(); iit != this->m_ifile.end(); ++iit) {
-    for (irit = iit->begin(); irit != iit->end(); ++irit) {
-      sparse_mapping_protobuf::DBoWInvertedIndexEntry index;
-      index.set_word_id(word_id);
-      index.set_entry_id(irit->entry_id);
-      index.set_weight(irit->word_weight);
-      if (!WriteProtobufTo(index, output)) {
-        LOG(FATAL) << "Failed to write db index entry to file.";
-      }
-    }
-    word_id++;
   }
 }
 
