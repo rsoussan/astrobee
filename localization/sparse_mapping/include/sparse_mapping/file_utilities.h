@@ -24,22 +24,6 @@
 #include <vector>
 
 namespace sparse_mapping {
-  // Writes the NVM control network format.
-  void WriteNVM(std::vector<Eigen::Matrix2Xd > const& cid_to_keypoint_map,
-                std::vector<std::string> const& cid_to_filename,
-                std::vector<std::map<int, int> > const& pid_to_cid_fid,
-                std::vector<Eigen::Vector3d> const& pid_to_xyz,
-                std::vector<Eigen::Affine3d> const& cid_to_cam_t_global,
-                double focal_length,
-                std::string const& output_filename);
-  // Reads the NVM control network format.
-  void ReadNVM(std::string const& input_filename,
-               std::vector<Eigen::Matrix2Xd > * cid_to_keypoint_map,
-               std::vector<std::string> * cid_to_filename,
-               std::vector<std::map<int, int> > * pid_to_cid_fid,
-               std::vector<Eigen::Vector3d> * pid_to_xyz,
-               std::vector<Eigen::Affine3d> * cid_to_cam_t_global);
-
   // Adds yaml.gz or .txt extension, depending on descriptor
   std::string ImageToFeatureFile(std::string const& image_file,
                                  std::string const& detector_name);
