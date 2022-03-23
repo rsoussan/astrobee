@@ -165,6 +165,7 @@ void DetectAllFeatures(int argc, char** argv) {
     files[i] = std::string(argv[i + 1]);
   }
 
+  // TODO(rsoussan): Remove this
   // This is so that we can do loop closure later
   FLAGS_num_repeat_images = std::min(FLAGS_num_repeat_images, static_cast<int>(files.size()));
   for (int i = 0; i < FLAGS_num_repeat_images; i++) files.push_back(files[i]);
