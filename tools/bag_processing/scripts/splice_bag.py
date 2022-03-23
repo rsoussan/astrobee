@@ -16,8 +16,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 """
-Slices a bagfile at selected points to create multiple smaller bagfiles, which combined 
-span the original bagfile.
+Splices a bagfile at selected timestamps to create multiple smaller bagfiles, which when combined 
+span the original bagfile. Iterate through images using right and left arrow keys.
+Iterate more quickly (skipping 10 images at a time) using the up and down arrow keys.
+Create a splice point using the current image's timestamp using the s key. 
+Undo adding last splice point using the u key.
+Print current splice points using the p key.
+Generate spliced bags using all selected splice points by pressing the enter key at
+any time. To exit without splicing, use the esacape or q keys.
 """
 
 import argparse
@@ -31,73 +37,179 @@ import utilities
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 
-def show_image_with_message(image, window, title, message, origin = (50, 450), font_size = 4, timeout = 1500):
+
+def print_info(splice_timestamps, bag_start_time, bag_end_time):
+    print(str(len(splice_timestamps)) + ' splice timestamps selected.')
+    print('Splicing timestamps: ' + str(splice_timestamps))
+    print('Splicing intervals: ')
+    starting_splice_percent = 0
+    for i in range(len(splice_timestamps) + 1):
+        ending_splice_percent = (
+            splice_timestamps[i] -
+            bag_start_time) / float(bag_end_time - bag_start_time) if i < len(
+                splice_timestamps) else 1
+        print(str(i) + ': ' + '{0:.2f}'.format(starting_splice_percent * 100) +
+              '% to ' + '{0:.2f}'.format(ending_splice_percent * 100) + '%')
+        starting_splice_percent = ending_splice_percent
+
+
+def sort_and_remove_repeats(splice_timestamps):
+    # Remove repeats
+    splice_timestamps = list(set(splice_timestamps))
+    splice_timestamps.sort()
+    return splice_timestamps
+
+
+def show_image_with_message(image,
+                            window,
+                            title,
+                            message,
+                            origin=(50, 450),
+                            font_size=4,
+                            timeout=750):
     color_image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-    splice_image = cv2.putText(color_image, message, origin, cv2.FONT_HERSHEY_SIMPLEX, font_size, (0, 0, 255), 10)  
+    splice_image = cv2.putText(color_image, message, origin,
+                               cv2.FONT_HERSHEY_SIMPLEX, font_size,
+                               (0, 0, 255), 10)
     cv2.imshow(window, splice_image)
     cv2.setWindowTitle(window, title)
     key = cv2.waitKey(timeout)
 
+
+def make_spliced_bag(bagfile, start_time, end_time, index):
+    spliced_bagfile = os.path.splitext(bagfile)[0] + '_' + str(index) + '.bag'
+    with rosbag.Bag(bagfile, "r") as bag:
+        with rosbag.Bag(spliced_bagfile, "w") as spliced_bag:
+            for topic, msg, t in bag.read_messages(None,
+                                                   rospy.Time(start_time),
+                                                   rospy.Time(end_time)):
+                spliced_bag.write(topic, msg, t)
+
+
 def splice_bag(bagfile, splice_timestamps):
-    print('Splicing!')
+    if not splice_timestamps:
+        print('No timestamps provided, not splicing.')
+        return
+    start_and_end_times = []
+    with rosbag.Bag(bagfile, "r") as bag:
+        # Subtract extra time from bag start time to ensure first message included
+        start_time = bag.get_start_time() - 1.0
+        for i in range(len(splice_timestamps) + 1):
+            # Add extra time to end time to ensure final message included
+            end_time = splice_timestamps[i] if i < len(
+                splice_timestamps) else bag.get_end_time() + 1.0
+            make_spliced_bag(bagfile, start_time, end_time, i)
+            # Add slight extra time so new start time doesn't overlap with previous end time
+            start_time = end_time + 1e-4
+
 
 def select_splice_timestamps_and_splice_bag(bagfile, image_topic):
     splice_timestamps = []
     bridge = CvBridge()
     with rosbag.Bag(bagfile, "r") as bag:
         msg_tuples = []
-        print ("Reading msgs...")
+        print("Reading msgs...")
         for topic, msg, t in bag.read_messages([image_topic]):
             msg_tuples.append((msg, t))
         i = 0
         num_msgs = len(msg_tuples)
         window = "image"
         cv2.namedWindow(window)
-        cv2.moveWindow(window, 40,30)  
-        while i < num_msgs:
+        cv2.moveWindow(window, 40, 30)
+        print_string = True
+        while True:
             msg = (msg_tuples[i])[0]
             timestamp = ((msg_tuples[i])[1]).to_sec()
-            progress = i/float(num_msgs)*100
-            msg_info_string = '{0:.2f}'.format(progress) + '%, Image ' + str(i) + '/' + str(num_msgs) + ', t: ' + str(timestamp)
-            print(msg_info_string)
+            progress = i / float(num_msgs) * 100
+            msg_info_string = '{0:.2f}'.format(progress) + '%, Image ' + str(
+                i) + '/' + str(num_msgs) + ', t: ' + str(timestamp)
+            if print_string:
+                print(msg_info_string)
+                print_string = False
             try:
                 image = bridge.imgmsg_to_cv2(msg, msg.encoding)
             except (CvBridgeError) as e:
                 print(e)
             cv2.imshow(window, image)
             cv2.setWindowTitle(window, msg_info_string)
-            key = cv2.waitKey(0) 
-            print(str(key))
-            if key == ord('n') or key == 83: # Right arrow key
+            key = cv2.waitKey(0)
+            if key == 83:  # Right arrow key
                 i += 1
-            elif key == ord('p') or key == 81: # Left arrow key 
+                print_string = True
+            elif key == 81:  # Left arrow key
                 i -= 1
-            elif key == ord('q') or key == 27: # Escape key
+                print_string = True
+            if key == 82:  # Up arrow key
+                i += 10
+                print_string = True
+            elif key == 84:  # Down arrow key
+                i -= 10
+                print_string = True
+
+            elif key == ord('q') or key == 27:  # Escape key
                 print('Manually closing program, no splice operation applied.')
                 exit(0)
+            elif key == ord('p'):
+                print_info(splice_timestamps, bag.get_start_time(),
+                           bag.get_end_time())
+                show_image_with_message(image, window,
+                                        'Printing splice intervals',
+                                        'Printing splice intervals',
+                                        (130, 450), 3)
             elif key == ord('s'):
                 print('Splice timestamp selected, t: ' + str(timestamp))
                 splice_timestamps.append(timestamp)
-                show_image_with_message(image, window, 'Splice t selected! ' + msg_info_string, 'Saving splice time') 
-            elif key == 13: # Enter key
-                if len(splice_timestamps) == 0:
-                    message = 'No splice timestamps selected.'
+                splice_timestamps = sort_and_remove_repeats(splice_timestamps)
+                print_info(splice_timestamps, bag.get_start_time(),
+                           bag.get_end_time())
+                show_image_with_message(
+                    image, window, 'Splice t selected! ' + msg_info_string,
+                    'Saving splice time')
+            elif key == ord('u'):
+                if not splice_timestamps:
+                    message = 'No splice timestamps added.'
                     print(message)
-                    show_image_with_message(image, window, message, message, (40, 450), 2.4) 
+                    show_image_with_message(image, window, message, message,
+                                            (80, 450), 2.4)
+                else:
+                    print('Removing last added splice point at timestamp: ' +
+                          str(timestamp))
+                    splice_timestamps.pop()
+                    print_info(splice_timestamps, bag.get_start_time(),
+                               bag.get_end_time())
+                    show_image_with_message(
+                        image, window,
+                        'Removed last splice point at timestamp ' +
+                        str(timestamp), 'Removed last splice time', (50, 450),
+                        3)
+
+            elif key == 13:  # Enter key
+                if not splice_timestamps:
+                    message = 'No splice timestamps added.'
+                    print(message)
+                    show_image_with_message(image, window, message, message,
+                                            (80, 450), 2.4)
                 else:
                     print('Splicing bag using selected timestamps.')
-                    show_image_with_message(image, window, 'Splicing', 'Splicing', (300, 450)) 
-                    print(splice_timestamps)
+                    print_info(splice_timestamps, bag.get_start_time(),
+                               bag.get_end_time())
+                    show_image_with_message(image, window, 'Splicing',
+                                            'Splicing', (350, 450))
                     splice_bag(bagfile, splice_timestamps)
-                    return 
+                    return
 
-            if i < 0: 
+            if i < 0:
                 i = 0
+            if i >= num_msgs:
+                i = num_msgs - 1
+                show_image_with_message(image, window, 'End of bag',
+                                        'End of bag', (350, 450), 3)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
+        description=__doc__,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("bagfile", help="Input bagfile.")
     parser.add_argument(
         "-i",
