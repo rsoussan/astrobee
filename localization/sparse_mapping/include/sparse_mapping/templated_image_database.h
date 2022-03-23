@@ -43,6 +43,11 @@ class TemplatedImageDatabase : public DBoW2::TemplatedDatabase<TDescriptor, F>, 
   // Return the cids of the images which are most similar to the current image in sorted order
   // beginning with the best matching cids
   std::vector<int> Query(const FeatureSet& features, const int max_results) const override;
+
+  // Protobuf Functions
+  explicit TemplatedImageDatabase(google::protobuf::io::ZeroCopyInputStream* input);
+  void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const override;
+  void LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) override;
 };
 
 // Implementation
@@ -85,3 +90,5 @@ std::vector<int> TemplatedImageDatabase<TDescriptor, F>::Query(const FeatureSet&
 }
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_TEMPLATED_IMAGE_DATABASE_H_
+
+#include <sparse_mapping/templated_image_database_protobuf.h>

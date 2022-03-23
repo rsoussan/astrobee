@@ -16,8 +16,8 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_DATABASE_PROTOBUF_UTILITIES_H_
-#define SPARSE_MAPPING_DATABASE_PROTOBUF_UTILITIES_H_
+#ifndef SPARSE_MAPPING_TEMPLATED_IMAGE_DATABASE_PROTOBUF_H_
+#define SPARSE_MAPPING_TEMPLATED_IMAGE_DATABASE_PROTOBUF_H_
 
 #include <sparse_map.pb.h>
 #include <sparse_map/templated_feature_vocabulary.h>
@@ -26,10 +26,6 @@
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 
 namespace sparse_mapping {
-  // TODO(rsoussan): Make these non member functions
-  explicit TemplatedImageDatabase(google::protobuf::io::ZeroCopyInputStream* input);
-  void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const override;
-  void LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) override;
 };
 
 // Implementation
@@ -100,4 +96,4 @@ void TemplatedImageDatabase<TDescriptor, F>::SaveProtobuf(google::protobuf::io::
   }
 }
 }  // namespace sparse_mapping
-#endif  // SPARSE_MAPPING_DATABASE_PROTOBUF_UTILITIES_H_
+#endif  // SPARSE_MAPPING_TEMPLATED_IMAGE_DATABASE_PROTOBUF_H_
