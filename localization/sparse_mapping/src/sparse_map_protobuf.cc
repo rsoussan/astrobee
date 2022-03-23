@@ -22,7 +22,6 @@
 #include <sparse_map.pb.h>
 
 namespace sparse_mapping {
-// TODO(rsoussan): Make this non member function
 void SparseMap::Load(const std::string & protobuf_file, bool localization) {
   sparse_mapping_protobuf::Map map;
   int input_fd = open(protobuf_file.c_str(), O_RDONLY);
@@ -180,7 +179,6 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
   close(input_fd);
 }
 
-// TODO(rsoussan): Make this non member function
 void SparseMap::Save(const std::string & protobuf_file) const {
   // For backward compatibility with old maps, allow a map to have its
   // histogram_equalization flag unspecified, but it is best to avoid

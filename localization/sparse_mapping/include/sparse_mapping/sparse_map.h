@@ -59,6 +59,7 @@ class SparseMap : public SparseMapDatabase {
             const std::vector<std::string> & cid_to_filename,
             const SparseMapParams& params);
 
+
   void BuildDatabase(const FeatureSets& feature_sets);
 
   /**
@@ -97,6 +98,10 @@ class SparseMap : public SparseMapDatabase {
   SparseMapParams& params() { return params_; }
 
   const SparseMapParams& params() const { return params_; }
+
+  // Protobuf Functions
+  void Save(const std::string& protobuf_file) const;
+  void Load(const std::string& protobuf_file, bool localization = false);
 
  private:
   std::unique_ptr<ImageDatabase> image_database_;
