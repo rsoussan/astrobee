@@ -20,13 +20,7 @@
 #define SPARSE_MAPPING_TEMPLATED_IMAGE_DATABASE_PROTOBUF_H_
 
 #include <sparse_map.pb.h>
-#include <sparse_map/templated_feature_vocabulary.h>
-#include <sparse_map/templated_image_database.h>
-
 #include <google/protobuf/io/zero_copy_stream_impl.h>
-
-namespace sparse_mapping {
-};
 
 // Implementation
 template<class TDescriptor, class F>

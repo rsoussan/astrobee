@@ -20,17 +20,10 @@
 #define SPARSE_MAPPING_TEMPLATED_FEATURE_VOCABULARY_PROTOBUF_H_
 
 #include <sparse_map.pb.h>
-
-// TODO(rsoussan): avoid this? check dbow2 templated voc and see if theres a virtual dtor there
-#pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
-#pragma GCC diagnostic push
-#include <DBoW2/DBoW2.h>      // BoW db that works with both float and binary descriptors
-#pragma GCC diagnostic pop
-
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 
-#include <vector>
 #include <string>
+#include <vector>
 
 // Implementation
 template <class TDescriptor, class F>
