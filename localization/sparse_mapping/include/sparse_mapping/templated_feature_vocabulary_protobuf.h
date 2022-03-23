@@ -16,8 +16,8 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_VOCABULARY_PROTOBUF_UTILITIES_H_
-#define SPARSE_MAPPING_VOCABULARY_PROTOBUF_UTILITIES_H_
+#ifndef SPARSE_MAPPING_TEMPLATED_FEATURE_VOCABULARY_PROTOBUF_H_
+#define SPARSE_MAPPING_TEMPLATED_FEATURE_VOCABULARY_PROTOBUF_H_
 
 #include <sparse_map.pb.h>
 
@@ -31,13 +31,6 @@
 
 #include <vector>
 #include <string>
-
-namespace sparse_mapping {
-  // TODO(rsoussan): Make these non member functions
-  explicit TemplatedFeatureVocabulary(google::protobuf::io::ZeroCopyInputStream* input);
-  void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const;
-  void LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input);
-};
 
 // Implementation
 template <class TDescriptor, class F>
@@ -156,4 +149,4 @@ void TemplatedFeatureVocabulary<TDescriptor, F>::SaveProtobuf(
   }
 }
 }  // namespace sparse_mapping
-#endif  // SPARSE_MAPPING_VOCABULARY_PROTOBUF_UTILITIES_H_
+#endif  // SPARSE_MAPPING_TEMPLATED_FEATURE_VOCABULARY_PROTOBUF_H_

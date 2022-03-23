@@ -39,6 +39,11 @@ class TemplatedFeatureVocabulary : public DBoW2::TemplatedVocabulary<TDescriptor
   explicit TemplatedFeatureVocabulary(const FeatureVocabularyParams& params);
   // Create vocabulary
   TemplatedFeatureVocabulary(const FeatureSets& feature_sets, const FeatureVocabularyParams& params);
+
+  // Protobuf Functions
+  explicit TemplatedFeatureVocabulary(google::protobuf::io::ZeroCopyInputStream* input);
+  void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const;
+  void LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input);
 };
 
 // Implementation
@@ -56,3 +61,5 @@ TemplatedFeatureVocabulary<TDescriptor, F>::TemplatedFeatureVocabulary(const Fea
 }
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_TEMPLATED_FEATURE_VOCABULARY_H_
+
+#include <sparse_mapping/templated_feature_vocabulary_protobuf.h>
