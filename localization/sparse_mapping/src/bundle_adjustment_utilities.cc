@@ -592,7 +592,6 @@ void CloseLoop(sparse_mapping::SparseMap * s) {
   s->cid_to_cam_t_global_.resize(s2);
   s->cid_to_descriptor_map_.resize(s2);
 
-  // sparse_mapping::PrintPidStats(s->pid_to_cid_fid_);
   bool rm_invalid_xyz = true;
   sparse_mapping::Triangulate(rm_invalid_xyz,
                               s->camera_params_.GetFocalLength(),
@@ -652,7 +651,6 @@ void BundleAdjustment(sparse_mapping::SparseMap * s,
     s->InitializeCidFidToPid();
   }
 
-  // sparse_mapping::PrintPidStats(s->pid_to_cid_fid_);
   // PrintTrackStats(s->pid_to_cid_fid_, "bundle adjustment and filtering");
 }
 

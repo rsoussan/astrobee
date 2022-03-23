@@ -45,6 +45,22 @@ void reorderMap(std::map<int, int> const& old_cid_to_new_cid);
                std::vector<std::map<int, int> > * pid_to_cid_fid,
                std::vector<Eigen::Vector3d> * pid_to_xyz,
                std::vector<Eigen::Affine3d> * cid_to_cam_t_global);
+
+  // Adds yaml.gz or .txt extension, depending on descriptor
+  std::string ImageToFeatureFile(std::string const& image_file,
+                                 std::string const& detector_name);
+
+  // Write features yaml file
+  void WriteFeatures(std::string const& detector_name,
+                     std::vector<cv::KeyPoint> const& keypoints,
+                     cv::Mat const& descriptors,
+                     std::string const& output_filename);
+
+  // Read features yaml file
+  bool ReadFeatures(std::string const& input_filename,
+                    std::string const& detector_name,
+                    std::vector<cv::KeyPoint> * keypoints,
+                    cv::Mat * descriptors);
 }  // namespace sparse_mapping
 
 #endif  // SPARSE_MAPPING_THIRD_PARTY_MAP_UTILITIES_H_

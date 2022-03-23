@@ -304,4 +304,42 @@ void ReadNVM(std::string const& input_filename,
       LOG(FATAL) << "Unable to correctly read PID: " << pid;
   }
 }
+
+std::string ImageToFeatureFile(std::string const& image_file,
+                                               std::string const& detector_name) {
+  return std::string(image_file) + ".yaml.gz";
+}
+
+void WriteFeatures(std::string const& detector_name,
+                                   std::vector<cv::KeyPoint> const& keypoints,
+                                   cv::Mat const& descriptors,
+                                   std::string const& output_filename) {
+  LOG(INFO) << "Writing: " << output_filename;
+  cv::FileStorage fs(output_filename,
+                     cv::FileStorage::WRITE);
+  cv::write(fs, "keypoints", keypoints);
+  cv::write(fs, "descriptions", descriptors);
+}
+
+bool ReadFeatures(std::string const& input_filename,
+                                  std::string const& detector_name,
+                                  std::vector<cv::KeyPoint> * keypoints,
+                                  cv::Mat * descriptors) {
+  LOG(INFO) << "Reading: " << input_filename;
+
+  // Test the file
+  std::ifstream f(input_filename);
+  if (!f.good()) {
+    LOG(FATAL) << "Could not read: " << input_filename;
+    return false;
+  }
+
+  // Read the yaml.gz file
+  cv::FileStorage fs(input_filename, cv::FileStorage::READ);
+  cv::FileNode fn = fs["keypoints"];
+  cv::read(fn, *keypoints);
+  fs["descriptions"] >> *descriptors;
+
+  return true;
+}
 }  // namespace sparse_mapping
