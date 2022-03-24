@@ -28,7 +28,7 @@ import os
 import shutil
 import sys
 
-import make_map
+import sparse_mapping.make_map
 import utilities
 
 if __name__ == "__main__":
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     if not args.map_name:
         map_name = bag_prefix + "_groundtruth"
 
-    make_map.make_map(
+    sparse_mapping.make_map.make_map(
         bagfile, map_name, args.world, args.robot_name, base_surf_map, maps_directory
     )
 
