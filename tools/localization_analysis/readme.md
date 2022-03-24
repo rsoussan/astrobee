@@ -62,9 +62,6 @@ Generates comparison plots for raw and filtered IMU data.
 ## `make_groundtruth`
 Creates a groundtruth map and bagfile containing groundtruth poses for a provided bagfile.
 
-## `make_map`
-Creates a map for a provided bagfile, optionally merged with an existing map as well.
-
 ## `parameter_sweep`
 Runs a parameter sweep for the graph localizer on a bagfile and plots the results.
 
