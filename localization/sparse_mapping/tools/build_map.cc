@@ -28,17 +28,17 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-#include <sparse_map.pb.h>
-
-#include <gflags/gflags.h>
 #include <glog/logging.h>
+
+#include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
 
 #include <iostream>
 #include <fstream>
 #include <algorithm>
 #include <thread>
 
-// outputs
+/*// outputs
 DEFINE_string(output_map, "",
               "Output file containing the matches and control network.");
 
@@ -111,10 +111,13 @@ DEFINE_string(undistorted_camera_params, "",
               "Assume that the camera has no distortion and given intrinsics. "
               "Specify as: 'image_wid_x image_wid_y focal_length optical_center_x "
               "optical_center_y'.");
+*/
 
+// TODO(rsoussan): move this to sparse_map
 bool g_pruning_was_done = false;  // If we already pruned the map, don't prune it again
 
 void DetectAllFeatures(int argc, char** argv) {
+  //TODO(rsoussan): Add different function to initialize the map! get list of all images!
   // Check for user mistakes
   if (argc <= 1) {
     LOG(INFO) << "Usage: " << argv[0] << " <images>";
@@ -124,6 +127,7 @@ void DetectAllFeatures(int argc, char** argv) {
 
   LOG(INFO) << "Detecting features.";
 
+  // TODO(rsoussan): Remove this cam params loading, get camera config in constructor
   config_reader::ConfigReader config;
   config.AddFile("cameras.config");
   if (!config.ReadFiles()) {
@@ -148,6 +152,7 @@ void DetectAllFeatures(int argc, char** argv) {
   }
 
   // Remove some images from list based on sample rate
+  // TODO(rsoussan): Remove this
   int count = 0;
   int index = 1;
   for (int i = 1; i < argc; i++) {
@@ -200,7 +205,7 @@ void BuildTracks() {
   if (FLAGS_save_individual_maps) map.Save(FLAGS_output_map + ".track.map");
 }
 
-void IncrementalBA() {
+/*void IncrementalBA() {
   LOG(INFO) << "Beginning incremental bundle adjustment.";
 
   sparse_mapping::SparseMap map(FLAGS_output_map);
@@ -233,6 +238,7 @@ void BundleAdjust() {
 }
 
 // rebuilds with a different descriptor and detector
+// TODO(Rsoussan): move this to sparse_map, rename 
 void Rebuild() {
   LOG(INFO) << "Rebuilding map with " << FLAGS_rebuild_detector << " detector.";
   sparse_mapping::SparseMap original(FLAGS_output_map);
@@ -378,7 +384,10 @@ void RegistrationOrVerification(std::vector<std::string> const& data_files) {
   map.Save(FLAGS_output_map);
   if (FLAGS_save_individual_maps) map.Save(FLAGS_output_map + ".registered.map");
 }
+*/
 
+/*
+// TODO(Rsoussan): move this to sparse_map 
 void MapInfo() {
   sparse_mapping::SparseMap map(FLAGS_output_map);
 
@@ -392,6 +401,7 @@ void MapInfo() {
   }
 }
 
+// TODO(Rsoussan): move this to file utils
 void SavePoses() {
   sparse_mapping::SparseMap map(FLAGS_output_map);
 
@@ -433,6 +443,7 @@ void SavePoses() {
 }
 
 // Save the xyz coordinates of triangulated interest point matches
+// TODO(Rsoussan): move this to file utils
 void SaveXYZ() {
   sparse_mapping::SparseMap map(FLAGS_output_map);
   std::string xyz_file = ff_common::ReplaceInStr(FLAGS_output_map,
@@ -446,37 +457,67 @@ void SaveXYZ() {
         << map.pid_to_xyz_[it][1] << ' '
         << map.pid_to_xyz_[it][2] << std::endl;
   ofs.close();
-}
+}*/
 
 int main(int argc, char** argv) {
-  ff_common::InitFreeFlyerApplication(&argc, &argv);
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+  std::string map_name;
+  std::string robot_config_file;
+  bool detect_features;
+  bool match_images;
+  bool build_feature_tracks;
+  //std::string world;
+  po::options_description desc(
+    "Suite of tools for map construction. Optionally detects features, matches features, builds feature tracks, performs
+      incremental bundle adjustment, and performs loop closures. The map is loaded and saved between each stage.");
+  desc.add_options()("help,h", "produce help message")
+("map-name", po::value<std::string>()->required(), "Map name.")
+("detect-features,d", po::bool_switch(&detect_features)->default_value(false),
+    "Detect features in map images and save these to the map. If map features already exist in the map these are replaced by the newly detected features.")
+("match-images,m", po::bool_switch(&match_features)->default_value(false),
+    "Match map images. If no database is availble subsequent images are used to find feature matches (TODO: change this behavior!). Camera poses are initialized as well. (TODO: does this remove any features? do anything else? why is this necessary?") 
+("build-feature-tracks,t", po::bool_switch(&build_feature_tracks)->default_value(false),
+    "Matches detected features and initializes triangulated points for each track.") 
 
-  // It is important to get the robot name right
-  char * bot = getenv("ASTROBEE_ROBOT");
-  if (bot == NULL)
-    LOG(FATAL) << "ASTROBEE_ROBOT was not set.\n";
-  std::cout << "ASTROBEE_ROBOT=" << bot << std::endl;
 
-  if (FLAGS_output_map == "")
-    LOG(FATAL) << "Must specify the output map name.";
+
+// TODO(rsoussan): Automate finding this path!! Add check if it isn't found!
+("config-path,c", po::value<std::string>()->required(),
+                                                                  "Config path")
+(
+    "robot-config-file,r", po::value<std::string>(&robot_config_file)->default_value("config/robots/bumble.config"),
+    "Robot config file")
+//("world,w", po::value<std::string>(&world)->default_value("iss"), "World name")
+
+  po::positional_options_description p;
+  p.add("map-name", 1);
+  p.add("config-path", 1);
+  po::variables_map vm;
+  try {
+    po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
+    if (vm.count("help") || (argc <= 1)) {
+      std::cout << desc << "\n";
+      return 1;
+    }
+    po::notify(vm);
+  } catch (std::exception& e) {
+    std::cerr << "Error: " << e.what() << "\n";
+    return 1;
+  }
+  const std::string map_name = vm["map-name"].as<std::string>();
+  const std::string config_path = vm["config-path"].as<std::string>();
+
+  // Only pass program name to free flyer so that boost command line options
+  // are ignored when parsing gflags.
+  int ff_argc = 1;
+  ff_common::InitFreeFlyerApplication(&ff_argc, &argv);
+  // The world name doesn't matter for map creation, only included since it's required for config loading
+  const std::string world = "iss";
+  lc::SetEnvironmentConfigs(config_path, world, robot_config_file);
 
   // If the user selected no steps ... they selected all steps
-  if (!FLAGS_feature_detection && !FLAGS_feature_matching &&
-      !FLAGS_track_building && !FLAGS_incremental_ba &&
-      !FLAGS_loop_closure &&
-      !FLAGS_bundle_adjustment && !FLAGS_rebuild &&
-      !FLAGS_vocab_db && !FLAGS_registration && !FLAGS_verification &&
-      !FLAGS_info && !FLAGS_save_poses && !FLAGS_save_xyz && !FLAGS_prune) {
-    FLAGS_feature_detection = true;
-    FLAGS_feature_matching = true;
-    FLAGS_track_building = true;
-    FLAGS_incremental_ba = true;
-    FLAGS_bundle_adjustment = true;
-    FLAGS_rebuild = true;
-    FLAGS_vocab_db = true;
-  }
+  // TODO(rsoussan): implement this^ use utils function to detect nothing enabled?
 
+  // TODO(rsoussan): Update this! don't pass argc and arv! rename to detectfeatures!
   if (FLAGS_feature_detection) {
     DetectAllFeatures(argc, argv);
   }
