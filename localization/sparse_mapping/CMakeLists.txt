@@ -110,6 +110,12 @@ add_dependencies(merge_maps ${catkin_EXPORTED_TARGETS})
 target_link_libraries(merge_maps
   sparse_mapping gflags glog ${catkin_LIBRARIES})
 
+## Declare a C++ executable: remove_low_movement_images
+add_executable(remove_low_movement_images tools/remove_low_movement_images.cc)
+add_dependencies(remove_low_movement_images ${catkin_EXPORTED_TARGETS})
+target_link_libraries(remove_low_movement_images
+  sparse_mapping ${catkin_LIBRARIES})
+
 ## Declare a C++ executable: visualize_map
 add_executable(visualize_map tools/visualize_map.cc)
 add_dependencies(visualize_map ${catkin_EXPORTED_TARGETS})
