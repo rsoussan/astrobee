@@ -44,16 +44,13 @@ class SparseMap : public SparseMapDatabase {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   /**
-   * Constructs a new sparse map from a list of image files and their
-   * associate keypoint and descriptor files. If use_cached_features
-   * is set to false, it reads the image files and performs feature
-   * detection instead. Does not perform bundle adjustment.
-   **/
+   * Creates a sparse map containing only a list of image files.
+  **/
   SparseMap(const std::vector<std::string> & cid_to_filename,
             const SparseMapParams& params);
 
   /**
-     Form a sparse map with given cameras/images, and no features
+   * Creates a sparse map containing only a list of image files and camera poses.
   **/
   SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
             const std::vector<std::string> & cid_to_filename,

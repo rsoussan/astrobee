@@ -18,6 +18,7 @@
 #include <ff_common/init.h>
 #include <ff_common/thread.h>
 #include <ff_common/utils.h>
+#include <localization_common/logger.h>
 #include <config_reader/config_reader.h>
 #include <camera/camera_params.h>
 #include <sparse_mapping/sparse_map.h>
@@ -114,96 +115,7 @@ DEFINE_string(undistorted_camera_params, "",
 */
 
 // TODO(rsoussan): move this to sparse_map
-bool g_pruning_was_done = false;  // If we already pruned the map, don't prune it again
-
-void DetectAllFeatures(int argc, char** argv) {
-  //TODO(rsoussan): Add different function to initialize the map! get list of all images!
-  // Check for user mistakes
-  if (argc <= 1) {
-    LOG(INFO) << "Usage: " << argv[0] << " <images>";
-    exit(1);
-    return;
-  }
-
-  LOG(INFO) << "Detecting features.";
-
-  // TODO(rsoussan): Remove this cam params loading, get camera config in constructor
-  config_reader::ConfigReader config;
-  config.AddFile("cameras.config");
-  if (!config.ReadFiles()) {
-    LOG(ERROR) << "Failed to read config files.";
-    exit(1);
-    return;
-  }
-  camera::CameraParameters cam_params(&config, FLAGS_robot_camera.c_str());
-
-  // See if to override the camera when using undistorted images
-  if (FLAGS_undistorted_camera_params != "") {
-    std::vector<double> vals;
-    ff_common::parseStr(FLAGS_undistorted_camera_params, vals);
-    if (vals.size() < 5)
-      LOG(FATAL) << "Could not parse --undistorted_camera_params.";
-    double widx = vals[0], widy = vals[1], f = vals[2], cx = vals[3], cy = vals[4];
-    LOG(INFO) << "Using camera parameters: "
-              << widx << ' ' << widy << ' ' << f << ' ' << cx << ' ' << cy;
-    cam_params = camera::CameraParameters(Eigen::Vector2i(widx, widy),
-                                          Eigen::Vector2d::Constant(f),
-                                          Eigen::Vector2d(cx, cy));
-  }
-
-  // Remove some images from list based on sample rate
-  // TODO(rsoussan): Remove this
-  int count = 0;
-  int index = 1;
-  for (int i = 1; i < argc; i++) {
-    count++;
-    if (count != FLAGS_sample_rate)
-      continue;
-    count = 0;
-    argv[index] = argv[i];
-    index++;
-  }
-  argc = index;
-
-  std::vector<std::string> files(argc - 1);
-  for (int i = 0; i < argc - 1; i++) {
-    files[i] = std::string(argv[i + 1]);
-  }
-
-  // TODO(rsoussan): Remove this
-  // This is so that we can do loop closure later
-  FLAGS_num_repeat_images = std::min(FLAGS_num_repeat_images, static_cast<int>(files.size()));
-  for (int i = 0; i < FLAGS_num_repeat_images; i++) files.push_back(files[i]);
-
-  // This will invoke a detection process
-  sparse_mapping::SparseMap map(files, FLAGS_detector, cam_params);
-  map.DetectFeatures();
-
-  map.Save(FLAGS_output_map);
-  if (FLAGS_save_individual_maps) map.Save(FLAGS_output_map + ".detect.map");
-}
-
-void MatchFeatures() {
-  LOG(INFO) << "Matching features.";
-
-  sparse_mapping::SparseMap map(FLAGS_output_map);
-  sparse_mapping::MatchFeatures(sparse_mapping::EssentialFile(FLAGS_output_map),
-                                sparse_mapping::MatchesFile(FLAGS_output_map), &map);
-  map.Save(FLAGS_output_map);
-  if (FLAGS_save_individual_maps) map.Save(FLAGS_output_map + ".match.map");
-}
-
-void BuildTracks() {
-  LOG(INFO) << "Building tracks.";
-
-  sparse_mapping::SparseMap map(FLAGS_output_map);
-  bool rm_invalid_xyz = false;  // we don't have valid cameras, so can't rm xyz
-  sparse_mapping::BuildTracks(rm_invalid_xyz,
-                              sparse_mapping::MatchesFile(FLAGS_output_map),
-                              &map);
-  map.Save(FLAGS_output_map);
-  if (FLAGS_save_individual_maps) map.Save(FLAGS_output_map + ".track.map");
-}
+//bool g_pruning_was_done = false;  // If we already pruned the map, don't prune it again
 
 /*void IncrementalBA() {
   LOG(INFO) << "Beginning incremental bundle adjustment.";
@@ -460,8 +372,10 @@ void SaveXYZ() {
 }*/
 
 int main(int argc, char** argv) {
-  std::string map_name;
+  std::string map_filename;
   std::string robot_config_file;
+  std::string images_directory;
+  bool save_map_in_stages;
   bool detect_features;
   bool match_images;
   bool build_feature_tracks;
@@ -470,7 +384,14 @@ int main(int argc, char** argv) {
     "Suite of tools for map construction. Optionally detects features, matches features, builds feature tracks, performs
       incremental bundle adjustment, and performs loop closures. The map is loaded and saved between each stage.");
   desc.add_options()("help,h", "produce help message")
-("map-name", po::value<std::string>()->required(), "Map name.")
+("map-filename", po::value<std::string>()->required(), "Map filename. The map file is default loaded from disk. If an image directory is passed using the --add-images option, a new map file is created with these images.")
+("save-map-in-stages,s", po::bool_switch(&save_map_in_stages)->default_value(false),
+    "Saves the map after each stage of construction. Uses a new filename appended with the stage name for the incrementally saved maps.")
+
+("add-images,a", po::bool_switch(&detect_features)->default_value(false),
+    "Detect features in map images and save these to the map. If map features already exist in the map these are replaced by the newly detected features.")
+("add-images,i", po::value<std::string>(&images_directory)->default_value(""),
+    "Initialize map with images in the provided image directory.")
 ("detect-features,d", po::bool_switch(&detect_features)->default_value(false),
     "Detect features in map images and save these to the map. If map features already exist in the map these are replaced by the newly detected features.")
 ("match-images,m", po::bool_switch(&match_features)->default_value(false),
@@ -489,7 +410,7 @@ int main(int argc, char** argv) {
 //("world,w", po::value<std::string>(&world)->default_value("iss"), "World name")
 
   po::positional_options_description p;
-  p.add("map-name", 1);
+  p.add("map-filename", 1);
   p.add("config-path", 1);
   po::variables_map vm;
   try {
@@ -503,7 +424,7 @@ int main(int argc, char** argv) {
     std::cerr << "Error: " << e.what() << "\n";
     return 1;
   }
-  const std::string map_name = vm["map-name"].as<std::string>();
+  const std::string map_filename = vm["map-filename"].as<std::string>();
   const std::string config_path = vm["config-path"].as<std::string>();
 
   // Only pass program name to free flyer so that boost command line options
@@ -517,17 +438,36 @@ int main(int argc, char** argv) {
   // If the user selected no steps ... they selected all steps
   // TODO(rsoussan): implement this^ use utils function to detect nothing enabled?
 
-  // TODO(rsoussan): Update this! don't pass argc and arv! rename to detectfeatures!
-  if (FLAGS_feature_detection) {
-    DetectAllFeatures(argc, argv);
+  // Initialize map with image files if provided or load from disk otherwise
+  // TODO(rsoussan): Load params!!!!
+  SparseMapping::SparseMap map = !image_directory.empty() ? SparseMapping::SparseMap(image_directory, params) : SparseMapping::SparseMap(map_filename); 
+
+  if (detect_features) {
+    LogInfo("Detecting Features...");
+    map.DetectFeatures();
+    if (save_map_in_stages) map.Save(map_filename + ".detect.map");
   }
-  if (FLAGS_feature_matching) {
-    MatchFeatures();
+  if (match_features) {
+    LogInfo("Matching Features...");
+    // TODO(rsoussan): what are these flags? how are they used?
+  sparse_mapping::MatchFeatures(sparse_mapping::EssentialFile(FLAGS_output_map),
+                                sparse_mapping::MatchesFile(FLAGS_output_map), &map);
+    if (save_map_in_stages) map.Save(map_filename + ".match.map");
   }
-  if (FLAGS_track_building) {
-    BuildTracks();
+
+  if (build_feature_tracks) {
+    LogInfo("Building feature tracks....");
+  // TODO(rsoussan): what is this??
+  bool rm_invalid_xyz = false;  // we don't have valid cameras, so can't rm xyz
+  sparse_mapping::BuildTracks(rm_invalid_xyz,
+                              sparse_mapping::MatchesFile(FLAGS_output_map),
+                              &map);
+    if (save_map_in_stages) map.Save(map_filename + ".track.map");
   }
-  if (FLAGS_incremental_ba) {
+
+  map.Save(map_filename);
+
+/*  if (FLAGS_incremental_ba) {
     IncrementalBA();
   }
   if (FLAGS_loop_closure) {
@@ -565,5 +505,5 @@ int main(int argc, char** argv) {
 
   google::protobuf::ShutdownProtobufLibrary();
 
-  return 0;
+  return 0;*/
 }
