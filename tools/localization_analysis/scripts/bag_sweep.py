@@ -29,7 +29,7 @@ import os
 import sys
 
 import average_results
-import multiprocessing_helpers
+import localization_common.utilities as lu
 import plot_bag_sweep_results
 
 
@@ -113,7 +113,7 @@ def check_params(graph_bag_params_list):
 # Add traceback so errors are forwarded, otherwise
 # some errors are suppressed due to the multiprocessing
 # library call
-@multiprocessing_helpers.full_traceback
+@lu.full_traceback
 def run_graph_bag(params, output_dir):
     bag_name = os.path.splitext(os.path.basename(params.bagfile))[0]
     output_bag_path = os.path.join(output_dir, bag_name + "_results.bag")

@@ -29,7 +29,6 @@ import multiprocessing
 import os
 import sys
 
-import multiprocessing_helpers
 import localization_common.utilities as lu
 
 
@@ -98,7 +97,7 @@ def check_params(groundtruth_params_list):
 # Add traceback so errors are forwarded, otherwise
 # some errors are suppressed due to the multiprocessing
 # library call
-@multiprocessing_helpers.full_traceback
+@lu.full_traceback
 def run_groundtruth(params):
     output_directory = lu.basename(params.bagfile) + "_groundtruth"
     groundtruth_command = (
