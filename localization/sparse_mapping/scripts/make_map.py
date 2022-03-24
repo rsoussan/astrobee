@@ -32,6 +32,7 @@ import utilities
 def make_map(
     bagfile,
     map_name,
+    image_topic,
     world,
     robot_name,
     histogram_equalization,
@@ -45,16 +46,15 @@ def make_map(
     extract_images_command = (
         "rosrun bag_processing extract_images "
         + bagfile
-        + " -i /mgt/img_sampler/nav_cam/image_record -o "
+        + " -i " + image_topic + " -o "
         + bag_images
     )
     utilities.run_command_and_save_output(extract_images_command, "extract_images.txt")
 
-    all_bag_images = os.path.join(bag_images, "*.jpg")
-    select_images_command = (
-        "rosrun sparse_mapping select_images -density_factor 1.4 " + all_bag_images
+    remove_low_movement_images_command = (
+        "rosrun sparse_mapping remove_low_movement_images " + bag_images 
     )
-    utilities.run_command_and_save_output(select_images_command, "select_images.txt")
+    utilities.run_command_and_save_output(remove_low_movement_images_command, "remove_low_movement_images.txt")
 
     # Set environment variables
     home = os.path.expanduser("~")
@@ -63,7 +63,7 @@ def make_map(
     os.environ["ASTROBEE_RESOURCE_DIR"] = os.path.join(astrobee_path, "resources")
     os.environ["ASTROBEE_CONFIG_DIR"] = os.path.join(astrobee_path, "config")
     os.environ["ASTROBEE_ROBOT"] = os.path.join(
-        astrobee_path, "config/robots/bumble.config"
+        astrobee_path, robot_config_path
     )
     os.environ["ASTROBEE_WORLD"] = world
 
@@ -153,6 +153,12 @@ if __name__ == "__main__":
         help="Location of images used for each bagfile use to generate optional base_surf_map. Only required if --base-surf-map provided.",
     )
     parser.add_argument("-o", "--output-directory", default="map_creation_output")
+    parser.add_argument(
+        "-i",
+        "--image-topic",
+        default="/mgt/img_sampler/nav_cam/image_record",
+        help="Image topic.",
+    )
     parser.add_argument("-w", "--world", default="iss")
     parser.add_argument("-r", "--robot-name", default="bumble")
     parser.add_argument("-m", "--map-name", default="bag_map")
@@ -199,6 +205,7 @@ if __name__ == "__main__":
     make_map(
         bagfile,
         args.map_name,
+        args.image_topic
         args.world,
         args.robot_name,
         args.histogram_equalization,

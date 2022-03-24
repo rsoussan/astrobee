@@ -9,6 +9,8 @@ For each tool and script, run `rosrun sparse_mapping tool_or_script_name -h` for
 usage instructions.
 
 # Tools
+## `remove_low_movement_images`
+Removes successive images with little relative movement.
 
 # Scripts
 ## `make_map`
