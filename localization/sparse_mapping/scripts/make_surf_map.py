@@ -37,7 +37,6 @@ def make_surf_map(
     image_topic,
     world,
     robot_name,
-    histogram_equalization,
 ):
     bag_images_dir = "bag_images_" + lu.basename(bagfile)
     os.mkdir(bag_images_dir)
@@ -72,10 +71,8 @@ def make_surf_map(
         + all_bag_images
         + " -output_map "
         + surf_map_name 
-        + " -feature_detection -feature_matching -track_building -incremental_ba -bundle_adjustment -num_subsequent_images 100"
+        + " -feature_detection -histogram_equalization -feature_matching -track_building -incremental_ba -bundle_adjustment -num_subsequent_images 100"
     )
-    if histogram_equalization:
-        build_map_command += " -histogram_equalization"
     lu.run_command_and_save_output(build_map_command, "build_surf_map.txt")
 
 
@@ -94,14 +91,6 @@ if __name__ == "__main__":
     parser.add_argument("-w", "--world", default="iss", help="World name (iss or granite).")
     parser.add_argument("-r", "--robot-name", default="bumble", help="Robot name.")
     parser.add_argument("-m", "--map-name", default=None, help="Output map name. Defaults to bag_name_surf.map")
-    parser.add_argument(
-        "-n",
-        "--no-histogram_equalization",
-        dest="histogram_equalization",
-        action="store_false",
-        help="Do not apply histrogram equalization during map creation.  Default behavior uses histogram equalization.",
-    )
-    parser.set_defaults(histogram_equalization=True)
 
     args = parser.parse_args()
     if not os.path.isfile(args.bagfile):
@@ -125,5 +114,4 @@ if __name__ == "__main__":
         args.image_topic
         args.world,
         args.robot_name,
-        args.histogram_equalization,
     )
