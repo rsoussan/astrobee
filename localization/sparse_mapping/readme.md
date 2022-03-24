@@ -13,8 +13,7 @@ usage instructions.
 Removes successive images with little relative movement.
 
 # Scripts
-## `make_map`
-Creates a map for a provided bagfile, optionally merged with an existing map as well.
-
+## `make_surf_map`
+Creates a surf map for a provided bagfile.
 
 \subpage docs/map_creation

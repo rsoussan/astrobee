@@ -28,8 +28,7 @@ import os
 import shutil
 import sys
 
-#TODO(rsoussan): Move this somewhere else!!!
-import localization_analysis.utilities
+import localization_common.utilities
 
 
 def make_surf_map(
@@ -40,7 +39,7 @@ def make_surf_map(
     robot_name,
     histogram_equalization,
 ):
-    bag_images_dir = "bag_images_" + localization_analysis.utilities.basename(bagfile)
+    bag_images_dir = "bag_images_" + localization_common.utilities.basename(bagfile)
     os.mkdir(bag_images_dir)
     bag_images = os.path.abspath(bag_images_dir)
     extract_images_command = (
@@ -49,12 +48,12 @@ def make_surf_map(
         + " -i " + image_topic + " -o "
         + bag_images
     )
-    localization_analysis.utilities.run_command_and_save_output(extract_images_command, "extract_images.txt")
+    localization_common.utilities.run_command_and_save_output(extract_images_command, "extract_images.txt")
 
     remove_low_movement_images_command = (
         "rosrun sparse_mapping remove_low_movement_images " + bag_images 
     )
-    localization_analysis.utilities.run_command_and_save_output(remove_low_movement_images_command, "remove_low_movement_images.txt")
+    localization_common.utilities.run_command_and_save_output(remove_low_movement_images_command, "remove_low_movement_images.txt")
 
     # Set environment variables
     home = os.path.expanduser("~")
@@ -77,7 +76,7 @@ def make_surf_map(
     )
     if histogram_equalization:
         build_map_command += " -histogram_equalization"
-    localization_analysis.utilities.run_command_and_save_output(build_map_command, "build_surf_map.txt")
+    localization_common.utilities.run_command_and_save_output(build_map_command, "build_surf_map.txt")
 
 
 if __name__ == "__main__":
@@ -109,12 +108,12 @@ if __name__ == "__main__":
         print("Bag file " + args.bagfile + " does not exist.")
         sys.exit()
     if not args.output_directory:
-      args.output_directory = localization_analysis.utilities.basename(args.bagfile) + "_map_creation" 
+      args.output_directory = localization_common.utilities.basename(args.bagfile) + "_map_creation" 
     if os.path.isdir(args.output_directory):
         print("Output directory " + args.output_directory + " already exists.")
         sys.exit()
     if not args.map_name:
-      args.map_name = localization_analysis.utilities.basename(args.bagfile) + "_surf.map" 
+      args.map_name = localization_common.utilities.basename(args.bagfile) + "_surf.map" 
 
     bagfile = os.path.abspath(args.bagfile)
     os.mkdir(args.output_directory)
