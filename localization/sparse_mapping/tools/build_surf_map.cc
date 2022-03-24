@@ -131,16 +131,6 @@ DEFINE_string(undistorted_camera_params, "",
   if (FLAGS_save_individual_maps) map.Save(FLAGS_output_map + ".incremental.map");
 }
 
-void CloseLoop() {
-  LOG(INFO) << "Beginning loop closure.";
-
-  sparse_mapping::SparseMap map(FLAGS_output_map);
-
-  sparse_mapping::CloseLoop(&map);
-  map.Save(FLAGS_output_map);
-  if (FLAGS_save_individual_maps) map.Save(FLAGS_output_map + ".closed.map");
-}
-
 void BundleAdjust() {
   LOG(INFO) << "Performing bundle adjustment.";
   sparse_mapping::SparseMap map(FLAGS_output_map);
@@ -433,6 +423,7 @@ int main(int argc, char** argv) {
     map.DetectFeatures();
     LogInfo("Matching Features...");
     // TODO(rsoussan): what are these flags? how are they used?
+  // TODO(rsoussan): Add member function that does this in sparse map!! makes this call!
   sparse_mapping::MatchFeatures(sparse_mapping::EssentialFile(FLAGS_output_map),
                                 sparse_mapping::MatchesFile(FLAGS_output_map), &map);
     LogInfo("Building feature tracks....");
@@ -445,9 +436,6 @@ int main(int argc, char** argv) {
 
 /*  if (FLAGS_incremental_ba) {
     IncrementalBA();
-  }
-  if (FLAGS_loop_closure) {
-    CloseLoop();
   }
   if (FLAGS_bundle_adjustment) {
     BundleAdjust();

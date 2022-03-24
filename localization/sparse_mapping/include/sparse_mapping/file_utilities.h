@@ -30,9 +30,6 @@ namespace sparse_mapping {
   // The name of the essential file
   std::string EssentialFile(std::string const& map_file);
 
-  void MergePids(int repeat_index, int num_unique,
-                 std::vector<std::map<int, int> > * pid_to_cid_fid);
-
   // Extract control points and the images they correspond to from
   // a hugin project file
   void ParseHuginControlPoints(std::string const& hugin_file,
