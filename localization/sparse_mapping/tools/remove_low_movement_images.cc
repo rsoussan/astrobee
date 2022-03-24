@@ -18,6 +18,7 @@
 #include <ff_common/init.h>
 #include <localization_common/averager.h>
 #include <localization_common/logger.h>
+#include <localization_common/utilities.h>
 #include <vision_common/lk_optical_flow_feature_detector_and_matcher.h>
 
 #include <opencv2/imgcodecs.hpp>
@@ -110,18 +111,6 @@ int RemoveLowMovementImages(const std::vector<std::string>& image_names, const d
   return num_removed_images;
 }
 
-std::vector<std::string> GetImageNames(const std::string& image_directory,
-                                       const std::string& image_extension = ".jpg") {
-  std::vector<std::string> image_names;
-  for (const auto& file : fs::recursive_directory_iterator(image_directory)) {
-    if (fs::is_regular_file(file) && file.path().extension() == image_extension)
-      image_names.emplace_back(fs::absolute(file.path()).string());
-  }
-  std::sort(image_names.begin(), image_names.end());
-  LogInfo("Found " << image_names.size() << " images.");
-  return image_names;
-}
-
 int main(int argc, char** argv) {
   double max_low_movement_mean_distance;
   po::options_description desc(
@@ -157,7 +146,7 @@ int main(int argc, char** argv) {
     LogFatal("Image directory " << image_directory << " not found.");
   }
 
-  const auto image_names = GetImageNames(image_directory);
+  const auto image_names = lc::GetImageNames(image_directory);
   if (image_names.empty()) LogFatal("No images found.");
 
   const int num_original_images = image_names.size();

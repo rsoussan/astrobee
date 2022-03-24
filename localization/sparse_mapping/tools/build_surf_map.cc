@@ -19,6 +19,7 @@
 #include <ff_common/thread.h>
 #include <ff_common/utils.h>
 #include <localization_common/logger.h>
+#include <localization_common/utilities.h>
 #include <config_reader/config_reader.h>
 #include <camera/camera_params.h>
 #include <sparse_mapping/sparse_map.h>
@@ -38,6 +39,8 @@
 #include <fstream>
 #include <algorithm>
 #include <thread>
+
+namespace lc = localization_common;
 
 /*// outputs
 DEFINE_string(output_map, "",
@@ -415,10 +418,14 @@ int main(int argc, char** argv) {
   const std::string world = "iss";
   lc::SetEnvironmentConfigs(config_path, world, robot_config_file);
 
-  // TODO(rsoussan): Make sure map filename doesn't already exist!!
-  // TODO(rsoussan): Implement this!
-  // TODO(rsoussan): make sure image directory exists!
-  const std::vector<std::string> images = Images(image_directory);
+  if (boost::filesystem::exists(map_filename)) {
+    LogFatal("Map file " << map_filename << " already exists.");
+  }
+  if (!boost::filesystem::exists(image_direectory)) {
+    LogFatal("Image directory " << image_directory << " not found.");
+  }
+
+  const std::vector<std::string> images = lc::GetImageNames(image_directory);
   // TODO(rsoussan): Load params!!!!
   SparseMapping::SparseMap map(images, params);
 

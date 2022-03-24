@@ -25,10 +25,13 @@
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Quaternion.h>
 
+#include <boost/filesystem.hpp>
+
 #include <cstdlib>
 #include <string>
 
 namespace localization_common {
+namespace fs = boost::filesystem;
 namespace mc = msg_conversions;
 
 gtsam::Pose3 LoadTransform(config_reader::ConfigReader& config, const std::string& transform_config_name) {
@@ -231,5 +234,17 @@ Eigen::Isometry3d Interpolate(const Eigen::Isometry3d& lower_bound_pose, const E
   const auto rotation =
     Eigen::Quaterniond(lower_bound_pose.linear()).slerp(alpha, Eigen::Quaterniond(upper_bound_pose.linear()));
   return Isometry3d(translation, rotation);
+}
+
+std::vector<std::string> GetImageNames(const std::string& image_directory,
+                                       const std::string& image_extension = ".jpg") {
+  std::vector<std::string> image_names;
+  for (const auto& file : fs::recursive_directory_iterator(image_directory)) {
+    if (fs::is_regular_file(file) && file.path().extension() == image_extension)
+      image_names.emplace_back(fs::absolute(file.path()).string());
+  }
+  std::sort(image_names.begin(), image_names.end());
+  LogInfo("Found " << image_names.size() << " images.");
+  return image_names;
 }
 }  // namespace localization_common
