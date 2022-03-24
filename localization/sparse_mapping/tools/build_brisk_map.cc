@@ -372,38 +372,16 @@ void SaveXYZ() {
 }*/
 
 int main(int argc, char** argv) {
-  std::string map_filename;
   std::string robot_config_file;
-  std::string images_directory;
-  bool save_map_in_stages;
-  bool detect_features;
-  bool match_images;
-  bool build_feature_tracks;
   //std::string world;
   po::options_description desc(
-    "Suite of tools for map construction. Optionally detects features, matches features, builds feature tracks, performs
-      incremental bundle adjustment, and performs loop closures. The map is loaded and saved between each stage.");
+    "Creates a surf map from a set of images. Detects features, matches features, builds feature tracks, performs
+      incremental bundle adjustment, and performs loop closures.");
   desc.add_options()("help,h", "produce help message")
-("map-filename", po::value<std::string>()->required(), "Map filename. The map file is default loaded from disk. If an image directory is passed using the --add-images option, a new map file is created with these images.")
-("save-map-in-stages,s", po::bool_switch(&save_map_in_stages)->default_value(false),
-    "Saves the map after each stage of construction. Uses a new filename appended with the stage name for the incrementally saved maps.")
-
-("add-images,a", po::bool_switch(&detect_features)->default_value(false),
-    "Detect features in map images and save these to the map. If map features already exist in the map these are replaced by the newly detected features.")
-("add-images,i", po::value<std::string>(&images_directory)->default_value(""),
-    "Initialize map with images in the provided image directory.")
-("detect-features,d", po::bool_switch(&detect_features)->default_value(false),
-    "Detect features in map images and save these to the map. If map features already exist in the map these are replaced by the newly detected features.")
-("match-images,m", po::bool_switch(&match_features)->default_value(false),
-    "Match map images. If no database is availble subsequent images are used to find feature matches (TODO: change this behavior!). Camera poses are initialized as well. (TODO: does this remove any features? do anything else? why is this necessary?") 
-("build-feature-tracks,t", po::bool_switch(&build_feature_tracks)->default_value(false),
-    "Matches detected features and initializes triangulated points for each track.") 
-
-
-
+("map-filename", po::value<std::string>()->required(), "Map filename.")
+("image-directory", po::value<std::string>()->required(), "Image directory.")
 // TODO(rsoussan): Automate finding this path!! Add check if it isn't found!
-("config-path,c", po::value<std::string>()->required(),
-                                                                  "Config path")
+("config-path,c", po::value<std::string>()->required(), "Config path")
 (
     "robot-config-file,r", po::value<std::string>(&robot_config_file)->default_value("config/robots/bumble.config"),
     "Robot config file")
@@ -411,6 +389,7 @@ int main(int argc, char** argv) {
 
   po::positional_options_description p;
   p.add("map-filename", 1);
+  p.add("image-directory", 1);
   p.add("config-path", 1);
   po::variables_map vm;
   try {
@@ -425,6 +404,7 @@ int main(int argc, char** argv) {
     return 1;
   }
   const std::string map_filename = vm["map-filename"].as<std::string>();
+  const std::string image_directory = vm["image-directory"].as<std::string>();
   const std::string config_path = vm["config-path"].as<std::string>();
 
   // Only pass program name to free flyer so that boost command line options
@@ -435,36 +415,25 @@ int main(int argc, char** argv) {
   const std::string world = "iss";
   lc::SetEnvironmentConfigs(config_path, world, robot_config_file);
 
-  // If the user selected no steps ... they selected all steps
-  // TODO(rsoussan): implement this^ use utils function to detect nothing enabled?
-
-  // Initialize map with image files if provided or load from disk otherwise
+  // TODO(rsoussan): Make sure map filename doesn't already exist!!
+  // TODO(rsoussan): Implement this!
+  // TODO(rsoussan): make sure image directory exists!
+  const std::vector<std::string> images = Images(image_directory);
   // TODO(rsoussan): Load params!!!!
-  SparseMapping::SparseMap map = !image_directory.empty() ? SparseMapping::SparseMap(image_directory, params) : SparseMapping::SparseMap(map_filename); 
+  SparseMapping::SparseMap map(images, params);
 
-  if (detect_features) {
     LogInfo("Detecting Features...");
     map.DetectFeatures();
-    if (save_map_in_stages) map.Save(map_filename + ".detect.map");
-  }
-  if (match_features) {
     LogInfo("Matching Features...");
     // TODO(rsoussan): what are these flags? how are they used?
   sparse_mapping::MatchFeatures(sparse_mapping::EssentialFile(FLAGS_output_map),
                                 sparse_mapping::MatchesFile(FLAGS_output_map), &map);
-    if (save_map_in_stages) map.Save(map_filename + ".match.map");
-  }
-
-  if (build_feature_tracks) {
     LogInfo("Building feature tracks....");
   // TODO(rsoussan): what is this??
   bool rm_invalid_xyz = false;  // we don't have valid cameras, so can't rm xyz
   sparse_mapping::BuildTracks(rm_invalid_xyz,
                               sparse_mapping::MatchesFile(FLAGS_output_map),
                               &map);
-    if (save_map_in_stages) map.Save(map_filename + ".track.map");
-  }
-
   map.Save(map_filename);
 
 /*  if (FLAGS_incremental_ba) {
@@ -483,6 +452,8 @@ int main(int argc, char** argv) {
     VocabDB();
   }
 
+
+  // TODO(rsoussan): Move the following functions to seperate tools (expect for prune map)?
   if (FLAGS_registration || FLAGS_verification) {
     std::vector<std::string> data_files;
     for (int arg = 1; arg < argc; arg++) {
