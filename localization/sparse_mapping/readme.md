@@ -16,4 +16,7 @@ Removes successive images with little relative movement.
 ## `make_surf_map`
 Creates a surf map for a provided bagfile.
 
+## `make_surf_maps`
+Creates surf maps for a set of  bagfiles in parallel.
+
 \subpage docs/map_creation
