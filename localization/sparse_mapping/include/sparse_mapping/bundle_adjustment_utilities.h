@@ -106,18 +106,7 @@ namespace sparse_mapping {
   void PrintTrackStats(std::vector<std::map<int, int> >const& pid_to_cid_fid,
                        std::string const& step);
 
-  void BuildMapFindEssentialAndInliers(const Eigen::Matrix2Xd & keypoints1,
-                                       const Eigen::Matrix2Xd & keypoints2,
-                                       const std::vector<cv::DMatch> & matches,
-                                       camera::CameraParameters const& camera_params,
-                                       bool compute_inliers_only,
-                                       size_t cam_a_idx, size_t cam_b_idx,
-                                       std::mutex * match_mutex,
-                                       CIDPairAffineMap * relative_b_t_a,
-                                       std::vector<cv::DMatch> * inlier_matches,
-                                       bool compute_rays_angle,
-                                       double * rays_angle);
-/**
+ /**
  * Perform bundle adjustment.
  *
  * cid_to_cam_t_global is the camera transforms

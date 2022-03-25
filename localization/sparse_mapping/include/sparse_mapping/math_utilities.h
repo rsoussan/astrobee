@@ -123,6 +123,20 @@ bool EstimateRTFromE(Eigen::Matrix3d const& k1, Eigen::Matrix3d const& k2, Eigen
   void FindMatches(const cv::Mat & img1_descriptor_map,
                    const cv::Mat & img2_descriptor_map,
                    std::vector<cv::DMatch> * matches);
+
+  void BuildMapPerformMatching(openMVG::matching::PairWiseMatches* match_map,
+                               std::vector<Eigen::Matrix2Xd> const& cid_to_keypoint_map,
+                               std::vector<cv::Mat> const& cid_to_descriptor_map,
+                               camera::CameraParameters const& camera_params, CIDPairAffineMap* relative_affines,
+                               std::mutex* match_mutex, int i /*query cid index*/, int j /*train cid index*/,
+                               bool compute_rays_angle, double* rays_angle);
+
+  void BuildMapFindEssentialAndInliers(const Eigen::Matrix2Xd& keypoints1, const Eigen::Matrix2Xd& keypoints2,
+                                       const std::vector<cv::DMatch>& matches,
+                                       camera::CameraParameters const& camera_params, bool compute_inliers_only,
+                                       size_t cam_a_idx, size_t cam_b_idx, std::mutex* match_mutex,
+                                       CIDPairAffineMap* relative_b_t_a, std::vector<cv::DMatch>* inlier_matches,
+                                       bool compute_rays_angle, double* rays_angle);
 }  // namespace sparse_mapping
 
 #endif  // SPARSE_MAPPING_MATH_UTILITIES_H_
