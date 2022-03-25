@@ -139,18 +139,18 @@ class SparseMapDatabase {
 
   const std::string& filename(const int cid) const { return cid_to_filename_[cid]; }
 
-  const cv::Mat& descriptor_map(const int cid) const { return cid_to_descriptor_map_[cid]; }
+  const cv::Mat& descriptors(const int cid) const { return cid_to_descriptor_map_[cid]; }
 
-  const Eigen::Matrix2Xd& keypoint_map(const int cid) const { return cid_to_keypoint_map_[cid]; }
+  const Eigen::Matrix2Xd& keypoints(const int cid) const { return cid_to_keypoint_map_[cid]; }
 
   int num_points() const { return pid_to_xyz_.size(); }
 
   int num_features(const int cid) const { return cid_to_keypoint_map_[cid].cols(); }
 
  protected:
-  cv::Mat& descriptor_map(const int cid) { return cid_to_descriptor_map_[cid]; }
+  cv::Mat& descriptors(const int cid) { return cid_to_descriptor_map_[cid]; }
 
-  Eigen::Matrix2Xd& keypoint_map(const int cid) { return cid_to_keypoint_map_[cid]; }
+  Eigen::Matrix2Xd& keypoints(const int cid) { return cid_to_keypoint_map_[cid]; }
 
   // TODO(rsoussan): These should be private
   // stored in map file

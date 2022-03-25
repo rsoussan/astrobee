@@ -36,6 +36,8 @@ struct SparseMapParams {
   bool histogram_equalization;
   int max_db_query_image_match_candidates;
   int max_sequential_image_match_candidates;
+  int max_num_image_pair_feature_matches;
+  int min_num_inliers_for_valid_match;
 };
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_SPARSE_MAP_PARAMS_H_

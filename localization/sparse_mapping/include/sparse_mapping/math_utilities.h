@@ -124,19 +124,15 @@ bool EstimateRTFromE(Eigen::Matrix3d const& k1, Eigen::Matrix3d const& k2, Eigen
                    const cv::Mat & img2_descriptor_map,
                    std::vector<cv::DMatch> * matches);
 
-  void BuildMapPerformMatching(openMVG::matching::PairWiseMatches* match_map,
-                               std::vector<Eigen::Matrix2Xd> const& cid_to_keypoint_map,
-                               std::vector<cv::Mat> const& cid_to_descriptor_map,
-                               camera::CameraParameters const& camera_params, CIDPairAffineMap* relative_affines,
-                               std::mutex* match_mutex, int i /*query cid index*/, int j /*train cid index*/,
-                               bool compute_rays_angle, double* rays_angle);
+  boost::optional<Eigen::Affine3d> MatchImages(const Eigen::Matrix2Xd& keypoints_a, const Eigen::Matrix2Xd& keypoints_b,
+                                               const cv::Mat& descriptors_a, const cv::Mat& descriptors_b,
+                                               const camera::CameraParameters& camera_params, const int max_num_matches,
+                                               const int min_num_inliers_for_valid_match,
+                                               std::vector<cv::DMatch>& inlier_matches);
 
-  void BuildMapFindEssentialAndInliers(const Eigen::Matrix2Xd& keypoints1, const Eigen::Matrix2Xd& keypoints2,
-                                       const std::vector<cv::DMatch>& matches,
-                                       camera::CameraParameters const& camera_params, bool compute_inliers_only,
-                                       size_t cam_a_idx, size_t cam_b_idx, std::mutex* match_mutex,
-                                       CIDPairAffineMap* relative_b_t_a, std::vector<cv::DMatch>* inlier_matches,
-                                       bool compute_rays_angle, double* rays_angle);
+  boost::optional<Eigen::Affine3d> EstimateRelativeAffine3D(
+    const Eigen::Matrix2Xd& keypoints_a, const Eigen::Matrix2Xd& keypoints_b, const std::vector<cv::DMatch>& matches,
+    const camera::CameraParameters& camera_params, const int max_num_matches, std::vector<cv::DMatch>& inlier_matches);
 }  // namespace sparse_mapping
 
 #endif  // SPARSE_MAPPING_MATH_UTILITIES_H_

@@ -46,8 +46,8 @@ void SparseMap::DetectFeatures() {
     ff_common::PrintProgressBar(stdout, static_cast<float>(cid) / static_cast<float>(num_cameras - 1));
     pool.AddTask(&SparseMap::DetectFeaturesFromFile, this,
                  std::cref(filename(cid)),
-                 std::ref(descriptor_map(cid)),
-                 std::ref(keypoint_map(cid)));
+                 std::ref(descriptors(cid)),
+                 std::ref(keypoints(cid)));
   }
   pool.Join();
 
@@ -95,29 +95,21 @@ void SparseMap::MatchFeatures(const bool remove_invalid_traingulated_points) {
   for (int cid = 0; cid < num_cameras(); ++cid) {
     ff_common::PrintProgressBar(stdout, static_cast<float>(cid)
                              / static_cast <float>(num_features() - 1));
-
     // Find sequential matches
     for (int sequential_cid = cid + 1;
          sequential_cid < num_cameras() && cid - sequential_cid <= params_.max_sequential_image_match_candidates;
          ++sequential_cid) {
-      bool compute_rays_angle = false;
-      double rays_angle;
-      thread_pool.AddTask(&sparse_mapping::BuildMapPerformMatching, &match_map, s->cid_to_keypoint_map_,
-                          s->cid_to_descriptor_map_, std::cref(s->camera_params_), &relative_affines, &match_mutex, cid,
-                          indices[j], compute_rays_angle, &rays_angle);
+      thread_pool.AddTask(&sparse_map::MatchImages, this, cid, candidate_cid, std::ref(relative_affines),
+                          std::ref(match_map), std::ref(match_mutex));
     }
-
-  // Then find other matches
+    // Find other matches
     const auto db_match_candidate_cids =
-      image_database().Query(descriptor_map(cid), params_.max_db_query_image_match_candidates);
+      image_database().Query(descriptors(cid), params_.max_db_query_image_match_candidates);
     for (const auto candidate_cid : db_match_candidate_cids) {
       // Don't check candidate cids that were already checked as sequential candidates
       if (std::abs(candidate_cid - cid) <= params_.max_sequential_image_match_candidates) continue;
-      bool compute_rays_angle = false;
-      double rays_angle;
-      thread_pool.AddTask(&sparse_mapping::BuildMapPerformMatching, &match_map, s->cid_to_keypoint_map_,
-                          s->cid_to_descriptor_map_, std::cref(s->camera_params_), &relative_affines, &match_mutex, cid,
-                          indices[j], compute_rays_angle, &rays_angle);
+      thread_pool.AddTask(&sparse_map::MatchImages, this, cid, candidate_cid, std::ref(relative_affines),
+                          std::ref(match_map), std::ref(match_mutex));
     }
   }
   thread_pool.Join();
@@ -175,6 +167,26 @@ void SparseMap::MatchFeatures(const bool remove_invalid_traingulated_points) {
                               &(s->pid_to_cid_fid_),
                               &(s->pid_to_xyz_),
                               &(s->cid_fid_to_pid_));
+}
+
+void MatchImages(const int cid_a, const int cid_b, sparse_mapping::CIDPairAffineMap& relative_affines,
+                 openMVG::matching::PairWiseMatches& match_map, std::mutex& match_mutex) const {
+  std::vector<cv::DMatch> inlier_matches;
+  const auto relative_pose =
+    MatchImages(keypoints(cid_a), keypoints(cid_b), descriptors(cid_a), descriptors(cid_b), params_.camera,
+                params_.max_num_image_pair_feature_matches, params_.min_num_inliers_for_valid_match, inlier_matches);
+  if (!relative_pose) {
+    LOG(DEBUG) << "Failed to match cid " << cid_a << " and cid " << cid_b;
+    return;
+  }
+
+  std::vector<openMVG::matching::IndMatch> mvg_matches;
+  for (const auto& match : inlier_matches)
+    mvg_matches.push_back(openMVG::matching::IndMatch(match.queryIdx, match.trainIdx));
+  match_mutex->lock();
+  match_map[std::make_pair(cid_a, cid_b)] = mvg_matches;
+  relative_affines.insert({std::make_pair(cid_a, cid_b), *relative_pose});
+  match_mutex->unlock();
 }
 
 // delete all the features that do not match to a landmark but are still around!

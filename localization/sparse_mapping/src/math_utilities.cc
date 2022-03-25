@@ -156,7 +156,7 @@ void Triangulate(bool rm_invalid_xyz, double focal_length,
   }
 
   // Must always keep the book-keeping correct
-  sparse_mapping::InitializeCidFidToPid(cid_to_cam_t_global.size(),
+  InitializeCidFidToPid(cid_to_cam_t_global.size(),
                                         *pid_to_cid_fid,
                                         cid_fid_to_pid);
 }
@@ -701,140 +701,89 @@ bool EstimateRTFromE(Eigen::Matrix3d const& k1, Eigen::Matrix3d const& k2,
     }
   }
 
-void BuildMapPerformMatching(openMVG::matching::PairWiseMatches * match_map,
-                             std::vector<Eigen::Matrix2Xd > const& cid_to_keypoint_map,
-                             std::vector<cv::Mat> const& cid_to_descriptor_map,
-                             camera::CameraParameters const& camera_params,
-                             CIDPairAffineMap * relative_affines,
-                             std::mutex * match_mutex,
-                             int i /*query cid index*/, int j /*train cid index*/,
-                             bool compute_rays_angle, double * rays_angle) {
-  Eigen::Matrix2Xd const& keypoints1 = cid_to_keypoint_map[i];
-  Eigen::Matrix2Xd const& keypoints2 = cid_to_keypoint_map[j];
+  boost::optional<Eigen::Affine3d> MatchImages(const Eigen::Matrix2Xd& keypoints_a, const Eigen::Matrix2Xd& keypoints_b,
+                                               const cv::Mat& descriptors_a, const cv::Mat& descriptors_b,
+                                               const camera::CameraParameters& camera_params, const int max_num_matches,
+                                               const int min_num_inliers_for_valid_match,
+                                               std::vector<cv::DMatch>& inlier_matches) {
+    std::vector<cv::DMatch> matches;
+    FindMatches(descriptors_a, descriptors_b, &matches);
 
-  std::vector<cv::DMatch> matches, inlier_matches;
-  FindMatches(cid_to_descriptor_map[i],
-                              cid_to_descriptor_map[j],
-                              &matches);
+    if (static_cast<int>(matches.size()) < min_num_inliers_for_valid_match) {
+      LOG(DEBUG) << "Failed to find enough matches " << matches.size();
+      return boost::none;
+    }
 
-  // Do a check and verify that we meet our minimum before the
-  // essential matrix fitting.
-  if (static_cast<int32_t>(matches.size()) < FLAGS_min_valid) {
-    if (!FLAGS_silent_matching) LOG(INFO) << i << " " << j << " | Failed to find enough matches " << matches.size();
-    return;
+    const auto relative_pose =
+      EstimateRelativeAffine3D(keypoints1, keypoints2, matches, camera_params, max_num_matches inlier_matches);
+
+    if (!relative_pose) return boost::none;
+
+    if (static_cast<int>(inlier_matches.size()) < min_num_inliers_for_valid_match) {
+      LOG(DEBUG) << "Failed to find enough inlier matches: " << inlier_matches.size();
+    return boost::none;
   }
 
-  bool compute_inliers_only = false;
-  BuildMapFindEssentialAndInliers(keypoints1, keypoints2, matches,
-                                  camera_params, compute_inliers_only,
-                                  i, j,
-                                  match_mutex,
-                                  relative_affines,
-                                  &inlier_matches,
-                                  compute_rays_angle, rays_angle);
-
-  if (static_cast<int32_t>(inlier_matches.size()) < FLAGS_min_valid) {
-    if (!FLAGS_silent_matching)
-      LOG(INFO) << i << " " << j << " | Failed to find enough inlier matches "
-                << inlier_matches.size();
-    return;
+  return relative_pose;
   }
 
-  if (!FLAGS_silent_matching) LOG(INFO) << i << " " << j << " success " << inlier_matches.size();
-
-  std::vector<openMVG::matching::IndMatch> mvg_matches;
-  for (std::vector<cv::DMatch>::value_type const& match : inlier_matches)
-    mvg_matches.push_back(openMVG::matching::IndMatch(match.queryIdx, match.trainIdx));
-  match_mutex->lock();
-  (*match_map)[ std::make_pair(i, j) ] = mvg_matches;
-  match_mutex->unlock();
-}
-
-// Filter the matches by a geometric constraint. Compute the essential matrix.
-void BuildMapFindEssentialAndInliers(Eigen::Matrix2Xd const& keypoints1,
-                                     Eigen::Matrix2Xd const& keypoints2,
-                                     std::vector<cv::DMatch> const& matches,
-                                     camera::CameraParameters const& camera_params,
-                                     bool compute_inliers_only,
-                                     size_t cam_a_idx, size_t cam_b_idx,
-                                     std::mutex * match_mutex,
-                                     CIDPairAffineMap * relative_affines,
-                                     std::vector<cv::DMatch> * inlier_matches,
-                                     bool compute_rays_angle,
-                                     double * rays_angle) {
-  // Initialize the outputs
+// TODO(rsoussan): Clean this up
+boost::optional<Eigen::Affine3d> EstimateRelativeAffine3D(const Eigen::Matrix2Xd& keypoints_a,
+                                     const Eigen::Matrix2Xd& keypoints_b,
+                                     const std::vector<cv::DMatch>& matches,
+                                     const camera::CameraParameters& camera_params,
+                                     const int max_num_matches,
+                                     std::vector<cv::DMatch>& inlier_matches) {
   inlier_matches->clear();
-  if (compute_rays_angle)
-    *rays_angle = 0.0;
 
-  int pt_count = matches.size();
-  Eigen::MatrixXd observationsa(2, pt_count);
-  Eigen::MatrixXd observationsb(2, pt_count);
-  for (int i = 0; i < pt_count; i++) {
-    observationsa.col(i) = keypoints1.col(matches[i].queryIdx);
-    observationsb.col(i) = keypoints2.col(matches[i].trainIdx);
+  const int num_matches = matches.size();
+  Eigen::MatrixXd matching_keypoints_a(2, num_matches);
+  Eigen::MatrixXd matching_keypoints_b(2, num_matches);
+  for (int i = 0; i < num_matches; ++i) {
+    matching_keypoints_a.col(i) = keypoints_a.col(matches[i].queryIdx);
+    matching_keypoints_b.col(i) = keypoints_b.col(matches[i].trainIdx);
   }
 
-  std::pair<size_t, size_t> image_size(camera_params.GetUndistortedSize()[0],
+  const std::pair<size_t, size_t> image_size(camera_params.GetUndistortedSize()[0],
                                        camera_params.GetUndistortedSize()[1]);
-  Eigen::Matrix3d k = camera_params.GetIntrinsicMatrix<camera::UNDISTORTED_C>();
+  const Eigen::Matrix3d intrinsics = camera_params.GetIntrinsicMatrix<camera::UNDISTORTED_C>();
 
-  Eigen::Matrix3d e;
-  // Calculate the essential matrix
+  Eigen::Matrix3d essential_matrix;
   std::vector<size_t> vec_inliers;
   double error_max = std::numeric_limits<double>::max();
   double max_expected_error = 2.5;
-
-  if (!RobustEssential(k, k, observationsa, observationsb,
-                                       &e, &vec_inliers,
+  if (!RobustEssential(intrinsics, intrinsics, matching_keypoints_a, matching_keypoints_b,
+                                       &essential_matrix, &vec_inliers,
                                        image_size, image_size,
                                        &error_max,
                                        max_expected_error)) {
-    VLOG(2) << cam_a_idx << " " << cam_b_idx
-            << " | Estimation of essential matrix failed!\n";
-    return;
+    LOG(DEBUG) << "Estimation of essential matrix failed!\n";
+    return boost::none;
   }
 
   if (vec_inliers.size() < static_cast<size_t>(FLAGS_min_valid)) {
-    VLOG(2) << cam_a_idx << " " << cam_b_idx
-            << " | Failed to get enough inliers " << vec_inliers.size();
-    return;
+    LOG(DEBUG) << "Failed to get enough inliers " << vec_inliers.size();
+    return boost::none;
   }
 
-  if (compute_inliers_only) {
-    // We only need to know which interest points are inliers and not the
-    // R and T matrices.
-    int num_inliers = vec_inliers.size();
-    inlier_matches->clear();
-    inlier_matches->reserve(num_inliers);
-    std::vector<Eigen::Matrix2Xd> observations2(2, Eigen::Matrix2Xd(2, num_inliers));
-    for (int i = 0; i < num_inliers; i++) {
-      inlier_matches->push_back(matches[vec_inliers[i]]);
-    }
-    return;
-  }
-
-  // Estimate the best possible R & T from the found Essential Matrix
   Eigen::Matrix3d r;
   Eigen::Vector3d t;
-  if (!EstimateRTFromE(k, k, observationsa, observationsb,
-                                       e, vec_inliers,
+  if (!EstimateRTFromE(intrinsics, intrinsics, matching_keypoints_a, matching_keypoints_b,
+                                       essential_matrix, vec_inliers,
                                        &r, &t)) {
-    VLOG(2) << cam_a_idx << " " << cam_b_idx
-            << " | Failed to extract RT from E";
-    return;
+    LOG(DEBUG)  << "Failed to extract RT from E";
+    return boost::none;
   }
 
-  VLOG(2) << cam_a_idx << " " << cam_b_idx << " | Inliers from E: "
-          << vec_inliers.size() << " / " << observationsa.cols();
+  LOG(DEBUG) << "Inliers from E: " << vec_inliers.size() << " / " << matching_keypoints_a.cols();
 
-  // Get the observations corresponding to inliers
+  // Get the matching_keypoints corresponding to inliers
   // TODO(ZACK): We could reuse everything.
   int num_inliers = vec_inliers.size();
-  std::vector<Eigen::Matrix2Xd> observations2(2, Eigen::Matrix2Xd(2, num_inliers));
+  std::vector<Eigen::Matrix2Xd> matching_keypoints_2(2, Eigen::Matrix2Xd(2, num_inliers));
   for (int i = 0; i < num_inliers; i++) {
-    observations2[0].col(i) = observationsa.col(vec_inliers[i]);
-    observations2[1].col(i) = observationsb.col(vec_inliers[i]);
+    matching_keypoints_2[0].col(i) = matching_keypoints_a.col(vec_inliers[i]);
+    matching_keypoints_2[1].col(i) = matching_keypoints_b.col(vec_inliers[i]);
   }
 
   // Refine the found T and R via bundle adjustment
@@ -848,15 +797,15 @@ void BuildMapFindEssentialAndInliers(Eigen::Matrix2Xd const& keypoints1,
   cameras[0].setIdentity();
   cameras[1].linear() = r;
   cameras[1].translation() = t;
-  Eigen::Matrix3Xd pid_to_xyz(3, observations2[0].cols());
+  Eigen::Matrix3Xd pid_to_xyz(3, matching_keypoints_2[0].cols());
   double error;
   int num_pts_behind_camera = 0;
-  for (ptrdiff_t i = 0; i < observations2[0].cols(); i++) {
+  for (ptrdiff_t i = 0; i < matching_keypoints_2[0].cols(); i++) {
     pid_to_xyz.col(i) =
-      sparse_mapping::TriangulatePoint
-      (Eigen::Vector3d(observations2[0](0, i), observations2[0](1, i),
+      TriangulatePoint
+      (Eigen::Vector3d(matching_keypoints_2[0](0, i), matching_keypoints_2[0](1, i),
                        camera_params.GetFocalLength()),
-       Eigen::Vector3d(observations2[1](0, i), observations2[1](1, i),
+       Eigen::Vector3d(matching_keypoints_2[1](0, i), matching_keypoints_2[1](1, i),
                        camera_params.GetFocalLength()),
        r, t, &error);
     Eigen::Vector3d P = pid_to_xyz.col(i);
@@ -865,107 +814,61 @@ void BuildMapFindEssentialAndInliers(Eigen::Matrix2Xd const& keypoints1,
       num_pts_behind_camera++;
     }
   }
-  VLOG(2) << "Pair " << cam_a_idx  << ' ' << cam_b_idx
-          << ": number of points behind cameras: "
-          << num_pts_behind_camera << "/" <<  observations2[0].cols()
-          << " (" << round((100.0*num_pts_behind_camera) / observations2[0].cols())
-          << "%)";
+  LOG(DEBUG) << "Pair "
+             << ": number of points behind cameras: " << num_pts_behind_camera << "/" << matching_keypoints_2[0].cols()
+             << " (" << round((100.0 * num_pts_behind_camera) / matching_keypoints_2[0].cols()) << "%)";
 
-  sparse_mapping::BundleAdjustSmallSet(observations2, camera_params.GetFocalLength(), &cameras,
+  BundleAdjustSmallSet(matching_keypoints_2, camera_params.GetFocalLength(), &cameras,
                                        &pid_to_xyz, new ceres::CauchyLoss(0.5), options,
                                        &summary);
 
   if (!summary.IsSolutionUsable()) {
-    LOG(ERROR) << cam_a_idx << " " << cam_b_idx << " | Failed to refine RT with bundle adjustment";
-    return;
+    LOG(ERROR) << " Failed to refine RT with bundle adjustment";
+    return boost::none;
   }
-  VLOG(2) << summary.BriefReport();
-
-  if (compute_rays_angle) {
-    // Compute the median angle between rays.
-    std::vector<double> angles;
-    Eigen::Vector3d ctr0 = cameras[0].inverse().translation();
-    Eigen::Vector3d ctr1 = cameras[1].inverse().translation();
-
-    for (ptrdiff_t i = 0; i < observations2[0].cols(); i++) {
-      Eigen::Vector3d P =
-        sparse_mapping::TriangulatePoint
-        (Eigen::Vector3d(observations2[0](0, i), observations2[0](1, i),
-                         camera_params.GetFocalLength()),
-         Eigen::Vector3d(observations2[1](0, i), observations2[1](1, i),
-                         camera_params.GetFocalLength()),
-         cameras[1].linear(), cameras[1].translation(), &error);
-
-      Eigen::Vector3d X0 = ctr0 - P;
-      Eigen::Vector3d X1 = ctr1 - P;
-      double l0 = X0.norm(), l1 = X1.norm();
-      double angle;
-      // TODO(oalexan1): Integrate this code with the other angle computation
-      // code.
-      if (l0 == 0 || l1 == 0) {
-        angle = 0.0;
-      } else {
-        double dot = X0.dot(X1)/l0/l1;
-        dot = std::min(dot, 1.0);
-        dot = std::max(-1.0, dot);
-        angle = (180.0/M_PI)*acos(dot);
-      }
-      angles.push_back(angle);
-    }
-    // Median rays angle
-    if (angles.size() >= static_cast<size_t>(2*FLAGS_min_valid))
-      *rays_angle = angles[angles.size()/2];
-  }
+  LOG(DEBUG) << summary.BriefReport();
 
   // Give the solution
   Eigen::Affine3d result = cameras[1] * cameras[0].inverse();
   result.translation().normalize();
 
-  // Must use a lock to protect this map shared among the threads
-  CHECK(match_mutex) << "Forgot to provide the mutex lock.";
-  CHECK(relative_affines) << "Forgot to provide relative_affines argument.";
-  match_mutex->lock();
-  relative_affines->insert(std::make_pair(std::make_pair(cam_a_idx, cam_b_idx),
-                                        result));
-  match_mutex->unlock();
-
-  cv::Mat valid = cv::Mat::zeros(pt_count, 1, CV_8UC1);
-  for (size_t i = 0; i < vec_inliers.size(); i++) {
+  // TODO(rsoussan): Clean this section up!
+  // Return valid inliers, limit number of inliers by provided max
+  cv::Mat valid = cv::Mat::zeros(num_matches, 1, CV_8UC1);
+  for (int i = 0; i < static_cast<int>(vec_inliers.size()); ++i) {
     valid.at<uint8_t>(vec_inliers[i], 0) = 1;
   }
 
-  // Count the number of inliers
-  int32_t num_of_inliers =
+  // Filter inliers by distance if neccessary
+  int num_inliers =
     std::accumulate(valid.begin<uint8_t>(), valid.end<uint8_t>(), 0);
-
-  // Keep about FLAGS_max_pairwise_matches inliers. This is to speed
-  // up map generation so that we don't have to bother with a 1000
-  // matches between consecutive images.
-  if (FLAGS_max_pairwise_matches < num_of_inliers) {
+  if (num_inliers > max_num_matches) {
     std::vector<double> dist;
-    for (size_t query_index = 0; query_index < matches.size(); query_index++) {
+    for (int query_index = 0; query_index < static_cast<int>(matches.size()); ++query_index) {
       if (valid.at<uint8_t>(query_index, 0) > 0)
         dist.push_back(matches[query_index].distance);
     }
     std::sort(dist.begin(), dist.end());
-    double max_dist = dist[FLAGS_max_pairwise_matches - 1];
-    for (size_t query_index = 0; query_index < matches.size(); query_index++) {
+    const double max_dist = dist[max_num_matches - 1];
+    for (int query_index = 0; query_index < static_cast<int>(matches.size()); ++query_index) {
       if (valid.at<uint8_t>(query_index, 0) > 0 &&
           matches[query_index].distance > max_dist) {
         valid.at<uint8_t>(query_index, 0) = 0;
       }
     }
-    num_of_inliers
+    num_inliers
       = std::accumulate(valid.begin<uint8_t>(), valid.end<uint8_t>(), 0);
   }
 
   // Copy the inliers only
   inlier_matches->clear();
   inlier_matches->reserve(num_of_inliers);
-  for (size_t m = 0; m < matches.size(); m++) {
-    if (valid.at<uint8_t>(m, 0) > 0) {
-      inlier_matches->push_back(matches[m]);
+  for (int i = 0; i < static_cast<int>(matches.size()); ++i) {
+    if (valid.at<uint8_t>(i, 0) > 0) {
+      inlier_matches->push_back(matches[i]);
     }
   }
+
+  return result;
 }
 }  // namespace sparse_mapping

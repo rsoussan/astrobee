@@ -103,6 +103,9 @@ class SparseMap : public SparseMapDatabase {
   void Load(const std::string& protobuf_file, bool localization = false);
 
  private:
+  void MatchImages(const int cid_a, const int cid_b, sparse_mapping::CIDPairAffineMap& relative_affines,
+                   openMVG::matching::PairWiseMatches& match_map, std::mutex& match_mutex) const;
+
   std::unique_ptr<ImageDatabase> image_database_;
   SparseMapParams params_;
 
