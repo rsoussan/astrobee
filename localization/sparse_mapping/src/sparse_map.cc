@@ -51,7 +51,7 @@ void SparseMap::DetectFeatures() {
   }
   pool.Join();
 
-  // TODO(rsoussan): Is this necessary? Initializes new pid for every feature detected??
+  // TODO(rsoussan): Remove this? Is this necessary? Initializes new pid for every feature detected??
   // Create temporary pid_to_cid_fid_, it will contain all the raw
   // features we found so far, without matches (matching and outlier
   // removal will later reduce the number of features, so this is
@@ -86,83 +86,38 @@ void SparseMap::DetectFeaturesFromFile(const std::string& filename,
 }
 
 void SparseMap::MatchFeatures(const bool remove_invalid_traingulated_points) {
+  // TODO(rsoussan): Make struct for this?
   sparse_mapping::CIDPairAffineMap relative_affines;
 
-  // Iterate through the cid pairings
   ff_common::ThreadPool thread_pool;
   std::mutex match_mutex;
-
   openMVG::matching::PairWiseMatches match_map;
-  for (size_t cid = 0; cid < s->cid_to_keypoint_map_.size(); cid++) {
-    // Query the db for similar images
+  for (int cid = 0; cid < num_cameras(); ++cid) {
     ff_common::PrintProgressBar(stdout, static_cast<float>(cid)
-                             / static_cast <float>(s->cid_to_keypoint_map_.size() - 1));
-    std::vector<int> indices, queried_indices;
-    queried_indices = s->image_database().Query(s->cid_to_descriptor_map_[cid], s->num_similar_);
+                             / static_cast <float>(num_features() - 1));
 
-    if (!queried_indices.empty()) {
-      // always include the next three images
-      if (cid + 1 < s->cid_to_filename_.size())
-        indices.push_back(static_cast<int>(cid) + 1);
-      if (cid + 2 < s->cid_to_filename_.size())
-        indices.push_back(static_cast<int>(cid) + 2);
-      if (cid + 3 < s->cid_to_filename_.size())
-        indices.push_back(static_cast<int>(cid) + 3);
-      // Managed to find images similar to the current one in the
-      // database
-      for (size_t j = 0; j < queried_indices.size(); j++) {
-        if (static_cast<int>(cid) + 3 < queried_indices[j]) {
-          // Keep only subsequent images
-          indices.push_back(queried_indices[j]);
-        }
-      }
-      std::sort(indices.begin(), indices.end());
-
-      // Print what is going on. May need to remove this later.
-      if (!FLAGS_silent_matching) LOG(INFO) << "Matching image " << s->cid_to_filename_[cid] << " with: ";
-      for (size_t j = 0; j < indices.size(); j++) {
-        // Keep only subsequent images
-        if (!FLAGS_silent_matching) LOG(INFO) << s->cid_to_filename_[indices[j]];
-      }
-      if (!FLAGS_silent_matching) LOG(INFO) << "\n\n";
-    } else {
-      // No matches in the db, or no db was provided.
-      if ( s->cid_to_cid_.find(cid) != s->cid_to_cid_.end() ) {
-        // See if perhaps we know which images to match to from a
-        // previous map
-        std::set<int> & matches = s->cid_to_cid_.find(cid)->second;
-        for (auto it = matches.begin(); it != matches.end() ; it++) {
-          indices.push_back(*it);
-        }
-      } else {
-        // No way out, try matching brute force to subsequent images
-        int subsequent = FLAGS_num_subsequent_images;
-        if (FLAGS_match_all_rate > 0 && cid % FLAGS_match_all_rate == 0)
-          subsequent = static_cast<int>(s->cid_to_keypoint_map_.size());
-        int end = std::min(static_cast<int>(cid) + subsequent + 1,
-                           static_cast<int>(s->cid_to_keypoint_map_.size()));
-        for (int j = cid + 1; j < end; j++) {
-          // Use subsequent images
-          indices.push_back(j);
-        }
-      }
+    // Find sequential matches
+    for (int sequential_cid = cid + 1;
+         sequential_cid < num_cameras() && cid - sequential_cid <= params_.max_sequential_image_match_candidates;
+         ++sequential_cid) {
+      bool compute_rays_angle = false;
+      double rays_angle;
+      thread_pool.AddTask(&sparse_mapping::BuildMapPerformMatching, &match_map, s->cid_to_keypoint_map_,
+                          s->cid_to_descriptor_map_, std::cref(s->camera_params_), &relative_affines, &match_mutex, cid,
+                          indices[j], compute_rays_angle, &rays_angle);
     }
 
-    bool compute_rays_angle = false;
-    double rays_angle;
-    for (size_t j = 0; j < indices.size(); j++) {
-      // Need the check below for loop closing to pass in unit tests
-      if (s->cid_to_filename_[cid] != s->cid_to_filename_[indices[j]]) {
-        thread_pool.AddTask(&sparse_mapping::BuildMapPerformMatching,
-                            &match_map,
-                            s->cid_to_keypoint_map_,
-                            s->cid_to_descriptor_map_,
-                            std::cref(s->camera_params_),
-                            &relative_affines,
-                            &match_mutex,
-                            cid, indices[j],
-                            compute_rays_angle, &rays_angle);
-      }
+  // Then find other matches
+    const auto db_match_candidate_cids =
+      image_database().Query(descriptor_map(cid), params_.max_db_query_image_match_candidates);
+    for (const auto candidate_cid : db_match_candidate_cids) {
+      // Don't check candidate cids that were already checked as sequential candidates
+      if (std::abs(candidate_cid - cid) <= params_.max_sequential_image_match_candidates) continue;
+      bool compute_rays_angle = false;
+      double rays_angle;
+      thread_pool.AddTask(&sparse_mapping::BuildMapPerformMatching, &match_map, s->cid_to_keypoint_map_,
+                          s->cid_to_descriptor_map_, std::cref(s->camera_params_), &relative_affines, &match_mutex, cid,
+                          indices[j], compute_rays_angle, &rays_angle);
     }
   }
   thread_pool.Join();
@@ -198,6 +153,7 @@ void SparseMap::MatchFeatures(const bool remove_invalid_traingulated_points) {
   if (map_tracks.empty())
     LOG(FATAL) << "No tracks left after filtering. Perhaps images are too dis-similar?\n";
 
+  // TODO(rsoussan): Make ths a function in sparse_map_database, test!
   size_t num_elems = map_tracks.size();
   // Populate back the filtered tracks.
   (s->pid_to_cid_fid_).clear();
