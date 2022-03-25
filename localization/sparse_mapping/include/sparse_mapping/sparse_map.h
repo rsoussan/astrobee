@@ -73,8 +73,8 @@ class SparseMap : public SparseMapDatabase {
   void SetCameraParameters(const camera::CameraParameters& camera_params) {params_.camera = camera_params;}
 
   void DetectFeaturesFromFile(const std::string& filename,
-                              cv::Mat* descriptors,
-                              Eigen::Matrix2Xd* keypoints);
+                              cv::Mat& descriptors,
+                              Eigen::Matrix2Xd& keypoints);
 
   void MatchFeatures(const bool remove_invalid_traingulated_points);
 

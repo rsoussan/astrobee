@@ -37,51 +37,42 @@ SparseMap::SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
                      const std::vector<std::string>& cid_to_filename, const SparseMapParams& params)
     : params_(params), cid_to_filename_(cid_to_filename), cid_to_cam_T_global_(cid_to_cam_T_global) {
   ResizeFeatureMaps();
-  /*if (cid_to_filename.size() != cid_to_cam_T_global.size())
-    LOG(FATAL) << "Expecting as many images as cameras";
-  for (int cid = 0; cid < static_cast<int>(cid_to_cam_T_global.size()); ++cid) {
-    // TODO(rsoussan): Is this check necessary?
-    if (cid_to_cam_T_global[cid].linear() == Eigen::Matrix3d::Zero())
-      continue;
-    cid_to_cam_T_global_.emplace_back(cid_to_cam_T_global[cid]);
-    cid_to_filename_.emplace_back(cid_to_filename[cid]);
-  }*/
 }
 
 void SparseMap::DetectFeatures() {
   ff_common::ThreadPool pool;
-  size_t num_files = cid_to_filename_.size();
-  for (size_t cid = 0; cid < num_files; cid++) {
-    ff_common::PrintProgressBar(stdout, static_cast<float>(cid) / static_cast<float>(num_files - 1));
-
+  const int num_cameras = num_cameras();
+  for (int cid = 0; cid < num_cameras; ++cid) {
+    ff_common::PrintProgressBar(stdout, static_cast<float>(cid) / static_cast<float>(num_cameras - 1));
     pool.AddTask(&SparseMap::DetectFeaturesFromFile, this,
-                 std::ref(cid_to_filename_[cid]),
-                 &cid_to_descriptor_map_[cid],
-                 &cid_to_keypoint_map_[cid]);
+                 std::cref(filename(cid)),
+                 std::ref(descriptor_map(cid)),
+                 std::ref(keypoint_map(cid)));
   }
   pool.Join();
 
+  // TODO(rsoussan): Is this necessary? Initializes new pid for every feature detected??
   // Create temporary pid_to_cid_fid_, it will contain all the raw
   // features we found so far, without matches (matching and outlier
   // removal will later reduce the number of features, so this is
   // useful for comparison).
   pid_to_cid_fid_.clear();
-  for (size_t cid = 0; cid < cid_to_filename_.size(); cid++) {
-    for (int fid = 0; fid < cid_to_keypoint_map_[cid].cols(); fid++) {
+  for (int cid = 0; cid < num_cameras; ++cid) {
+    for (int fid = 0; fid < num_features(cid); ++fid) {
       std::map<int, int> cid_fid;
       cid_fid[cid] = fid;
       pid_to_cid_fid_.emplace_back(cid_fid);
     }
   }
   // Allocate space for landmarks
-  pid_to_xyz_.resize(pid_to_cid_fid_.size());
-
+  const int num_points = pid_to_cid_fid_.size();
+  pid_to_xyz_.resize(num_points);
   InitializeCidFidToPid();
 }
 
 void SparseMap::DetectFeaturesFromFile(const std::string& filename,
-                                       cv::Mat* descriptors,
-                                       Eigen::Matrix2Xd* keypoints) {
+                                       cv::Mat& descriptors,
+                                       Eigen::Matrix2Xd& keypoints) {
   const auto image = LoadImage(filename);
   if (params_.detector_name == "surf") {
     vision_common::SurfDynamicDetector surf_detector(params_.surf_detector);

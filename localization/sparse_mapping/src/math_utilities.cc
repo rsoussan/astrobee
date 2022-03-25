@@ -548,8 +548,8 @@ void PoseInterpolation(std::vector<std::string> const& images,
 
 void DetectFeatures(const cv::Mat& image, const bool histogram_equalization,
                                 vision_common::DynamicDetector& detector,
-                               cv::Mat* descriptors,
-                               Eigen::Matrix2Xd* keypoints) {
+                               cv::Mat& descriptors,
+                               Eigen::Matrix2Xd& keypoints) {
   cv::Mat hist_image;
   if (histogram_equalization) {
     cv::equalizeHist(image, hist_image);
@@ -557,14 +557,14 @@ void DetectFeatures(const cv::Mat& image, const bool histogram_equalization,
   const auto& input_image = histogram_equalization ? hist_image : image;
 
   std::vector<cv::KeyPoint> storage;
-  detector.Detect(input_image, &storage, descriptors);
+  detector.Detect(input_image, &storage, &descriptors);
 
-  keypoints->resize(2, storage.size());
+  keypoints.resize(2, storage.size());
   Eigen::Vector2d output;
   for (int i = 0; i < static_cast<int>(storage.size()); ++i) {
     camera_params_.Convert<camera::DISTORTED_C, camera::UNDISTORTED_C>
       (Eigen::Vector2d(storage[i].pt.x, storage[i].pt.y), &output);
-    keypoints->col(i) = output;
+    keypoints.col(i) = output;
   }
 }
 

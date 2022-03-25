@@ -126,7 +126,7 @@ EstimatePoseResults EstimatePose(
   const cv::Mat& image, const EstimatePoseParams& params, SparseMap& map) {
   cv::Mat descriptors;
   Eigen::Matrix2Xd keypoints;
-  DetectFeatures(image, map.params().histogram_equalization, &descriptors, &keypoints);
+  DetectFeatures(image, map.params().histogram_equalization, descriptors, keypoints);
   return EstimatePose(descriptors, keypoints, map, params);
 }
 

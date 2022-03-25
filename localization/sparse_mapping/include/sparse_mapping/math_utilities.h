@@ -101,8 +101,8 @@ namespace sparse_mapping {
 void DetectFeatures(const cv::Mat& image,
                       const bool histogram_equalization,
                       vision_common::DynamicDetector& detector,
-                      cv::Mat* descriptors,
-                      Eigen::Matrix2Xd* keypoints);
+                      cv::Mat& descriptors,
+                      Eigen::Matrix2Xd& keypoints);
 
   // Performs a robust, ransac, solving for the essential matrix
   // between interest point measurements in x1 and x2.
