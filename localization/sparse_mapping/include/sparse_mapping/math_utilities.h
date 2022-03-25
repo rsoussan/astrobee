@@ -91,13 +91,6 @@ namespace sparse_mapping {
                  std::vector<Eigen::Vector3d> * pid_to_xyz,
                  bool print_stats = true, double multiple_of_median = 3.0);
 
-  // Given a data sequence having camera pose information for
-  // a set of timestamps, interpolate those poses at the timestamps
-  // given in out_time. We assume timestamps are always in increasing values.
-  void PoseInterpolation(std::vector<std::string> const& images, std::vector<double> const& out_time,
-                         std::map<std::string, std::vector<double> > const& data,
-                         std::vector<Eigen::Affine3d>* cid_to_cam_t, std::vector<std::string>* good_images);
-
 void DetectFeatures(const cv::Mat& image,
                       const bool histogram_equalization,
                       vision_common::DynamicDetector& detector,
