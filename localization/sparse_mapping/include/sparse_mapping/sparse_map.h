@@ -76,6 +76,8 @@ class SparseMap : public SparseMapDatabase {
                               cv::Mat* descriptors,
                               Eigen::Matrix2Xd* keypoints);
 
+  void MatchFeatures(const bool remove_invalid_traingulated_points);
+
   // delete feature descriptors with no matching landmark
   void PruneMap();
 

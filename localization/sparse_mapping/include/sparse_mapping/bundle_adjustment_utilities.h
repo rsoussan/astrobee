@@ -43,19 +43,6 @@ namespace sparse_mapping {
   typedef std::array<std::pair<std::pair<int, int>, Eigen::Affine3d>, 3> CIDAffineTuple;
   typedef std::vector<CIDAffineTuple, Eigen::aligned_allocator<CIDAffineTuple> > CIDAffineTupleVec;
   /**
-   * Create the initial map by feature matching and essential affine computation.
-   **/
-  void MatchFeatures(const std::string & essential_file, const std::string & matches_file,
-                     sparse_mapping::SparseMap * s);
-
-  /**
-   * Build the tracks based on the matches
-   **/
-  void BuildTracks(bool rm_invalid_xyz,
-                   const std::string & matches_file,
-                   sparse_mapping::SparseMap * s);
-
-  /**
    * Incremental bundle adjustment.
    **/
   void IncrementalBA(std::string const& essential_file,

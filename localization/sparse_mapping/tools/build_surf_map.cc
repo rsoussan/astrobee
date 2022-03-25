@@ -422,16 +422,9 @@ int main(int argc, char** argv) {
     LogInfo("Detecting Features...");
     map.DetectFeatures();
     LogInfo("Matching Features...");
-    // TODO(rsoussan): what are these flags? how are they used?
-  // TODO(rsoussan): Add member function that does this in sparse map!! makes this call!
-  sparse_mapping::MatchFeatures(sparse_mapping::EssentialFile(FLAGS_output_map),
-                                sparse_mapping::MatchesFile(FLAGS_output_map), &map);
-    LogInfo("Building feature tracks....");
-  // TODO(rsoussan): what is this??
-  bool rm_invalid_xyz = false;  // we don't have valid cameras, so can't rm xyz
-  sparse_mapping::BuildTracks(rm_invalid_xyz,
-                              sparse_mapping::MatchesFile(FLAGS_output_map),
-                              &map);
+  // Since bundle adjustment hasn't occured yet, don't remove invalid triangulated points
+  bool remove_invalid_triangulated_points = false; 
+  map.MatchFeatures(rm_invalid_xyz);
   map.Save(map_filename);
 
 /*  if (FLAGS_incremental_ba) {
