@@ -86,12 +86,10 @@ void SparseMap::DetectFeaturesFromFile(const std::string& filename,
 }
 
 void SparseMap::MatchFeatures(const bool remove_invalid_traingulated_points) {
-  // TODO(rsoussan): Make struct for this?
-  sparse_mapping::CIDPairAffineMap relative_affines;
-
   ff_common::ThreadPool thread_pool;
   std::mutex match_mutex;
   openMVG::matching::PairWiseMatches match_map;
+  CIDPairAffineMap relative_affines;
   for (int cid = 0; cid < num_cameras(); ++cid) {
     ff_common::PrintProgressBar(stdout, static_cast<float>(cid)
                              / static_cast <float>(num_features() - 1));
@@ -114,9 +112,35 @@ void SparseMap::MatchFeatures(const bool remove_invalid_traingulated_points) {
   }
   thread_pool.Join();
 
-  LOG(INFO) << "Number of affines found:        " << relative_affines.size() << "\n";
+  LOG(INFO) << "Number of affines found: " << relative_affines.size();
 
-  // Initial cameras based on the affines (won't be used later,
+  openMVG::tracks::TracksBuilder trackBuilder;
+  trackBuilder.Build(match_map);
+  trackBuilder.Filter(params_.min_feature_track_length);
+  // Each entry is a sequence of imageId and featureIndex:
+  //  {TrackIndex => {(imageIndex, featureIndex), ... ,(imageIndex, featureIndex)}
+  openMVG::tracks::STLMAPTracks map_tracks;
+  trackBuilder.ExportToSTL(map_tracks);
+
+  if (map_tracks.empty())
+    LOG(FATAL) << "No tracks left after filtering. Perhaps images are too dis-similar?\n";
+
+  // Add tracks to database
+  const int num_tracks = map_tracks.size();
+  pid_to_cid_fid_.clear();
+  pid_to_cid_fid_.resize(num_tracks);
+  int pid = 0;
+  for (const auto& map_track : map_tracks) {
+    for (const auto& cid_fid_pair : map_tracks) {
+      const int cid = cid_fid_pair.first;
+      const int fid = cid_fid_pair.second;
+      pid_to_cid_fid_[pid][cid] = fid;
+    }
+    ++pid;
+  }
+
+  // TODO(rsoussan): Remove this?
+/* // Initial cameras based on the affines (won't be used later,
   // just for visualization purposes).
   int num_images = s->cid_to_filename_.size();
   (s->cid_to_cam_t_global_).resize(num_images);
@@ -129,34 +153,6 @@ void SparseMap::MatchFeatures(const bool remove_invalid_traingulated_points) {
       (s->cid_to_cam_t_global_)[cid] = (s->cid_to_cam_t_global_)[cid-1];  // no choice
   }
 
-  // Build tracks using the interface tracksbuilder
-  openMVG::tracks::TracksBuilder trackBuilder;
-  trackBuilder.Build(match_map);  // Build:  Efficient fusion of correspondences
-  trackBuilder.Filter();          // Filter: Remove tracks that have conflict
-  // trackBuilder.ExportToStream(std::cout);
-  openMVG::tracks::STLMAPTracks map_tracks;
-  // Export tracks as a map (each entry is a sequence of imageId and featureIndex):
-  //  {TrackIndex => {(imageIndex, featureIndex), ... ,(imageIndex, featureIndex)}
-  trackBuilder.ExportToSTL(map_tracks);
-
-  // TODO(oalexan1): Print how many pairwise matches were there before
-  // and after filtering tracks.
-
-  if (map_tracks.empty())
-    LOG(FATAL) << "No tracks left after filtering. Perhaps images are too dis-similar?\n";
-
-  // TODO(rsoussan): Make ths a function in sparse_map_database, test!
-  size_t num_elems = map_tracks.size();
-  // Populate back the filtered tracks.
-  (s->pid_to_cid_fid_).clear();
-  (s->pid_to_cid_fid_).resize(num_elems);
-  size_t curr_id = 0;
-  for (auto itr = map_tracks.begin(); itr != map_tracks.end(); itr++) {
-    for (auto itr2 = (itr->second).begin(); itr2 != (itr->second).end(); itr2++) {
-      (s->pid_to_cid_fid_)[curr_id][itr2->first] = itr2->second;
-    }
-    curr_id++;
-  }
 
   // Triangulate. The results should be quite inaccurate, we'll redo this
   // later. This step is mostly for consistency.
@@ -166,7 +162,7 @@ void SparseMap::MatchFeatures(const bool remove_invalid_traingulated_points) {
                               s->cid_to_keypoint_map_,
                               &(s->pid_to_cid_fid_),
                               &(s->pid_to_xyz_),
-                              &(s->cid_fid_to_pid_));
+                              &(s->cid_fid_to_pid_));*/
 }
 
 void MatchImages(const int cid_a, const int cid_b, sparse_mapping::CIDPairAffineMap& relative_affines,

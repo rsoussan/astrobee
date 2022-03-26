@@ -34,10 +34,12 @@ struct SparseMapParams {
   vision_common::SurfDynamicDetectorParams surf_detector;
   std::string detector_name;
   bool histogram_equalization;
+  // Image/Feature Matching Params
   int max_db_query_image_match_candidates;
   int max_sequential_image_match_candidates;
   int max_num_image_pair_feature_matches;
   int min_num_inliers_for_valid_match;
+  int min_feature_track_length;
 };
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_SPARSE_MAP_PARAMS_H_
