@@ -76,7 +76,7 @@ class SparseMap : public SparseMapDatabase {
                               cv::Mat& descriptors,
                               Eigen::Matrix2Xd& keypoints);
 
-  void MatchFeatures(const bool remove_invalid_traingulated_points);
+  CIDPairAffineMap MatchFeatures(const bool remove_invalid_traingulated_points);
 
   void IncrementalBundleAdjust();
 

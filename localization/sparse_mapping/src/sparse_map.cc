@@ -85,7 +85,7 @@ void SparseMap::DetectFeaturesFromFile(const std::string& filename,
   }
 }
 
-void SparseMap::MatchFeatures(const bool remove_invalid_traingulated_points) {
+CIDPairAffineMap SparseMap::MatchFeatures(const bool remove_invalid_traingulated_points) {
   ff_common::ThreadPool thread_pool;
   std::mutex match_mutex;
   openMVG::matching::PairWiseMatches match_map;
@@ -163,6 +163,8 @@ void SparseMap::MatchFeatures(const bool remove_invalid_traingulated_points) {
                               &(s->pid_to_cid_fid_),
                               &(s->pid_to_xyz_),
                               &(s->cid_fid_to_pid_));*/
+
+  return relative_affines;
 }
 
 void MatchImages(const int cid_a, const int cid_b, CIDPairAffineMap& relative_affines,
@@ -251,7 +253,7 @@ void SparseMap::PruneMap(void) {
 // both triangulate and see during bundle adjustment only the several
 // most similar cameras. Fixing these would need careful testing for
 // both map quality and run-time before and after the fix.
-void SparseMap::IncrementalBundleAdjust() {
+void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines) {
   // Do incremental bundle adjustment.
 
   // Optimize only the last several cameras, their number varies
@@ -262,26 +264,20 @@ void SparseMap::IncrementalBundleAdjust() {
   int min_num_cams = 4;
   int max_num_cams = 128;
 
-  // Read in all the affine R|t combinations between cameras
-  // TODO(rsoussan): get this from sparse map!
-  CIDPairAffineMap relative_affines;
-  relative_affines.load/whatever..
-
-  int num_images = s->cid_to_filename_.size();
-
   // Track and camera info up to the current cid
   std::vector<std::map<int, int> > pid_to_cid_fid_local;
   std::vector<Eigen::Affine3d > cid_to_cam_t_local;
   std::vector<Eigen::Vector3d> pid_to_xyz_local;
   std::vector<std::map<int, int> > cid_fid_to_pid_local;
 
-  bool rm_invalid_xyz = true;
+  const bool rm_invalid_xyz = true;
 
-  for (int cid = 1; cid < num_images; cid++) {
+  const int num_cameras = num_cameras();
+  for (int cid = 1; cid < num_images; ++cid) {
     // The array of cameras so far including this one
     cid_to_cam_t_local.resize(cid + 1);
-    for (int c = 0; c < cid; c++)
-      cid_to_cam_t_local[c] = s->cid_to_cam_t_global_[c];
+    for (int c = 0; c < cid; ++c)
+      cid_to_cam_t_local[c] = cam_T_global(cid);
 
     // Add a new camera. Obtain it based on relative affines. Here we assume
     // the current camera is similar to the previous one.
@@ -362,6 +358,7 @@ void SparseMap::IncrementalBundleAdjust() {
   }
 
   // Triangulate all points
+  // TODO(rsoussan): Make this a member function, call other version!
   Triangulate(rm_invalid_xyz,
                               s->camera_params_.GetFocalLength(),
                               s->cid_to_cam_t_global_,

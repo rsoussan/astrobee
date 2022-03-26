@@ -147,6 +147,8 @@ class SparseMapDatabase {
 
   int num_features(const int cid) const { return cid_to_keypoint_map_[cid].cols(); }
 
+  const Eigen::Affine3d& cam_T_global(const int cid) const { return cid_to_cam_t_global_[cid]; }
+
  protected:
   cv::Mat& descriptors(const int cid) { return cid_to_descriptor_map_[cid]; }
 
