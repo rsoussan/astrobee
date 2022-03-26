@@ -265,10 +265,10 @@ void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines
   int max_num_cams = 128;
 
   // Track and camera info up to the current cid
-  std::vector<std::map<int, int> > incremental_pid_to_cid_fid_global;
+  std::vector<std::map<int, int> > incremental_pid_to_cid_fid;
   std::vector<Eigen::Affine3d > incremental_cid_to_cam_t_global;
-  std::vector<Eigen::Vector3d> incremental_pid_to_xyz_global;
-  std::vector<std::map<int, int> > incremental_cid_fid_to_pid_local;
+  std::vector<Eigen::Vector3d> incremental_pid_to_xyz;
+  std::vector<std::map<int, int> > incremental_cid_fid_to_pid;
 
   const bool rm_invalid_xyz = true;
 
@@ -288,7 +288,7 @@ void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines
       incremental_cid_to_cam_t_global[cid] = incremental_cid_to_cam_t_global[cid-1];  // no choice
 
     // Restrict tracks to images up to cid.
-    incremental_pid_to_cid_fid_global.clear();
+    incremental_pid_to_cid_fid.clear();
     for (size_t p = 0; p < s->pid_to_cid_fid_.size(); p++) {
       std::map<int, int> & long_track = s->pid_to_cid_fid_[p];
       std::map<int, int> track;
@@ -301,20 +301,20 @@ void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines
       // This is absolutely essential, using tracks of length >= 3
       // only greatly increases the reliability.
       if ( (cid == 1 && track.size() > 1) || track.size() > params_.min_feature_track_length)
-        incremental_pid_to_cid_fid_global.push_back(track);
+        incremental_pid_to_cid_fid.push_back(track);
     }
 
     // Perform triangulation of all points. Multiview triangulation is
     // used.
-    incremental_pid_to_xyz_global.clear();
-    std::vector<std::map<int, int> > incremental_cid_fid_to_pid_local;
+    incremental_pid_to_xyz.clear();
+    std::vector<std::map<int, int> > incremental_cid_fid_to_pid;
     Triangulate(rm_invalid_xyz,
                                 s->camera_params_.GetFocalLength(),
                                 incremental_cid_to_cam_t_global,
                                 s->cid_to_keypoint_map_,
-                                &incremental_pid_to_cid_fid_global,
-                                &incremental_pid_to_xyz_global,
-                                &incremental_cid_fid_to_pid_local);
+                                &incremental_pid_to_cid_fid,
+                                &incremental_pid_to_xyz,
+                                &incremental_cid_fid_to_pid);
 
     ceres::Solver::Options options;
     options.linear_solver_type = ceres::ITERATIVE_SCHUR;
@@ -343,9 +343,9 @@ void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines
     LOG(INFO) << "Optimizing cameras from " << start << " to " << cid << " (total: "
         << cid-start+1 << ")";
 
-    BundleAdjust(incremental_pid_to_cid_fid_global, s->cid_to_keypoint_map_,
+    BundleAdjust(incremental_pid_to_cid_fid, s->cid_to_keypoint_map_,
                                  s->camera_params_.GetFocalLength(),
-                                 &incremental_cid_to_cam_t_global, &incremental_pid_to_xyz_global,
+                                 &incremental_cid_to_cam_t_global, &incremental_pid_to_xyz,
                                  s->user_pid_to_cid_fid_,
                                  s->user_cid_to_keypoint_map_,
                                  &(s->user_pid_to_xyz_),
