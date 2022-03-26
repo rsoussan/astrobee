@@ -366,14 +366,7 @@ void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines
                               &(s->pid_to_cid_fid_),
                               &(s->pid_to_xyz_),
                               &(s->cid_fid_to_pid_));
-
-  // Wipe file that is no longer needed
-  try {
-    std::remove(essential_file.c_str());
-  }catch(...) {}
 }
-
-
 
 void ClearImageDatabase() {
   image_database_.reset();
