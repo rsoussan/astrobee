@@ -173,9 +173,9 @@ void IncrementalBA(std::string const& essential_file,
   int max_num_cams = 128;
 
   // Read in all the affine R|t combinations between cameras
+  // TODO(rsoussan): get this from sparse map!
   sparse_mapping::CIDPairAffineMap relative_affines;
-  sparse_mapping::ReadAffineCSV(essential_file,
-                                &relative_affines);
+  relative_affines.load/whatever..
 
   int num_images = s->cid_to_filename_.size();
 
