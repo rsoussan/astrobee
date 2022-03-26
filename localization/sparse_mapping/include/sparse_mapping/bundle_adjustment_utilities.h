@@ -101,11 +101,6 @@ namespace sparse_mapping {
                                   bool verification,
                                   sparse_mapping::SparseMap * s);
 
-  // Other auxiliary functions
-
-  void PrintTrackStats(std::vector<std::map<int, int> >const& pid_to_cid_fid,
-                       std::string const& step);
-
  /**
  * Perform bundle adjustment.
  *

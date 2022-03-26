@@ -334,8 +334,6 @@ void BundleAdjustment(sparse_mapping::SparseMap * s,
               s->cid_to_keypoint_map_, &(s->pid_to_cid_fid_), &(s->pid_to_xyz_));
     s->InitializeCidFidToPid();
   }
-
-  // PrintTrackStats(s->pid_to_cid_fid_, "bundle adjustment and filtering");
 }
 
 // Check if the two arrays share elements
@@ -1487,28 +1485,6 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
               << images[id2] << std::endl;
   }
   return scale;
-}
-
-void PrintTrackStats(std::vector<std::map<int, int> >const& pid_to_cid_fid,
-                       std::string const& step) {
-  LOG(INFO) << "Track statistics after: " << step;
-
-  double track_len = 0.0;
-  for (size_t pid = 0; pid < pid_to_cid_fid.size(); pid++)
-    track_len += pid_to_cid_fid[pid].size();
-  double avg_len = track_len / pid_to_cid_fid.size();
-
-  LOG(INFO) << "Number of tracks (points in the control network): " << pid_to_cid_fid.size();
-  LOG(INFO) << "Total length of all tracks: " << track_len;
-  LOG(INFO) << "Average track length: " << avg_len;
-
-  std::map<int, int> stats;
-  for (size_t pid = 0; pid < pid_to_cid_fid.size(); pid++)
-    stats[pid_to_cid_fid[pid].size()]++;
-  for (std::map<int, int>::const_iterator it = stats.begin(); it != stats.end() ; it++) {
-    LOG(INFO) << "Track length and their number: "
-              << it->first << ' ' << it->second;
-  }
 }
 
 // TODO(rsoussan): Pass sparse map database instead of all these individual params?

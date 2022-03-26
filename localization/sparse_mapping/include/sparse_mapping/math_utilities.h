@@ -49,22 +49,6 @@ namespace sparse_mapping {
                    std::vector<Eigen::Vector3d> * pid_to_xyz,
                    std::vector<std::map<int, int> > * cid_fid_to_pid);
 
-  // Decompose Fundamental Matrix into Essential Matrix given known
-  // Intrinsics Matrix.
-  void DecomposeFMatIntoEMat(Eigen::Matrix3d const& fundamental,
-                             Eigen::Matrix3d const& intrinsics,
-                             Eigen::Matrix3d * essential);
-
-  // Decompose Essential Matrix into R and T
-  void DecomposeEMatIntoRT(Eigen::Matrix3d const& essential,
-                           Eigen::Matrix2Xd const& unnormalized_pts1,
-                           Eigen::Matrix2Xd const& unnormalized_pts2,
-                           std::vector<cv::DMatch> const& matches,
-                           double focal_length1,  // Camera 1
-                           double focal_length2,  // Camera 2
-                           Eigen::Matrix3d * cam2_r_cam1,
-                           Eigen::Vector3d * cam2_t_cam1);
-
   // Apply a given transform to the specified xyz points, and adjust
   // accordingly the cameras for consistency.
   void TransformCamerasAndPoints(Eigen::Affine3d const& A,
