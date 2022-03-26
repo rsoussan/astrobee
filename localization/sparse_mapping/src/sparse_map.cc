@@ -116,7 +116,7 @@ void SparseMap::MatchFeatures(const bool remove_invalid_traingulated_points) {
 
   openMVG::tracks::TracksBuilder trackBuilder;
   trackBuilder.Build(match_map);
-  trackBuilder.Filter(params_.min_feature_track_length);
+  trackBuilder.Filter();
   // Each entry is a sequence of imageId and featureIndex:
   //  {TrackIndex => {(imageIndex, featureIndex), ... ,(imageIndex, featureIndex)}
   openMVG::tracks::STLMAPTracks map_tracks;
@@ -156,7 +156,7 @@ void SparseMap::MatchFeatures(const bool remove_invalid_traingulated_points) {
 
   // Triangulate. The results should be quite inaccurate, we'll redo this
   // later. This step is mostly for consistency.
-  sparse_mapping::Triangulate(remove_invalid_triangulated_points,
+  Triangulate(remove_invalid_triangulated_points,
                               s->camera_params_.GetFocalLength(),
                               s->cid_to_cam_t_global_,
                               s->cid_to_keypoint_map_,
@@ -165,7 +165,7 @@ void SparseMap::MatchFeatures(const bool remove_invalid_traingulated_points) {
                               &(s->cid_fid_to_pid_));*/
 }
 
-void MatchImages(const int cid_a, const int cid_b, sparse_mapping::CIDPairAffineMap& relative_affines,
+void MatchImages(const int cid_a, const int cid_b, CIDPairAffineMap& relative_affines,
                  openMVG::matching::PairWiseMatches& match_map, std::mutex& match_mutex) const {
   std::vector<cv::DMatch> inlier_matches;
   const auto relative_pose =
@@ -243,6 +243,140 @@ void SparseMap::PruneMap(void) {
   // This is not strictly necessary as all book-keeping was already done
   InitializeCidFidToPid();
 }
+
+// TODO(oalexan1): This very naive code can use serious performance
+// improvements.  Each time we add a new camera we triangulate all
+// points. We bundle-adjust the last several cameras, but while seeing
+// (and keeping fixed) all the earlier cameras. It is sufficient to
+// both triangulate and see during bundle adjustment only the several
+// most similar cameras. Fixing these would need careful testing for
+// both map quality and run-time before and after the fix.
+void SparseMap::IncrementalBundleAdjust() {
+  // Do incremental bundle adjustment.
+
+  // Optimize only the last several cameras, their number varies
+  // between min_num_cams and max_num_cams.
+
+  // TODO(oalexan1): Need to research how many previous cameras we
+  // need for loop closure.
+  int min_num_cams = 4;
+  int max_num_cams = 128;
+
+  // Read in all the affine R|t combinations between cameras
+  // TODO(rsoussan): get this from sparse map!
+  CIDPairAffineMap relative_affines;
+  relative_affines.load/whatever..
+
+  int num_images = s->cid_to_filename_.size();
+
+  // Track and camera info up to the current cid
+  std::vector<std::map<int, int> > pid_to_cid_fid_local;
+  std::vector<Eigen::Affine3d > cid_to_cam_t_local;
+  std::vector<Eigen::Vector3d> pid_to_xyz_local;
+  std::vector<std::map<int, int> > cid_fid_to_pid_local;
+
+  bool rm_invalid_xyz = true;
+
+  for (int cid = 1; cid < num_images; cid++) {
+    // The array of cameras so far including this one
+    cid_to_cam_t_local.resize(cid + 1);
+    for (int c = 0; c < cid; c++)
+      cid_to_cam_t_local[c] = s->cid_to_cam_t_global_[c];
+
+    // Add a new camera. Obtain it based on relative affines. Here we assume
+    // the current camera is similar to the previous one.
+    std::pair<int, int> P(cid-1, cid);
+    if (relative_affines.find(P) != relative_affines.end())
+      cid_to_cam_t_local[cid] = relative_affines[P]*cid_to_cam_t_local[cid-1];
+    else
+      cid_to_cam_t_local[cid] = cid_to_cam_t_local[cid-1];  // no choice
+
+    // Restrict tracks to images up to cid.
+    pid_to_cid_fid_local.clear();
+    for (size_t p = 0; p < s->pid_to_cid_fid_.size(); p++) {
+      std::map<int, int> & long_track = s->pid_to_cid_fid_[p];
+      std::map<int, int> track;
+      for (std::map<int, int>::iterator it = long_track.begin();
+           it != long_track.end() ; it++) {
+        if (it->first <= cid)
+          track[it->first] = it->second;
+      }
+
+      // This is absolutely essential, using tracks of length >= 3
+      // only greatly increases the reliability.
+      if ( (cid == 1 && track.size() > 1) || track.size() > params_.min_feature_track_length)
+        pid_to_cid_fid_local.push_back(track);
+    }
+
+    // Perform triangulation of all points. Multiview triangulation is
+    // used.
+    pid_to_xyz_local.clear();
+    std::vector<std::map<int, int> > cid_fid_to_pid_local;
+    Triangulate(rm_invalid_xyz,
+                                s->camera_params_.GetFocalLength(),
+                                cid_to_cam_t_local,
+                                s->cid_to_keypoint_map_,
+                                &pid_to_cid_fid_local,
+                                &pid_to_xyz_local,
+                                &cid_fid_to_pid_local);
+
+    ceres::Solver::Options options;
+    options.linear_solver_type = ceres::ITERATIVE_SCHUR;
+    options.max_num_iterations = 500;
+    options.logging_type = ceres::SILENT;
+    options.num_threads = FLAGS_num_threads;
+    ceres::Solver::Summary summary;
+    ceres::LossFunction* loss = new ceres::CauchyLoss(0.5);
+
+    // If cid+1 is divisible by 2^k, do at least 2^k cameras, ending
+    // with camera cid.  E.g., if current camera index is 23 = 3*8-1, do at
+    // least 8 cameras, so cameras 16, ..., 23. This way, we will try
+    // to occasionally do more than just several close cameras.
+    int val = cid+1;
+    int offset = 1;
+    while (val % 2 == 0) {
+      val /= 2;
+      offset *= 2;
+    }
+    offset = std::min(offset, max_num_cams);
+
+    int start = cid-offset+1;
+    start = std::min(cid-min_num_cams+1, start);
+    if (start < 0) start = 0;
+
+    LOG(INFO) << "Optimizing cameras from " << start << " to " << cid << " (total: "
+        << cid-start+1 << ")";
+
+    BundleAdjust(pid_to_cid_fid_local, s->cid_to_keypoint_map_,
+                                 s->camera_params_.GetFocalLength(),
+                                 &cid_to_cam_t_local, &pid_to_xyz_local,
+                                 s->user_pid_to_cid_fid_,
+                                 s->user_cid_to_keypoint_map_,
+                                 &(s->user_pid_to_xyz_),
+                                 loss, options, &summary,
+                                 start, cid);
+
+    // Copy back
+    for (int c = 0; c <= cid; c++)
+      s->cid_to_cam_t_global_[c] = cid_to_cam_t_local[c];
+  }
+
+  // Triangulate all points
+  Triangulate(rm_invalid_xyz,
+                              s->camera_params_.GetFocalLength(),
+                              s->cid_to_cam_t_global_,
+                              s->cid_to_keypoint_map_,
+                              &(s->pid_to_cid_fid_),
+                              &(s->pid_to_xyz_),
+                              &(s->cid_fid_to_pid_));
+
+  // Wipe file that is no longer needed
+  try {
+    std::remove(essential_file.c_str());
+  }catch(...) {}
+}
+
+
 
 void ClearImageDatabase() {
   image_database_.reset();

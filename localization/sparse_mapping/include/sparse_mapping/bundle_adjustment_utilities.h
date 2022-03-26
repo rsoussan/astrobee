@@ -42,11 +42,6 @@ namespace sparse_mapping {
                    CIDPairAffineMap;
   typedef std::array<std::pair<std::pair<int, int>, Eigen::Affine3d>, 3> CIDAffineTuple;
   typedef std::vector<CIDAffineTuple, Eigen::aligned_allocator<CIDAffineTuple> > CIDAffineTupleVec;
-  /**
-   * Incremental bundle adjustment.
-   **/
-  void IncrementalBA(std::string const& essential_file,
-                     sparse_mapping::SparseMap * s);
 
   /**
    * Close a loop with repeated images.

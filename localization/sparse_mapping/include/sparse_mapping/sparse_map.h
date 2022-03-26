@@ -78,6 +78,8 @@ class SparseMap : public SparseMapDatabase {
 
   void MatchFeatures(const bool remove_invalid_traingulated_points);
 
+  void IncrementalBundleAdjust();
+
   // delete feature descriptors with no matching landmark
   void PruneMap();
 

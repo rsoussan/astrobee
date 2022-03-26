@@ -24,6 +24,7 @@
 #include <vector>
 
 namespace sparse_mapping {
+  // TODO(rsoussan): Remove this and essential file functions?? Not used anymore?
   // The name of the matches file
   std::string MatchesFile(std::string const& map_file);
 
