@@ -273,35 +273,36 @@ void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines
   const bool rm_invalid_xyz = true;
 
   const int num_cameras = num_cameras();
-  for (int cid = 1; cid < num_images; ++cid) {
-    // The array of cameras so far including this one
-    incremental_cid_to_cam_t_global.resize(cid + 1);
-    for (int c = 0; c < cid; ++c)
-      incremental_cid_to_cam_t_global[c] = cam_T_global(cid);
+  for (int latest_cid = 1; latest_cid < num_images; ++latest_cid) {
+    incremental_cid_to_cam_t_global.resize(latest_cid + 1);
+    for (int previous_cid = 0; previous_cid < latest_cid; ++previous_cid)
+      incremental_cid_to_cam_t_global[previous_cid] = cam_T_global(previous_cid);
 
-    // Add a new camera. Obtain it based on relative affines. Here we assume
-    // the current camera is similar to the previous one.
-    std::pair<int, int> P(cid-1, cid);
-    if (relative_affines.find(P) != relative_affines.end())
-      incremental_cid_to_cam_t_global[cid] = relative_affines[P]*incremental_cid_to_cam_t_global[cid-1];
-    else
-      incremental_cid_to_cam_t_global[cid] = incremental_cid_to_cam_t_global[cid-1];  // no choice
+    const int previous_cid = latest_cid -1;
+    const std::pair<int, int> latest_to_previous_cid_pair(previous_cid, latest_cid);
+    // Initialize latest cid pose. If relative pose not available wrt to previous cid,
+    // initialize to previous cid pose.
+    const Eigen::Affine3d latest_cid_T_previous_cid = relative_affines.count(latest_to_previous_cid_pair) > 0
+                                                        ? relative_affines(latest_to_previous_cid_pair)
+                                                        : Eigen::Affine3d::Identity();
+    const auto& previous_cid_T_global = incremental_cid_to_cam_t_global[previous_cid];
+      incremental_cid_to_cam_t_global[latest_cid] = latest_cid_T_previous_cid*previous_cid_T_global;
 
-    // Restrict tracks to images up to cid.
+    // Fill incremental tracks up to latest cid
     incremental_pid_to_cid_fid.clear();
-    for (size_t p = 0; p < s->pid_to_cid_fid_.size(); p++) {
-      std::map<int, int> & long_track = s->pid_to_cid_fid_[p];
-      std::map<int, int> track;
-      for (std::map<int, int>::iterator it = long_track.begin();
-           it != long_track.end() ; it++) {
-        if (it->first <= cid)
-          track[it->first] = it->second;
+    for (int pid = 0; pid < num_points(); ++pid) {
+      const auto& feature_track = feature_track(pid);
+      std::map<int, int> incremental_track;
+      for (const auto& cid_to_fid : feature_track) {
+        const int cid = cid_to_fid.first;
+        const int fid = cid_to_fid.second;
+        if (cid <= latest_cid)
+          incremental_track[cid] = fid;
       }
 
-      // This is absolutely essential, using tracks of length >= 3
-      // only greatly increases the reliability.
-      if ( (cid == 1 && track.size() > 1) || track.size() > params_.min_feature_track_length)
-        incremental_pid_to_cid_fid.push_back(track);
+      // Add long enough tracks
+      if ((latest_cid == 1 && track.size() > 1) || track.size() > params_.min_feature_track_length)
+        incremental_pid_to_cid_fid.push_back(incremental_track);
     }
 
     // Perform triangulation of all points. Multiview triangulation is
@@ -316,6 +317,7 @@ void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines
                                 &incremental_pid_to_xyz,
                                 &incremental_cid_fid_to_pid);
 
+    // TODO(rsoussan): Add these to params!!! same as other ba??
     ceres::Solver::Options options;
     options.linear_solver_type = ceres::ITERATIVE_SCHUR;
     options.max_num_iterations = 500;
@@ -328,7 +330,7 @@ void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines
     // with camera cid.  E.g., if current camera index is 23 = 3*8-1, do at
     // least 8 cameras, so cameras 16, ..., 23. This way, we will try
     // to occasionally do more than just several close cameras.
-    int val = cid+1;
+    int val = latest_cid+1;
     int offset = 1;
     while (val % 2 == 0) {
       val /= 2;
@@ -336,12 +338,12 @@ void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines
     }
     offset = std::min(offset, max_num_cams);
 
-    int start = cid-offset+1;
-    start = std::min(cid-min_num_cams+1, start);
+    int start = latest_cid-offset+1;
+    start = std::min(latest_cid-min_num_cams+1, start);
     if (start < 0) start = 0;
 
-    LOG(INFO) << "Optimizing cameras from " << start << " to " << cid << " (total: "
-        << cid-start+1 << ")";
+    LOG(INFO) << "Optimizing cameras from " << start << " to " << latest_cid << " (total: "
+        << latest_cid-start+1 << ")";
 
     BundleAdjust(incremental_pid_to_cid_fid, s->cid_to_keypoint_map_,
                                  s->camera_params_.GetFocalLength(),
@@ -350,10 +352,10 @@ void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines
                                  s->user_cid_to_keypoint_map_,
                                  &(s->user_pid_to_xyz_),
                                  loss, options, &summary,
-                                 start, cid);
+                                 start, latest_cid);
 
     // Copy back
-    for (int c = 0; c <= cid; c++)
+    for (int c = 0; c <= latest_cid; c++)
       s->cid_to_cam_t_global_[c] = incremental_cid_to_cam_t_global[c];
   }
 

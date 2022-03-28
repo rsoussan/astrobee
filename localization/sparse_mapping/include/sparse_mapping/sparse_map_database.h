@@ -143,7 +143,10 @@ class SparseMapDatabase {
 
   const Eigen::Matrix2Xd& keypoints(const int cid) const { return cid_to_keypoint_map_[cid]; }
 
-  int num_points() const { return pid_to_xyz_.size(); }
+  const std::map<int, int>& feature_track(const int pid) const { return pid_to_cid_fid_[pid]; }
+
+  // Use pid_to_cid_fid_ instead of pid_to_xyz since this is filled sooner in the mapping pipeline
+  int num_points() const { return pid_to_cid_fid_.size(); }
 
   int num_features(const int cid) const { return cid_to_keypoint_map_[cid].cols(); }
 
