@@ -157,6 +157,8 @@ class SparseMapDatabase {
 
   Eigen::Matrix2Xd& keypoints(const int cid) { return cid_to_keypoint_map_[cid]; }
 
+  Eigen::Affine3d& cam_T_global(const int cid) { return cid_to_cam_t_global_[cid]; }
+
   // TODO(rsoussan): These should be private
   // stored in map file
   std::vector<std::string> cid_to_filename_;
