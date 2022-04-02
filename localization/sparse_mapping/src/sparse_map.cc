@@ -307,12 +307,12 @@ void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines
     ceres::Solver::Summary summary;
     ceres::LossFunction* cauchy_loss = new ceres::CauchyLoss(params_.cauchy_loss);
     // TODO(rsoussan): What are user_ maps? used elsewhere? make local?
-    BundleAdjust(incremental_pid_to_cid_fid, s->cid_to_keypoint_map_,
-                                 s->camera_params_.GetFocalLength(),
+    BundleAdjust(incremental_pid_to_cid_fid, cid_to_keypoint_map_,
+                                 params_.camera.GetFocalLength(),
                                  &incremental_cid_to_cam_t_global, &incremental_pid_to_xyz,
-                                 s->user_pid_to_cid_fid_,
-                                 s->user_cid_to_keypoint_map_,
-                                 &(s->user_pid_to_xyz_),
+                                 user_pid_to_cid_fid_,
+                                 user_cid_to_keypoint_map_,
+                                 &user_pid_to_xyz_,
                                  cauchy_loss, params_.incremental_ba_options, &summary,
                                  oldest_cid_to_optimize, latest_cid);
 
