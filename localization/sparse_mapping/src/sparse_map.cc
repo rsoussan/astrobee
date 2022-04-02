@@ -254,7 +254,6 @@ void SparseMap::PruneMap(void) {
 // most similar cameras. Fixing these would need careful testing for
 // both map quality and run-time before and after the fix.
 void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines) {
-  const bool rm_invalid_xyz = true;
   for (int latest_cid = 1; latest_cid < num_cameras(); ++latest_cid) {
     std::vector<Eigen::Affine3d > incremental_cid_to_cam_t_global;
     incremental_cid_to_cam_t_global.reserve(latest_cid + 1);
@@ -292,7 +291,7 @@ void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines
     std::vector<Eigen::Vector3d> incremental_pid_to_xyz;
     std::vector<std::map<int, int> > incremental_cid_fid_to_pid;
   // TODO(rsoussan): what happens when invalid points are removed??
-    Triangulate(rm_invalid_xyz,
+    Triangulate(true,
                                 params_.camera.GetFocalLength(),
                                 incremental_cid_to_cam_t_global,
                                 cid_to_keypoint_map_,
@@ -322,9 +321,11 @@ void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines
       cam_T_global(cid) = incremental_cid_to_cam_t_global[cid];
   }
 
-  // Triangulate all points
-  // TODO(rsoussan): Make this a member function, call other version!
-  Triangulate(rm_invalid_xyz,
+  Triangulate(true);
+}
+
+void Triangulate(const bool remove_invalid_xyz) {
+  Triangulate(remove_invalid_xyz,
                               params_.camera.GetFocalLength(),
                               cid_to_cam_t_global_,
                               cid_to_keypoint_map_,
