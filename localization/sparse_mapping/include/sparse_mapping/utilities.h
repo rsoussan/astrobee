@@ -34,6 +34,24 @@ namespace sparse_mapping {
 
   void ListToListMap(std::vector<std::string> const& big_list, std::vector<std::string> const& small_list,
                      std::map<int, int>* map);
+
+  // TODO(rsoussan): Make this to a sparse map function
+  /**
+     Take a map. Form a map with only a subset of the images.
+     Bundle adjustment will happen later.
+  */
+  void ExtractSubmap(std::vector<std::string> * keep_ptr,
+                     sparse_mapping::SparseMap * map_ptr);
+
+  // TODO(rsoussan): Make this to a sparse map function
+  /**
+   * Register the map to the world coordinate system or verify
+   * how well registration did.
+   **/
+  double RegistrationOrVerification(std::vector<std::string> const& data_files,
+                                  bool verification,
+                                  sparse_mapping::SparseMap * s);
+
 }  // namespace sparse_mapping
 
 #endif  // SPARSE_MAPPING_UTILITIES_H_

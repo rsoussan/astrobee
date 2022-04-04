@@ -51,43 +51,6 @@ namespace sparse_mapping {
                         bool fix_all_cameras = false,
                         std::set<int> const& fixed_cameras = std::set<int>());
 
-  // TODO(rsoussan): Move this somewhere else
-  /**
-     Append map file.
-  **/
-  void AppendMapFile(std::string const& mapOut, std::string const& mapIn,
-                     int num_image_overlaps_at_endpoints,
-                     double outlier_factor,
-                     bool bundle_adjust, bool fix_first_map);
-
-  // TODO(rsoussan): Move this somewhere else
-  /**
-     Merge two maps.
-  **/
-  void MergeMaps(sparse_mapping::SparseMap * A_in,
-                 sparse_mapping::SparseMap * B_in,
-                 int num_image_overlaps_at_endpoints,
-                 double outlier_factor,
-                 std::string const& output_map,
-                 sparse_mapping::SparseMap * C_out);
-
-  // TODO(rsoussan): Make this to a sparse map function
-  /**
-     Take a map. Form a map with only a subset of the images.
-     Bundle adjustment will happen later.
-  */
-  void ExtractSubmap(std::vector<std::string> * keep_ptr,
-                     sparse_mapping::SparseMap * map_ptr);
-
-  // TODO(rsoussan): Make this to a sparse map function
-  /**
-   * Register the map to the world coordinate system or verify
-   * how well registration did.
-   **/
-  double RegistrationOrVerification(std::vector<std::string> const& data_files,
-                                  bool verification,
-                                  sparse_mapping::SparseMap * s);
-
  /**
  * Perform bundle adjustment.
  *
