@@ -19,30 +19,18 @@
 #ifndef SPARSE_MAPPING_BUNDLE_ADJUSTMENT_UTILITIES_H_
 #define SPARSE_MAPPING_BUNDLE_ADJUSTMENT_UTILITIES_H_
 
-#include <camera/camera_model.h>
 #include <ff_common/eigen_vectors.h>
 #include <Eigen/Geometry>
 #include <ceres/ceres.h>
 
-#include <array>
-#include <functional>
+#include <limits>
 #include <map>
 #include <set>
 #include <string>
-#include <utility>
 #include <vector>
-#include <limits>
-#include <memory>
-
-EIGEN_DEFINE_STL_VECTOR_SPECIALIZATION(std::array<std::pair<std::pair<int, int>, Eigen::Affine3d>, 3>)
 
 namespace sparse_mapping {
-  typedef std::map<std::pair<int, int>, Eigen::Affine3d, std::less<std::pair<int, int> >,
-                   Eigen::aligned_allocator<std::pair<std::pair<int , int > const, Eigen::Affine3d> > >
-                   CIDPairAffineMap;
-  typedef std::array<std::pair<std::pair<int, int>, Eigen::Affine3d>, 3> CIDAffineTuple;
-  typedef std::vector<CIDAffineTuple, Eigen::aligned_allocator<CIDAffineTuple> > CIDAffineTupleVec;
-
+  // TODO(rsoussan): What does this do?
   /**
    * Close a loop with repeated images.
    **/
@@ -63,6 +51,7 @@ namespace sparse_mapping {
                         bool fix_all_cameras = false,
                         std::set<int> const& fixed_cameras = std::set<int>());
 
+  // TODO(rsoussan): Move this somewhere else
   /**
      Append map file.
   **/
@@ -71,6 +60,7 @@ namespace sparse_mapping {
                      double outlier_factor,
                      bool bundle_adjust, bool fix_first_map);
 
+  // TODO(rsoussan): Move this somewhere else
   /**
      Merge two maps.
   **/
@@ -81,6 +71,7 @@ namespace sparse_mapping {
                  std::string const& output_map,
                  sparse_mapping::SparseMap * C_out);
 
+  // TODO(rsoussan): Make this to a sparse map function
   /**
      Take a map. Form a map with only a subset of the images.
      Bundle adjustment will happen later.
@@ -88,6 +79,7 @@ namespace sparse_mapping {
   void ExtractSubmap(std::vector<std::string> * keep_ptr,
                      sparse_mapping::SparseMap * map_ptr);
 
+  // TODO(rsoussan): Make this to a sparse map function
   /**
    * Register the map to the world coordinate system or verify
    * how well registration did.
@@ -109,36 +101,28 @@ namespace sparse_mapping {
  * Ceres loss function and options can be specified, and summary returns results from ceres.
  * Optimize only the cameras with indices in [first, last].
  **/
-void BundleAdjust(std::vector<std::map<int, int> > const& pid_to_cid_fid,
-                  std::vector<Eigen::Matrix2Xd > const& cid_to_keypoint_map,
-                  double focal_length,
-                  std::vector<Eigen::Affine3d> * cid_to_cam_t_global,
-                  std::vector<Eigen::Vector3d> * pid_to_xyz,
-                  std::vector<std::map<int, int> > const& user_pid_to_cid_fid,
-                  std::vector<Eigen::Matrix2Xd > const& user_cid_to_keypoint_map,
-                  std::vector<Eigen::Vector3d> * user_pid_to_xyz,
-                  ceres::LossFunction * loss,
-                  ceres::Solver::Options const& options,
-                  ceres::Solver::Summary* summary,
-                  int first = 0, int last = std::numeric_limits<int>::max(),
-                  bool fix_cameras = false,
-                  std::set<int> const& fixed_cameras = std::set<int>());
+  void BundleAdjust(std::vector<std::map<int, int> > const& pid_to_cid_fid,
+                    std::vector<Eigen::Matrix2Xd> const& cid_to_keypoint_map, double focal_length,
+                    std::vector<Eigen::Affine3d>* cid_to_cam_t_global, std::vector<Eigen::Vector3d>* pid_to_xyz,
+                    std::vector<std::map<int, int> > const& user_pid_to_cid_fid,
+                    std::vector<Eigen::Matrix2Xd> const& user_cid_to_keypoint_map,
+                    std::vector<Eigen::Vector3d>* user_pid_to_xyz, ceres::LossFunction* loss,
+                    ceres::Solver::Options const& options, ceres::Solver::Summary* summary, int first = 0,
+                    int last = std::numeric_limits<int>::max(), bool fix_cameras = false,
+                    std::set<int> const& fixed_cameras = std::set<int>());
 
-/**
- * Perform bundle adjustment.
- *
- * This variant assumes that all cameras see that same points. This is
- * meant to be used to do 2 or 3 camera refinements however it can do
- * N cameras just fine.
- *
- **/
-void BundleAdjustSmallSet(std::vector<Eigen::Matrix2Xd> const& features_n,
-                          double focal_length,
-                          std::vector<Eigen::Affine3d> * cam_t_global_n,
-                          Eigen::Matrix3Xd * pid_to_xyz,
-                          ceres::LossFunction * loss,
-                          ceres::Solver::Options const& options,
-                          ceres::Solver::Summary * summary);
+  /**
+   * Perform bundle adjustment.
+   *
+   * This variant assumes that all cameras see that same points. This is
+   * meant to be used to do 2 or 3 camera refinements however it can do
+   * N cameras just fine.
+   *
+   **/
+  void BundleAdjustSmallSet(std::vector<Eigen::Matrix2Xd> const& features_n, double focal_length,
+                            std::vector<Eigen::Affine3d>* cam_t_global_n, Eigen::Matrix3Xd* pid_to_xyz,
+                            ceres::LossFunction* loss, ceres::Solver::Options const& options,
+                            ceres::Solver::Summary* summary);
 
 
 }  // namespace sparse_mapping

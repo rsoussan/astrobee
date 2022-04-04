@@ -29,11 +29,16 @@
 #include <Eigen/Geometry>
 #include <opencv2/core/core.hpp>
 
+#include <functional>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace sparse_mapping {
+typedef std::map<std::pair<int, int>, Eigen::Affine3d, std::less<std::pair<int, int> >,
+                 Eigen::aligned_allocator<std::pair<std::pair<int, int> const, Eigen::Affine3d> > >
+  CIDPairAffineMap;
 /**
  * A class representing a sparse map, which consists of a collection
  * of keyframes and detected features. To localize, an image's features
