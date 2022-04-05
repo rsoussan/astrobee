@@ -258,7 +258,7 @@ boost::optional<PoseWithCovarianceAndInliers> ReprojectionPoseEstimateWithInitia
     optimization_common::ReprojectionError<DISTORTER>::AddCostFunction(
       image_points[inlier_index], points_3d[inlier_index], pose_estimate_vector,
       const_cast<Eigen::Vector2d&>(focal_lengths), const_cast<Eigen::Vector2d&>(principal_points),
-      const_cast<Eigen::VectorXd&>(distortion), problem, 1, params.optimization.huber_loss);
+      const_cast<Eigen::VectorXd&>(distortion), problem, params.optimization.huber_loss);
   }
 
   ceres::Solver::Summary summary;

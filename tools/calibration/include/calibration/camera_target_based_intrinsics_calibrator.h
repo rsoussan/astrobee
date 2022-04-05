@@ -126,7 +126,7 @@ bool CameraTargetBasedIntrinsicsCalibrator<DISTORTER>::Calibrate(const std::vect
       optimization_common::ReprojectionError<DISTORTER>::AddCostFunction(
         valid_correspondences.image_points[i], valid_correspondences.points_3d[i],
         state_parameters_.camera_T_targets.back(), state_parameters_.focal_lengths, state_parameters_.principal_points,
-        state_parameters_.distortion, problem_, radial_scale_factor, params_.optimization.huber_loss);
+        state_parameters_.distortion, problem_, params_.optimization.huber_loss, radial_scale_factor);
     }
   }
 
