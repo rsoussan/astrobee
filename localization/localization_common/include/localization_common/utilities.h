@@ -152,8 +152,7 @@ std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>> TransformP
 Eigen::Isometry3d Interpolate(const Eigen::Isometry3d& lower_bound_pose, const Eigen::Isometry3d& upper_bound_pose,
                               const double alpha);
 
-std::vector<std::string> GetImageNames(const std::string& image_directory,
-                                       const std::string& image_extension = ".jpg");
+std::vector<std::string> GetImageNames(const std::string& image_directory, const std::string& image_extension = ".jpg");
 // Implementations
 template <class LocMsgType>
 void CombinedNavStateToMsg(const CombinedNavState& combined_nav_state, LocMsgType& loc_msg) {

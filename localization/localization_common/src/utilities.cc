@@ -236,8 +236,7 @@ Eigen::Isometry3d Interpolate(const Eigen::Isometry3d& lower_bound_pose, const E
   return Isometry3d(translation, rotation);
 }
 
-std::vector<std::string> GetImageNames(const std::string& image_directory,
-                                       const std::string& image_extension = ".jpg") {
+std::vector<std::string> GetImageNames(const std::string& image_directory, const std::string& image_extension) {
   std::vector<std::string> image_names;
   for (const auto& file : fs::recursive_directory_iterator(image_directory)) {
     if (fs::is_regular_file(file) && file.path().extension() == image_extension)

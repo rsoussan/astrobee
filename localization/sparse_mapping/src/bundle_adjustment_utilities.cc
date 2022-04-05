@@ -102,105 +102,77 @@ void BundleAdjustment(sparse_mapping::SparseMap * s,
   }
 }
 
-// TODO(rsoussan): Pass sparse map database instead of all these individual params?
-  // Add another function that takes sparse map database!!
-void BundleAdjust(std::vector<std::map<int, int> > const& pid_to_cid_fid,
-                  std::vector<Eigen::Matrix2Xd> const& cid_to_keypoint_map, double focal_length,
+
+// TODO(rsoussan): When are first/last used? when are cameras fixed?
+void BundleAdjust(const std::vector<std::map<int, int> >& pid_to_cid_fid,
+                  const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map, const double focal_length,
                   std::vector<Eigen::Affine3d>* cid_to_cam_t_global, std::vector<Eigen::Vector3d>* pid_to_xyz,
-                  std::vector<std::map<int, int> > const& user_pid_to_cid_fid,
-                  std::vector<Eigen::Matrix2Xd> const& user_cid_to_keypoint_map,
-                  std::vector<Eigen::Vector3d>* user_pid_to_xyz, ceres::LossFunction* loss,
-                  ceres::Solver::Options const& options, ceres::Solver::Summary* summary, int first, int last,
-                  bool fix_all_cameras, std::set<int> const& fixed_cameras) {
-  // Perform bundle adjustment. Keep fixed all cameras with cid
-  // not within [first, last] and all xyz points which project only
-  // onto fixed cameras.
-
-  // If provided, use user-set registration points in the second pass.
-
-  // Allocate space for the angle axis representation of rotation
-  std::vector<double> camera_aa_storage(3 * cid_to_cam_t_global->size());
-  for (size_t cid = 0; cid < cid_to_cam_t_global->size(); cid++) {
-    Eigen::Map<Eigen::Vector3d> aa_storage(camera_aa_storage.data() + 3 * cid);
+                  ceres::LossFunction* loss, const ceres::Solver::Options& options, ceres::Solver::Summary* summary,
+                  const int first, const int last, const bool fix_all_cameras, const std::set<int>& fixed_cameras) {
+  // TODO(rsoussan): Use opt common conversion! rename to state_parameters!
+  std::vector<double> camera_aa_storage;
+  camera_aa_storage.reserve(3 * cid_to_cam_t_global->size());
+  for (int cid = 0; cid < cid_to_cam_t_global->size(); ++cid) {
+    Eigen::Map<Eigen::Vector3d> aa_storage;
+    aa_storage.reserve(camera_aa_storage.data() + 3 * cid);
     Eigen::Vector3d vec;
     camera::RotationToRodrigues(cid_to_cam_t_global->at(cid).linear(),
                                &vec);
     aa_storage = vec;
   }
 
-  // Build problem
   ceres::Problem problem;
-
-  // Ideally the block inside of the loop below must be a function call,
-  // but the compiler does not handle that correctly with ceres.
-  // So do this by changing where things are pointing.
-
-  int num_passes = 1;
-  if (!user_pid_to_xyz->empty()) num_passes = 2;  // A second pass using control points
-
-  for (int pass = 0; pass < num_passes; pass++) {
-    std::vector<std::map<int, int> > const * p_pid_to_cid_fid;
-    std::vector<Eigen::Matrix2Xd >   const * p_cid_to_keypoint_map;
-    std::vector<Eigen::Vector3d>           * p_pid_to_xyz;
-    ceres::LossFunction * local_loss;
-    if (pass == 0) {
-      local_loss            = loss;  // outside-supplied loss
-      p_pid_to_cid_fid      = &pid_to_cid_fid;
-      p_cid_to_keypoint_map = &cid_to_keypoint_map;
-      p_pid_to_xyz          = pid_to_xyz;
-    } else {
-      local_loss            = NULL;  // l2, as user-supplied data is reliable
-      p_pid_to_cid_fid      = &user_pid_to_cid_fid;
-      p_cid_to_keypoint_map = &user_cid_to_keypoint_map;
-      p_pid_to_xyz          = user_pid_to_xyz;
-    }
-
-    for (size_t pid = 0; pid < p_pid_to_xyz->size(); pid++) {
-      if ((*p_pid_to_cid_fid)[pid].size() < 2)
+    for (int pid = 0; pid < static_cast<int>(pid_to_xyz->size()); ++pid) {
+      if (pid_to_cid_fid[pid].size() < 2)
         LOG(FATAL) << "Found a track of size < 2.";
 
-      // Don't vary points which project only into cameras which we don't vary.
+      // Vary points which project into cameras that are not fixed
       bool fix_pid = true;
-      for (std::map<int, int>::value_type const& cid_fid : (*p_pid_to_cid_fid)[pid]) {
-        if (cid_fid.first >= first && cid_fid.first <= last)
+      for (const auto& cid_fid : pid_to_cid_fid[pid]) {
+        const int cid = cid_fid.first;
+        if (cid >= first && cid <= last)
           fix_pid = false;
       }
 
-      for (std::map<int, int>::value_type const& cid_fid : (*p_pid_to_cid_fid)[pid]) {
+      for (const auto& cid_fid : pid_to_cid_fid[pid]) {
+        const int cid = cid_fid.first;
+        const int fid = cid_fid.second;
         ceres::CostFunction* cost_function =
-          ReprojectionError::Create((*p_cid_to_keypoint_map)[cid_fid.first].col(cid_fid.second));
+          ReprojectionError::Create(cid_to_keypoint_map[cid].col(fid));
 
+        // TODO(rsoussan): why [0]?
+        // TODO(rsoussan): Why ->at instead of []?
         problem.AddResidualBlock(cost_function,
-                                 local_loss,
-                                 &cid_to_cam_t_global->at(cid_fid.first).translation()[0],
-                                 &camera_aa_storage[3 * cid_fid.first],
-                                 &p_pid_to_xyz->at(pid)[0],
+                                 loss,
+                                 &cid_to_cam_t_global->at(cid).translation()[0],
+                                 &camera_aa_storage[3 * cid],
+                                 &pid_to_xyz->at(pid)[0],
                                  &focal_length);
 
-        if (fix_all_cameras || (cid_fid.first < first || cid_fid.first > last) ||
-            fixed_cameras.find(cid_fid.first) != fixed_cameras.end()) {
-          problem.SetParameterBlockConstant(&cid_to_cam_t_global->at(cid_fid.first).translation()[0]);
-          problem.SetParameterBlockConstant(&camera_aa_storage[3 * cid_fid.first]);
+        // TODO(rsoussan): Why would cid be out of range? would cam_t_global still be valid then?
+        if (fix_all_cameras || (cid < first || cid > last) ||
+            fixed_cameras.find(cid) != fixed_cameras.end()) {
+          problem.SetParameterBlockConstant(&cid_to_cam_t_global->at(cid).translation()[0]);
+          problem.SetParameterBlockConstant(&camera_aa_storage[3 * cid]);
         }
       }
-      if (fix_pid || pass == 1) {
+      if (fix_pid) {
         // Fix pids which don't project in cameras that are floated.
         // Also, must not float points given by the user, those are measurements
         // we are supposed to reference ourselves against, and floating
         // them can make us lose the real world scale.
-        problem.SetParameterBlockConstant(&p_pid_to_xyz->at(pid)[0]);
+        problem.SetParameterBlockConstant(&pid_to_xyz->at(pid)[0]);
       }
     }
     problem.SetParameterBlockConstant(&focal_length);
-  }
 
   // Solve the problem
   ceres::Solve(options, &problem, summary);
 
   // Write the rotations back to the transform
-  for (size_t cid = 0; cid < cid_to_cam_t_global->size(); cid++) {
-    Eigen::Map<Eigen::Vector3d> aa_storage
-      (camera_aa_storage.data() + 3 * cid);
+  for (int cid = 0; cid < static_cast<int>(cid_to_cam_t_global->size()); ++cid) {
+    // TODO(rsoussan): why .data? why *3?
+    Eigen::Map<Eigen::Vector3d> aa_storage(camera_aa_storage.data() + 3 * cid);
     Eigen::Matrix3d r;
     camera::RodriguesToRotation(aa_storage, &r);
     cid_to_cam_t_global->at(cid).linear() = r;

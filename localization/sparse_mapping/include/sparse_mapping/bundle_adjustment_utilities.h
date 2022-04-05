@@ -52,7 +52,8 @@ namespace sparse_mapping {
                         std::set<int> const& fixed_cameras = std::set<int>());
 
  /**
- * Perform bundle adjustment.
+ * Perform bundle adjustment. Keep fixed all cameras with cid
+ * not within [first, last] and all xyz points which project only onto fixed cameras.
  *
  * cid_to_cam_t_global is the camera transforms
  * focal_length is the focal_length
@@ -64,15 +65,13 @@ namespace sparse_mapping {
  * Ceres loss function and options can be specified, and summary returns results from ceres.
  * Optimize only the cameras with indices in [first, last].
  **/
-  void BundleAdjust(std::vector<std::map<int, int> > const& pid_to_cid_fid,
-                    std::vector<Eigen::Matrix2Xd> const& cid_to_keypoint_map, double focal_length,
+  void BundleAdjust(const std::vector<std::map<int, int> >& pid_to_cid_fid,
+                    const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map, const double focal_length,
                     std::vector<Eigen::Affine3d>* cid_to_cam_t_global, std::vector<Eigen::Vector3d>* pid_to_xyz,
-                    std::vector<std::map<int, int> > const& user_pid_to_cid_fid,
-                    std::vector<Eigen::Matrix2Xd> const& user_cid_to_keypoint_map,
-                    std::vector<Eigen::Vector3d>* user_pid_to_xyz, ceres::LossFunction* loss,
-                    ceres::Solver::Options const& options, ceres::Solver::Summary* summary, int first = 0,
-                    int last = std::numeric_limits<int>::max(), bool fix_cameras = false,
-                    std::set<int> const& fixed_cameras = std::set<int>());
+                    ceres::LossFunction* loss,
+                    const ceres::Solver::Options& options, ceres::Solver::Summary* summary, const int first = 0,
+                    const int last = std::numeric_limits<int>::max(), const bool fix_cameras = false,
+                    const std::set<int>& fixed_cameras = std::set<int>());
 
   /**
    * Perform bundle adjustment.
