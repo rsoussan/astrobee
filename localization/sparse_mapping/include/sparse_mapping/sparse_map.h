@@ -83,7 +83,7 @@ class SparseMap : public SparseMapDatabase {
 
   CIDPairAffineMap MatchFeatures(const bool remove_invalid_traingulated_points);
 
-  void IncrementalBundleAdjust();
+  void IncrementallyBundleAdjust();
 
   // delete feature descriptors with no matching landmark
   void PruneMap();

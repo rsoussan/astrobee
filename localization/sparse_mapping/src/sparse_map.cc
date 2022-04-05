@@ -253,7 +253,7 @@ void SparseMap::PruneMap(void) {
 // both triangulate and see during bundle adjustment only the several
 // most similar cameras. Fixing these would need careful testing for
 // both map quality and run-time before and after the fix.
-void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines) {
+void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affines) {
   for (int latest_cid = 1; latest_cid < num_cameras(); ++latest_cid) {
     std::vector<Eigen::Affine3d > incremental_cid_to_cam_t_global;
     incremental_cid_to_cam_t_global.reserve(latest_cid + 1);
@@ -270,7 +270,7 @@ void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines
     const auto& previous_cid_T_global = incremental_cid_to_cam_t_global[previous_cid];
       incremental_cid_to_cam_t_global.emplace_back(latest_cid_T_previous_cid*previous_cid_T_global);
 
-    // Fill incremental tracks up to latest cid
+    // Use detections for incremental tracks from first cid to latest incremental cid
     std::vector<std::map<int, int> > incremental_pid_to_cid_fid;
     for (int pid = 0; pid < num_points(); ++pid) {
       const auto& feature_track = feature_track(pid);
@@ -282,12 +282,12 @@ void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines
           incremental_track[cid] = fid;
       }
 
-      // Add long enough tracks
+      // Only add long enough tracks
       if ((latest_cid == 1 && track.size() > 1) || track.size() > params_.min_feature_track_length)
         incremental_pid_to_cid_fid.push_back(incremental_track);
     }
 
-    // Triangulate incrementally added tracks
+    // Initialize feature point positions for incrementally added tracks
     std::vector<Eigen::Vector3d> incremental_pid_to_xyz;
     std::vector<std::map<int, int> > incremental_cid_fid_to_pid;
   // TODO(rsoussan): what happens when invalid points are removed??
@@ -321,6 +321,7 @@ void SparseMap::IncrementalBundleAdjust(const CIDPairAffineMap& relative_affines
       cam_T_global(cid) = incremental_cid_to_cam_t_global[cid];
   }
 
+  // Triangulate feature points using final camera poses after incremental bundle adjustment has finished
   Triangulate(true);
 }
 

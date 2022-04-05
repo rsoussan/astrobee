@@ -425,7 +425,7 @@ int main(int argc, char** argv) {
   // Since bundle adjustment hasn't occured yet, don't remove invalid triangulated points
   const bool remove_invalid_triangulated_points = false; 
   const auto relative_affines = map.MatchFeatures(rm_invalid_xyz);
-  map.IncrementalBundleAdjust(relative_affines);
+  map.IncrementallyBundleAdjust(relative_affines);
   map.Save(map_filename);
 
 /*  if (FLAGS_incremental_ba) {
