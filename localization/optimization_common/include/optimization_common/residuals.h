@@ -38,6 +38,7 @@ class AffineFunctor {
   Eigen::Transform<T, 3, Eigen::Affine> operator()(const T* affine_data) const {
     return Affine3<T>(affine_data);
   }
+  static constexpr int kSize = 7;
 };
 
 class IsometryFunctor {
@@ -46,6 +47,7 @@ class IsometryFunctor {
   Eigen::Transform<T, 3, Eigen::Isometry> operator()(const T* isometry_data) const {
     return Isometry3<T>(isometry_data);
   }
+  static constexpr int kSize = 6;
 };
 
 class PointToPointError {
@@ -215,7 +217,7 @@ class ReprojectionError {
     return true;
   }
 
-  template <class LOSS_FUNCTION = ceres::HuberLoss>
+  template <int TRANSFORM_SIZE = IsometryFunctor::kSize, class LOSS_FUNCTION = ceres::HuberLoss>
   static void AddCostFunction(const Eigen::Vector2d& image_point, Eigen::Vector3d& world_t_point,
                               Eigen::Matrix<double, 6, 1>& camera_T_world, Eigen::Vector2d& focal_lengths,
                               Eigen::Vector2d& principal_points, Eigen::VectorXd& distortion, ceres::Problem& problem,
@@ -224,7 +226,7 @@ class ReprojectionError {
     ceres::LossFunction* scaled_loss_function =
       new ceres::ScaledLoss(loss_function, scale_factor, ceres::TAKE_OWNERSHIP);
     ceres::CostFunction* reprojection_cost_function =
-      new ceres::AutoDiffCostFunction<ReprojectionError<DISTORTER>, 2, 3, 6, 2, 2, DISTORTER::kNumParams>(
+      new ceres::AutoDiffCostFunction<ReprojectionError<DISTORTER>, 2, 3, TRANSFORM_SIZE, 2, 2, DISTORTER::kNumParams>(
         new ReprojectionError<DISTORTER>(image_point));
     problem.AddResidualBlock(reprojection_cost_function, scaled_loss_function, world_t_point.data(),
                              camera_T_world.data(), focal_lengths.data(), principal_points.data(), distortion.data());
