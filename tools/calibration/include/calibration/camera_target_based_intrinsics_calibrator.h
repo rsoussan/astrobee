@@ -111,30 +111,38 @@ bool CameraTargetBasedIntrinsicsCalibrator<DISTORTER>::Calibrate(const std::vect
                                                                  StateParameters& calibrated_state_parameters,
                                                                  StateParametersCovariances& covariances) {
   Initialize(initial_state_parameters);
-  // Reserve so that pointers aren't modified while new target poses are added.
-  // This can mess up ceres::Problem since it relies on pointers of add parameters.
+  // Reserve and add target poses and 3d points first so that pointers are set
+  // for the ceres::Problem since it relies on constant pointer locations for parameters.
   state_parameters_.camera_T_targets.reserve(match_sets.size());
-  // Add residuals to problem
+  valid_correspondences_set_.reserve(match_sets.size());
   for (const auto& match_set : match_sets) {
     AddCameraTTargetParameter(match_set.pose_estimate);
     localization_common::ImageCorrespondences valid_correspondences =
       params_.only_use_inliers ? InlierMatches(match_set.correspondences, match_set.inliers)
                                : match_set.correspondences;
     valid_correspondences_set_.emplace_back(valid_correspondences);
-    for (int i = 0; i < static_cast<int>(valid_correspondences.size()) && i < params_.max_num_match_sets; ++i) {
-      const double radial_scale_factor = RadialScaleFactor(valid_correspondences.image_points[i], params_.image_size);
+  }
+  // Add residuals to problem
+  for (int i = 0; i < static_cast<int>(valid_correspondences_set_.size()) && i < params_.max_num_match_sets; ++i) {
+    const auto& valid_correspondences = valid_correspondences_set_[i];
+    for (int j = 0; j < valid_correspondences.size(); ++j) {
+      const double radial_scale_factor = RadialScaleFactor(valid_correspondences.image_points[j], params_.image_size);
+      auto& world_t_point = const_cast<Eigen::Vector3d&>(valid_correspondences.points_3d[j]);
+      optimization_common::AddConstantParameterBlock(3, world_t_point.data(), problem_);
       optimization_common::ReprojectionError<DISTORTER>::AddCostFunction(
-        valid_correspondences.image_points[i], valid_correspondences.points_3d[i],
-        state_parameters_.camera_T_targets.back(), state_parameters_.focal_lengths, state_parameters_.principal_points,
-        state_parameters_.distortion, problem_, params_.optimization.huber_loss, radial_scale_factor);
+        valid_correspondences.image_points[j], world_t_point, state_parameters_.camera_T_targets[j],
+        state_parameters_.focal_lengths, state_parameters_.principal_points, state_parameters_.distortion, problem_,
+        params_.optimization.huber_loss, radial_scale_factor);
     }
   }
 
   ceres::Solver::Summary summary;
   ceres::Solve(params_.optimization.solver_options, &problem_, &summary);
   if (params_.optimization.verbose) std::cout << summary.FullReport() << std::endl;
+  std::cout << summary.FullReport() << std::endl;
   if (!summary.IsSolutionUsable()) {
     LogError("Calibrate: Calibration failed.");
+    LogError("Summary: " << std::endl << summary.FullReport());
     return false;
   }
 

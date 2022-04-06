@@ -255,10 +255,12 @@ boost::optional<PoseWithCovarianceAndInliers> ReprojectionPoseEstimateWithInitia
 
   for (int i = 0; i < num_initial_inliers; ++i) {
     const int inlier_index = initial_inliers[i];
+    auto& point_3d = const_cast<Eigen::Vector3d&>(points_3d[inlier_index]);
+    optimization_common::AddConstantParameterBlock(3, point_3d.data(), problem);
     optimization_common::ReprojectionError<DISTORTER>::AddCostFunction(
-      image_points[inlier_index], points_3d[inlier_index], pose_estimate_vector,
-      const_cast<Eigen::Vector2d&>(focal_lengths), const_cast<Eigen::Vector2d&>(principal_points),
-      const_cast<Eigen::VectorXd&>(distortion), problem, params.optimization.huber_loss);
+      image_points[inlier_index], point_3d, pose_estimate_vector, const_cast<Eigen::Vector2d&>(focal_lengths),
+      const_cast<Eigen::Vector2d&>(principal_points), const_cast<Eigen::VectorXd&>(distortion), problem,
+      params.optimization.huber_loss);
   }
 
   ceres::Solver::Summary summary;

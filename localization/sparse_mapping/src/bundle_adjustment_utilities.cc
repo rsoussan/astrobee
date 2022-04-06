@@ -52,6 +52,8 @@ DEFINE_int32(last_ba_index, std::numeric_limits<int>::max(),
              "Vary only cameras ending with this index during bundle adjustment.");
 
 namespace sparse_mapping {
+namespace oc = optimization_common;
+
 void BundleAdjust(bool fix_all_cameras, sparse_mapping::SparseMap * map,
                   std::set<int> const& fixed_cameras) {
   for (int i = 0; i < FLAGS_num_ba_passes; i++) {
@@ -104,24 +106,26 @@ void BundleAdjustment(sparse_mapping::SparseMap * s,
 
 
 // TODO(rsoussan): When are first/last used? when are cameras fixed?
+// TODO(rsoussan): Make this more general? add wrapper that passes cid stuff, only use eigen types for this one?
 void BundleAdjust(const std::vector<std::map<int, int> >& pid_to_cid_fid,
                   const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map, const double focal_length,
                   std::vector<Eigen::Affine3d>* cid_to_cam_t_global, std::vector<Eigen::Vector3d>* pid_to_xyz,
                   ceres::LossFunction* loss, const ceres::Solver::Options& options, ceres::Solver::Summary* summary,
                   const int first, const int last, const bool fix_all_cameras, const std::set<int>& fixed_cameras) {
-  // TODO(rsoussan): Use opt common conversion! rename to state_parameters!
-  std::vector<double> camera_aa_storage;
-  camera_aa_storage.reserve(3 * cid_to_cam_t_global->size());
+  std::vector<Eigen::Matrix<double, 7, 1>> camera_T_worlds;
+  camera_T_worlds.reserve(cid_to_cam_t_global->size());
   for (int cid = 0; cid < cid_to_cam_t_global->size(); ++cid) {
-    Eigen::Map<Eigen::Vector3d> aa_storage;
-    aa_storage.reserve(camera_aa_storage.data() + 3 * cid);
-    Eigen::Vector3d vec;
-    camera::RotationToRodrigues(cid_to_cam_t_global->at(cid).linear(),
-                               &vec);
-    aa_storage = vec;
+    camera_T_worlds.emplace_back(oc::VectorFromAffine3d(cid_to_cam_t_global->at(cid)));
   }
 
   ceres::Problem problem;
+  // Centered, undistored camera
+  const Eigen::Vector2d zero_principal_points(Eigen::Vector2d::Zero());
+  const Eigen::VectorXd zero_distortion(1);
+  const Eigen::Vector2d focal_lengths(focal_length, focal_length);
+  oc::AddParameterBlock(2, zero_principal_points.data(), problem, true);
+  oc::AddParameterBlock(1, zero_distortion.data(), problem, true);
+  oc::AddParameterBlock(2, focal_lengths.data(), problem, true);
     for (int pid = 0; pid < static_cast<int>(pid_to_xyz->size()); ++pid) {
       if (pid_to_cid_fid[pid].size() < 2)
         LOG(FATAL) << "Found a track of size < 2.";
@@ -137,7 +141,13 @@ void BundleAdjust(const std::vector<std::map<int, int> >& pid_to_cid_fid,
       for (const auto& cid_fid : pid_to_cid_fid[pid]) {
         const int cid = cid_fid.first;
         const int fid = cid_fid.second;
-        ceres::CostFunction* cost_function =
+        const auto& image_point = cid_to_keypoint_map[cid].col(fid);
+        const auto& point_3d = pid_to_xyz->at(pid);
+  oc::ReprojectionError<vc::IdentityDistorter>::AddCostFunction(
+        image_point, point_3d,
+        state_parameters_.camera_T_targets.back(), state_parameters_.focal_lengths, state_parameters_.principal_points,
+        state_parameters_.distortion, problem_, params_.optimization.huber_loss, radial_scale_factor);
+   /*     ceres::CostFunction* cost_function =
           ReprojectionError::Create(cid_to_keypoint_map[cid].col(fid));
 
         // TODO(rsoussan): why [0]?
@@ -147,7 +157,7 @@ void BundleAdjust(const std::vector<std::map<int, int> >& pid_to_cid_fid,
                                  &cid_to_cam_t_global->at(cid).translation()[0],
                                  &camera_aa_storage[3 * cid],
                                  &pid_to_xyz->at(pid)[0],
-                                 &focal_length);
+                                 &focal_length);*/
 
         // TODO(rsoussan): Why would cid be out of range? would cam_t_global still be valid then?
         if (fix_all_cameras || (cid < first || cid > last) ||
@@ -180,6 +190,7 @@ void BundleAdjust(const std::vector<std::map<int, int> >& pid_to_cid_fid,
 }
 
 // This is a very specialized function
+// TODO(rsoussan): Combine this with other bundle adjust function!!!!!
 void BundleAdjustSmallSet(std::vector<Eigen::Matrix2Xd> const& features_n,
                           double focal_length,
                           std::vector<Eigen::Affine3d> * cam_t_global_n,

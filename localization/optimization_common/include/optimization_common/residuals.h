@@ -195,17 +195,17 @@ class DepthReprojectionError {
 template <typename DISTORTER, typename TRANSFORM_FUNCTOR = IsometryFunctor>
 class ReprojectionError {
  public:
-  ReprojectionError(const Eigen::Vector2d& image_point, const Eigen::Vector3d& world_t_point_3d)
-      : image_point_(image_point), world_t_point_3d_(world_t_point_3d) {}
+  explicit ReprojectionError(const Eigen::Vector2d& image_point) : image_point_(image_point) {}
 
   template <typename T>
-  bool operator()(const T* camera_T_world_data, const T* focal_lengths_data, const T* principal_points_data,
-                  const T* distortion_data, T* reprojection_error) const {
+  bool operator()(const T* world_t_point_data, const T* camera_T_world_data, const T* focal_lengths_data,
+                  const T* principal_points_data, const T* distortion_data, T* reprojection_error) const {
     // Handle type conversions
     const auto intrinsics = Intrinsics<T>(focal_lengths_data, principal_points_data);
     const auto camera_T_world = transform_type_(camera_T_world_data);
+    Eigen::Map<const Eigen::Matrix<T, 3, 1>> world_t_point(world_t_point_data);
     // Compute error
-    const Eigen::Matrix<T, 3, 1> camera_t_point_3d = camera_T_world * world_t_point_3d_.cast<T>();
+    const Eigen::Matrix<T, 3, 1> camera_t_point_3d = camera_T_world * world_t_point;
     const Eigen::Matrix<T, 2, 1> undistorted_reprojected_point_3d = (intrinsics * camera_t_point_3d).hnormalized();
     const Eigen::Matrix<T, 2, 1> distorted_reprojected_point_3d =
       distorter_.Distort(distortion_data, intrinsics, undistorted_reprojected_point_3d);
@@ -216,7 +216,7 @@ class ReprojectionError {
   }
 
   template <class LOSS_FUNCTION = ceres::HuberLoss>
-  static void AddCostFunction(const Eigen::Vector2d& image_point, const Eigen::Vector3d& point_3d,
+  static void AddCostFunction(const Eigen::Vector2d& image_point, Eigen::Vector3d& world_t_point,
                               Eigen::Matrix<double, 6, 1>& camera_T_world, Eigen::Vector2d& focal_lengths,
                               Eigen::Vector2d& principal_points, Eigen::VectorXd& distortion, ceres::Problem& problem,
                               const double loss_threshold = 1.345, const double scale_factor = 1) {
@@ -224,15 +224,14 @@ class ReprojectionError {
     ceres::LossFunction* scaled_loss_function =
       new ceres::ScaledLoss(loss_function, scale_factor, ceres::TAKE_OWNERSHIP);
     ceres::CostFunction* reprojection_cost_function =
-      new ceres::AutoDiffCostFunction<ReprojectionError<DISTORTER>, 2, 6, 2, 2, DISTORTER::kNumParams>(
-        new ReprojectionError<DISTORTER>(image_point, point_3d));
-    problem.AddResidualBlock(reprojection_cost_function, scaled_loss_function, camera_T_world.data(),
-                             focal_lengths.data(), principal_points.data(), distortion.data());
+      new ceres::AutoDiffCostFunction<ReprojectionError<DISTORTER>, 2, 3, 6, 2, 2, DISTORTER::kNumParams>(
+        new ReprojectionError<DISTORTER>(image_point));
+    problem.AddResidualBlock(reprojection_cost_function, scaled_loss_function, world_t_point.data(),
+                             camera_T_world.data(), focal_lengths.data(), principal_points.data(), distortion.data());
   }
 
  private:
   Eigen::Vector2d image_point_;
-  Eigen::Vector3d world_t_point_3d_;
   DISTORTER distorter_;
   TRANSFORM_FUNCTOR transform_type_;
 };
