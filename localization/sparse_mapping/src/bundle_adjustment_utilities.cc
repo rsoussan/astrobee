@@ -112,10 +112,10 @@ void BundleAdjust(const std::vector<std::map<int, int> >& pid_to_cid_fid,
                   std::vector<Eigen::Affine3d>* cid_to_cam_t_global, std::vector<Eigen::Vector3d>* pid_to_xyz,
                   ceres::LossFunction* loss, const ceres::Solver::Options& options, ceres::Solver::Summary* summary,
                   const int first, const int last, const bool fix_all_cameras, const std::set<int>& fixed_cameras) {
-  std::vector<Eigen::Matrix<double, 7, 1>> camera_T_worlds;
-  camera_T_worlds.reserve(cid_to_cam_t_global->size());
+  std::vector<Eigen::Matrix<double, 7, 1>> camera_T_globals;
+  camera_T_globals.reserve(cid_to_cam_t_global->size());
   for (int cid = 0; cid < cid_to_cam_t_global->size(); ++cid) {
-    camera_T_worlds.emplace_back(oc::VectorFromAffine3d(cid_to_cam_t_global->at(cid)));
+    camera_T_globals.emplace_back(oc::VectorFromAffine3d(cid_to_cam_t_global->at(cid)));
   }
 
   ceres::Problem problem;
@@ -123,9 +123,9 @@ void BundleAdjust(const std::vector<std::map<int, int> >& pid_to_cid_fid,
   const Eigen::Vector2d zero_principal_points(Eigen::Vector2d::Zero());
   const Eigen::VectorXd zero_distortion(1);
   const Eigen::Vector2d focal_lengths(focal_length, focal_length);
-  oc::AddParameterBlock(2, zero_principal_points.data(), problem, true);
-  oc::AddParameterBlock(1, zero_distortion.data(), problem, true);
-  oc::AddParameterBlock(2, focal_lengths.data(), problem, true);
+  oc::AddConstantParameterBlock(2, zero_principal_points.data(), problem);
+  oc::AddConstantParameterBlock(1, zero_distortion.data(), problem);
+  oc::AddConstantParameterBlock(2, focal_lengths.data(), problem);
     for (int pid = 0; pid < static_cast<int>(pid_to_xyz->size()); ++pid) {
       if (pid_to_cid_fid[pid].size() < 2)
         LOG(FATAL) << "Found a track of size < 2.";
@@ -142,28 +142,18 @@ void BundleAdjust(const std::vector<std::map<int, int> >& pid_to_cid_fid,
         const int cid = cid_fid.first;
         const int fid = cid_fid.second;
         const auto& image_point = cid_to_keypoint_map[cid].col(fid);
-        const auto& point_3d = pid_to_xyz->at(pid);
-  oc::ReprojectionError<vc::IdentityDistorter>::AddCostFunction(
-        image_point, point_3d,
-        state_parameters_.camera_T_targets.back(), state_parameters_.focal_lengths, state_parameters_.principal_points,
-        state_parameters_.distortion, problem_, params_.optimization.huber_loss, radial_scale_factor);
-   /*     ceres::CostFunction* cost_function =
-          ReprojectionError::Create(cid_to_keypoint_map[cid].col(fid));
-
-        // TODO(rsoussan): why [0]?
-        // TODO(rsoussan): Why ->at instead of []?
-        problem.AddResidualBlock(cost_function,
-                                 loss,
-                                 &cid_to_cam_t_global->at(cid).translation()[0],
-                                 &camera_aa_storage[3 * cid],
-                                 &pid_to_xyz->at(pid)[0],
-                                 &focal_length);*/
+        auto& point_3d = pid_to_xyz->at(pid);
+        auto& camera_T_global = camera_T_globals[cid];
+        // TODO(rsoussan): Which loss to use? (A)
+        oc::ReprojectionError<vc::IdentityDistorter, oc::AffineFunctor::kSize>::AddCostFunction(
+          image_point, point_3d, camera_T_global, const_cast<Eigen::Vector2d&>(focal_lengths),
+          const_cast<Eigen::Vector2d&>(zero_principal_points), const_cast<Eigen::VectorXd&>(zero_distortion), problem_,
+          params_.optimization.huber_loss);
 
         // TODO(rsoussan): Why would cid be out of range? would cam_t_global still be valid then?
         if (fix_all_cameras || (cid < first || cid > last) ||
             fixed_cameras.find(cid) != fixed_cameras.end()) {
-          problem.SetParameterBlockConstant(&cid_to_cam_t_global->at(cid).translation()[0]);
-          problem.SetParameterBlockConstant(&camera_aa_storage[3 * cid]);
+          problem.SetParameterBlockConstant(camera_T_global.data());
         }
       }
       if (fix_pid) {
@@ -171,21 +161,16 @@ void BundleAdjust(const std::vector<std::map<int, int> >& pid_to_cid_fid,
         // Also, must not float points given by the user, those are measurements
         // we are supposed to reference ourselves against, and floating
         // them can make us lose the real world scale.
-        problem.SetParameterBlockConstant(&pid_to_xyz->at(pid)[0]);
+        problem.SetParameterBlockConstant((pid_to_xyz->at(pid)).data());
       }
     }
-    problem.SetParameterBlockConstant(&focal_length);
 
-  // Solve the problem
+  // TODO(rsoussan): get options from params!
   ceres::Solve(options, &problem, summary);
 
   // Write the rotations back to the transform
-  for (int cid = 0; cid < static_cast<int>(cid_to_cam_t_global->size()); ++cid) {
-    // TODO(rsoussan): why .data? why *3?
-    Eigen::Map<Eigen::Vector3d> aa_storage(camera_aa_storage.data() + 3 * cid);
-    Eigen::Matrix3d r;
-    camera::RodriguesToRotation(aa_storage, &r);
-    cid_to_cam_t_global->at(cid).linear() = r;
+  for (int cid = 0; cid < cid_to_cam_t_global->size(); ++cid) {
+    cid_to_cam_t_global->at(cid) = oc::Affine3d(camera_T_globals[cid]);
   }
 }
 

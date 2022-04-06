@@ -219,10 +219,19 @@ class ReprojectionError {
 
   template <int TRANSFORM_SIZE = IsometryFunctor::kSize, class LOSS_FUNCTION = ceres::HuberLoss>
   static void AddCostFunction(const Eigen::Vector2d& image_point, Eigen::Vector3d& world_t_point,
-                              Eigen::Matrix<double, 6, 1>& camera_T_world, Eigen::Vector2d& focal_lengths,
+                              Eigen::Matrix<double, TRANSFORM_SIZE, 1>& camera_T_world, Eigen::Vector2d& focal_lengths,
                               Eigen::Vector2d& principal_points, Eigen::VectorXd& distortion, ceres::Problem& problem,
                               const double loss_threshold = 1.345, const double scale_factor = 1) {
     ceres::LossFunction* loss_function = new LOSS_FUNCTION(loss_threshold);
+    AddCostFunction(image_point, world_t_point, camera_T_world, focal_lengths, principal_points, distortion, problem,
+                    loss_function, scale_factor);
+  }
+
+  template <int TRANSFORM_SIZE = IsometryFunctor::kSize>
+  static void AddCostFunction(const Eigen::Vector2d& image_point, Eigen::Vector3d& world_t_point,
+                              Eigen::Matrix<double, TRANSFORM_SIZE, 1>& camera_T_world, Eigen::Vector2d& focal_lengths,
+                              Eigen::Vector2d& principal_points, Eigen::VectorXd& distortion, ceres::Problem& problem,
+                              ceres::LossFunction* loss_function, const double scale_factor = 1) {
     ceres::LossFunction* scaled_loss_function =
       new ceres::ScaledLoss(loss_function, scale_factor, ceres::TAKE_OWNERSHIP);
     ceres::CostFunction* reprojection_cost_function =
