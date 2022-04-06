@@ -130,7 +130,7 @@ bool CameraTargetBasedIntrinsicsCalibrator<DISTORTER>::Calibrate(const std::vect
       auto& world_t_point = const_cast<Eigen::Vector3d&>(valid_correspondences.points_3d[j]);
       optimization_common::AddConstantParameterBlock(3, world_t_point.data(), problem_);
       optimization_common::ReprojectionError<DISTORTER>::AddCostFunction(
-        valid_correspondences.image_points[j], world_t_point, state_parameters_.camera_T_targets[j],
+        valid_correspondences.image_points[j], world_t_point, state_parameters_.camera_T_targets[i],
         state_parameters_.focal_lengths, state_parameters_.principal_points, state_parameters_.distortion, problem_,
         params_.optimization.huber_loss, radial_scale_factor);
     }
@@ -139,7 +139,6 @@ bool CameraTargetBasedIntrinsicsCalibrator<DISTORTER>::Calibrate(const std::vect
   ceres::Solver::Summary summary;
   ceres::Solve(params_.optimization.solver_options, &problem_, &summary);
   if (params_.optimization.verbose) std::cout << summary.FullReport() << std::endl;
-  std::cout << summary.FullReport() << std::endl;
   if (!summary.IsSolutionUsable()) {
     LogError("Calibrate: Calibration failed.");
     LogError("Summary: " << std::endl << summary.FullReport());
