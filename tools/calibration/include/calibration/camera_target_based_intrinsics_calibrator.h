@@ -207,10 +207,8 @@ template <typename DISTORTER>
 void CameraTargetBasedIntrinsicsCalibrator<DISTORTER>::AddCameraTTargetParameter(
   const Eigen::Isometry3d& camera_T_target) {
   state_parameters_.AddCameraTTarget(camera_T_target);
-  optimization_common::AddParameterBlock(6, state_parameters_.camera_T_targets.back().data(), problem_,
+  optimization_common::AddSE3ParameterBlock(state_parameters_.camera_T_targets.back().data(), problem_,
                                          !params_.calibrate_target_poses);
-  ceres::LocalParameterization* se3_local_parameterization = new optimization_common::SE3LocalParameterization;
-  problem_.SetParameterization(state_parameters_.camera_T_targets.back().data(), se3_local_parameterization);
 }
 
 template <typename DISTORTER>

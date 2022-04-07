@@ -251,7 +251,7 @@ boost::optional<PoseWithCovarianceAndInliers> ReprojectionPoseEstimateWithInitia
   optimization_common::AddConstantParameterBlock(DISTORTER::kNumParams, distortion.data(), problem);
 
   Eigen::Matrix<double, 6, 1> pose_estimate_vector = optimization_common::VectorFromIsometry3d(initial_estimate);
-  problem.AddParameterBlock(pose_estimate_vector.data(), 6);
+  optimization_common::AddSE3ParameterBlock(pose_estimate_vector.data(), problem);
 
   for (int i = 0; i < num_initial_inliers; ++i) {
     const int inlier_index = initial_inliers[i];

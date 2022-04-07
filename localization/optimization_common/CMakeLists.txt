@@ -78,6 +78,14 @@ if(CATKIN_ENABLE_TESTING)
     ${PROJECT_NAME} ${catkin_LIBRARIES}  
   )
   find_package(rostest REQUIRED)
+  add_rostest_gtest(test_affine3_local_parameterization
+    test/test_affine3_local_parameterization.test
+    test/test_affine3_local_parameterization.cc
+  )
+  target_link_libraries(test_affine3_local_parameterization
+    ${PROJECT_NAME} ${catkin_LIBRARIES}   
+  )
+  find_package(rostest REQUIRED)
   add_rostest_gtest(test_se3_local_parameterization
     test/test_se3_local_parameterization.test
     test/test_se3_local_parameterization.cc

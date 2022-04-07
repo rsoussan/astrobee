@@ -63,6 +63,14 @@ void AddConstantParameterBlock(const int num_parameters, double* const parameter
 
 void AddConstantParameterBlock(const int num_parameters, double const* const parameters, ceres::Problem& problem);
 
+void AddSE3ParameterBlock(double* const parameters, ceres::Problem& problem, const bool set_constant = false);
+
+void AddConstantSE3ParameterBlock(double* const parameters, ceres::Problem& problem);
+
+void AddAffine3ParameterBlock(double* const parameters, ceres::Problem& problem, const bool set_constant = false);
+
+void AddConstantAffine3ParameterBlock(double* const parameters, ceres::Problem& problem);
+
 double ResidualNorm(const std::vector<double>& residual, const int index, const int residual_size);
 
 // Assumes each residual is the same size
@@ -78,6 +86,22 @@ Eigen::Matrix<T, 6, 1> VectorFromIsometry3(const Eigen::Transform<T, 3, Eigen::I
   isometry_3_vector[4] = isometry_3.translation().y();
   isometry_3_vector[5] = isometry_3.translation().z();
   return isometry_3_vector;
+}
+
+template <typename T>
+Eigen::Matrix<T, 7, 1> VectorFromAffine3(const Eigen::Transform<T, 3, Eigen::Affine>& affine_3) {
+  Eigen::Matrix<T, 3, 3> rotation;
+  Eigen::Matrix<T, 3, 3> scale_matrix;
+  affine_3.computeRotationScaling(&rotation, &scale_matrix);
+  // Assumes uniform scaling, which is the case for Affine3d
+  const T scale = scale_matrix(0, 0);
+  Eigen::Matrix<T, 7, 1> affine_3_vector;
+  ceres::RotationMatrixToAngleAxis(rotation.data(), &(affine_3_vector.data()[0]));
+  affine_3_vector[3] = affine_3.translation().x();
+  affine_3_vector[4] = affine_3.translation().y();
+  affine_3_vector[5] = affine_3.translation().z();
+  affine_3_vector[6] = scale;
+  return affine_3_vector;
 }
 
 template <typename T>

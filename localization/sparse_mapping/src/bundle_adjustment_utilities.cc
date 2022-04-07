@@ -144,16 +144,21 @@ void BundleAdjust(const std::vector<std::map<int, int> >& pid_to_cid_fid,
         const auto& image_point = cid_to_keypoint_map[cid].col(fid);
         auto& point_3d = pid_to_xyz->at(pid);
         auto& camera_T_global = camera_T_globals[cid];
-        // TODO(rsoussan): Which loss to use? (A)
-        oc::ReprojectionError<vc::IdentityDistorter, oc::AffineFunctor::kSize>::AddCostFunction(
-          image_point, point_3d, camera_T_global, const_cast<Eigen::Vector2d&>(focal_lengths),
-          const_cast<Eigen::Vector2d&>(zero_principal_points), const_cast<Eigen::VectorXd&>(zero_distortion), problem_,
-          params_.optimization.huber_loss);
+      oc::AddAffine3ParameterBlock(camera_T_global.data(), problem);
+      // TODO(rsoussan): Optimize for scale??? test!! switch to subset manifold?? Can you add two local
+      // parameterizations to one param block??
+      ceres::SubsetParameterization* constant_scale_parameterization = new ceres::SubsetParameterization(7, {6});
+      problem.SetParameterization(camera_T_global.data(), constant_scale_parameterization);
 
-        // TODO(rsoussan): Why would cid be out of range? would cam_t_global still be valid then?
-        if (fix_all_cameras || (cid < first || cid > last) ||
-            fixed_cameras.find(cid) != fixed_cameras.end()) {
-          problem.SetParameterBlockConstant(camera_T_global.data());
+      // TODO(rsoussan): Which loss to use? (A)
+      oc::ReprojectionError<vc::IdentityDistorter, oc::AffineFunctor::kSize>::AddCostFunction(
+        image_point, point_3d, camera_T_global, const_cast<Eigen::Vector2d&>(focal_lengths),
+        const_cast<Eigen::Vector2d&>(zero_principal_points), const_cast<Eigen::VectorXd&>(zero_distortion), problem_,
+        params_.optimization.huber_loss);
+
+      // TODO(rsoussan): Why would cid be out of range? would cam_t_global still be valid then?
+      if (fix_all_cameras || (cid < first || cid > last) || fixed_cameras.find(cid) != fixed_cameras.end()) {
+        problem.SetParameterBlockConstant(camera_T_global.data());
         }
       }
       if (fix_pid) {

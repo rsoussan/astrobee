@@ -15,6 +15,8 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
+#include <optimization_common/affine3_local_parameterization.h>
+#include <optimization_common/se3_local_parameterization.h>
 #include <optimization_common/utilities.h>
 #include <localization_common/logger.h>
 
@@ -24,16 +26,7 @@ Eigen::Matrix<double, 6, 1> VectorFromIsometry3d(const Eigen::Isometry3d& isomet
 }
 
 Eigen::Matrix<double, 7, 1> VectorFromAffine3d(const Eigen::Affine3d& affine_3d) {
-  Eigen::Matrix3d rotation;
-  Eigen::Matrix3d scale_matrix;
-  affine_3d.computeRotationScaling(&rotation, &scale_matrix);
-  // Assumes uniform scaling, which is the case for Affine3d
-  const double scale = scale_matrix(0, 0);
-  Eigen::Matrix<double, 7, 1> affine_3d_vector;
-  ceres::RotationMatrixToAngleAxis(rotation.data(), &(affine_3d_vector.data()[0]));
-  affine_3d_vector.block<3, 1>(3, 0) = affine_3d.translation();
-  affine_3d_vector(6, 0) = scale;
-  return affine_3d_vector;
+  return VectorFromAffine3<double>(affine_3d);
 }
 
 Eigen::Isometry3d Isometry3d(const Eigen::Matrix<double, 6, 1>& isometry_vector) {
@@ -64,6 +57,26 @@ void AddConstantParameterBlock(const int num_parameters, double* const parameter
 void AddConstantParameterBlock(const int num_parameters, double const* const parameters, ceres::Problem& problem) {
   // Even though parameter doesn't change ceres requires a non const data type
   AddConstantParameterBlock(num_parameters, const_cast<double*>(parameters), problem);
+}
+
+void AddSE3ParameterBlock(double* const parameters, ceres::Problem& problem, const bool set_constant) {
+  AddParameterBlock(6, parameters, problem, set_constant);
+  ceres::LocalParameterization* se3_local_parameterization = new SE3LocalParameterization;
+  problem.SetParameterization(parameters, se3_local_parameterization);
+}
+
+void AddConstantSE3ParameterBlock(double* const parameters, ceres::Problem& problem) {
+  AddSE3ParameterBlock(parameters, problem, true);
+}
+
+void AddAffine3ParameterBlock(double* const parameters, ceres::Problem& problem, const bool set_constant) {
+  AddParameterBlock(6, parameters, problem, set_constant);
+  ceres::LocalParameterization* affine3_local_parameterization = new Affine3LocalParameterization;
+  problem.SetParameterization(parameters, affine3_local_parameterization);
+}
+
+void AddConstantAffine3ParameterBlock(double* const parameters, ceres::Problem& problem) {
+  AddAffine3ParameterBlock(parameters, problem, true);
 }
 
 double ResidualNorm(const std::vector<double>& residual, const int index, const int residual_size) {
