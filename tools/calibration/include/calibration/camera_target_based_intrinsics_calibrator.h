@@ -208,7 +208,7 @@ void CameraTargetBasedIntrinsicsCalibrator<DISTORTER>::AddCameraTTargetParameter
   const Eigen::Isometry3d& camera_T_target) {
   state_parameters_.AddCameraTTarget(camera_T_target);
   optimization_common::AddSE3ParameterBlock(state_parameters_.camera_T_targets.back().data(), problem_,
-                                         !params_.calibrate_target_poses);
+                                            !params_.calibrate_target_poses);
 }
 
 template <typename DISTORTER>

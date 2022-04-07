@@ -75,8 +75,6 @@ EstimatePoseResults EstimatePose(
 EstimatePoseResults EstimatePose(
   const std::string& image_filename, const EstimatePoseParams& params, SparseMap& map);
 
-  ceres::LossFunction* GetLossFunction(std::string cost_fun, double th);
-
 // Random integer between min (inclusive) and max (exclusive)
 int RandomInt(int min, int max);
 

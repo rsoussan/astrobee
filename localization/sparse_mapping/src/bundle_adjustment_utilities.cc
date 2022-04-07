@@ -51,6 +51,28 @@ DEFINE_int32(first_ba_index, 0,
 DEFINE_int32(last_ba_index, std::numeric_limits<int>::max(),
              "Vary only cameras ending with this index during bundle adjustment.");
 
+namespace {
+bool FixedCamera(const BundleAdjustmentParams& params, const int cid) {
+  // TODO(rsoussan): Why would cid be out of range? would cam_t_global still be valid then?
+  const bool in_optimize_range =
+    params.optimize_camera_range && (cid >= params.first_optimized_camera && cid <= params.last_optimized_camera);
+  if (params.fix_all_cameras || !in_optimize_range || fixed_cameras.find(cid) != fixed_cameras.end()) {
+    return true;
+  }
+  return false;
+}
+
+// Vary points which project into cameras that are not fixed
+bool FixedPoint(const BundleAdjustmentParams& params, const int pid,
+                const std::vector<std::map<int, int>>& pid_to_cid_fid) {
+  for (const auto& cid_fid : pid_to_cid_fid[pid]) {
+    const int cid = cid_fid.first;
+    if (cid >= params.first_optimized_camera && cid <= params.last_optimized_camera) return false;
+  }
+  return true;
+}
+}  // namespace
+
 namespace sparse_mapping {
 namespace oc = optimization_common;
 
@@ -107,11 +129,10 @@ void BundleAdjustment(sparse_mapping::SparseMap * s,
 
 // TODO(rsoussan): When are first/last used? when are cameras fixed?
 // TODO(rsoussan): Make this more general? add wrapper that passes cid stuff, only use eigen types for this one?
-void BundleAdjust(const std::vector<std::map<int, int> >& pid_to_cid_fid,
+void BundleAdjust(const BundleAdjustmentParams& params, const std::vector<std::map<int, int> >& pid_to_cid_fid,
                   const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map, const double focal_length,
                   std::vector<Eigen::Affine3d>* cid_to_cam_t_global, std::vector<Eigen::Vector3d>* pid_to_xyz,
-                  ceres::LossFunction* loss, const ceres::Solver::Options& options, ceres::Solver::Summary* summary,
-                  const int first, const int last, const bool fix_all_cameras, const std::set<int>& fixed_cameras) {
+                  ceres::Solver::Summary* summary) {
   std::vector<Eigen::Matrix<double, 7, 1>> camera_T_globals;
   camera_T_globals.reserve(cid_to_cam_t_global->size());
   for (int cid = 0; cid < cid_to_cam_t_global->size(); ++cid) {
@@ -130,48 +151,28 @@ void BundleAdjust(const std::vector<std::map<int, int> >& pid_to_cid_fid,
       if (pid_to_cid_fid[pid].size() < 2)
         LOG(FATAL) << "Found a track of size < 2.";
 
-      // Vary points which project into cameras that are not fixed
-      bool fix_pid = true;
-      for (const auto& cid_fid : pid_to_cid_fid[pid]) {
-        const int cid = cid_fid.first;
-        if (cid >= first && cid <= last)
-          fix_pid = false;
-      }
-
-      for (const auto& cid_fid : pid_to_cid_fid[pid]) {
+      auto& point_3d = pid_to_xyz->at(pid);
+       for (const auto& cid_fid : pid_to_cid_fid[pid]) {
         const int cid = cid_fid.first;
         const int fid = cid_fid.second;
         const auto& image_point = cid_to_keypoint_map[cid].col(fid);
-        auto& point_3d = pid_to_xyz->at(pid);
         auto& camera_T_global = camera_T_globals[cid];
-      oc::AddAffine3ParameterBlock(camera_T_global.data(), problem);
+
+      const bool fixed_camera = FixedCamera(params, cid);
+      oc::AddAffine3ParameterBlock(camera_T_global.data(), problem, fixed_camera);
       // TODO(rsoussan): Optimize for scale??? test!! switch to subset manifold?? Can you add two local
       // parameterizations to one param block??
       ceres::SubsetParameterization* constant_scale_parameterization = new ceres::SubsetParameterization(7, {6});
       problem.SetParameterization(camera_T_global.data(), constant_scale_parameterization);
 
-      // TODO(rsoussan): Which loss to use? (A)
-      oc::ReprojectionError<vc::IdentityDistorter, oc::AffineFunctor::kSize>::AddCostFunction(
+      oc::ReprojectionError<vc::IdentityDistorter, oc::AffineFunctor>::AddCostFunction(
         image_point, point_3d, camera_T_global, const_cast<Eigen::Vector2d&>(focal_lengths),
-        const_cast<Eigen::Vector2d&>(zero_principal_points), const_cast<Eigen::VectorXd&>(zero_distortion), problem_,
-        params_.optimization.huber_loss);
-
-      // TODO(rsoussan): Why would cid be out of range? would cam_t_global still be valid then?
-      if (fix_all_cameras || (cid < first || cid > last) || fixed_cameras.find(cid) != fixed_cameras.end()) {
-        problem.SetParameterBlockConstant(camera_T_global.data());
-        }
+        const_cast<Eigen::Vector2d&>(zero_principal_points), const_cast<Eigen::VectorXd&>(zero_distortion), problem,
+        params.LossFunction());
       }
-      if (fix_pid) {
-        // Fix pids which don't project in cameras that are floated.
-        // Also, must not float points given by the user, those are measurements
-        // we are supposed to reference ourselves against, and floating
-        // them can make us lose the real world scale.
-        problem.SetParameterBlockConstant((pid_to_xyz->at(pid)).data());
-      }
+        if (FixedPoint(params, pid, pid_to_cid_fid)) problem.SetParameterBlockConstant((pid_to_xyz->at(pid)).data());
     }
-
-  // TODO(rsoussan): get options from params!
-  ceres::Solve(options, &problem, summary);
+  ceres::Solve(params.options, &problem, summary);
 
   // Write the rotations back to the transform
   for (int cid = 0; cid < cid_to_cam_t_global->size(); ++cid) {

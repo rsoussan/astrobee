@@ -217,26 +217,27 @@ class ReprojectionError {
     return true;
   }
 
-  template <int TRANSFORM_SIZE = IsometryFunctor::kSize, class LOSS_FUNCTION = ceres::HuberLoss>
+  template <class LOSS_FUNCTION = ceres::HuberLoss>
   static void AddCostFunction(const Eigen::Vector2d& image_point, Eigen::Vector3d& world_t_point,
-                              Eigen::Matrix<double, TRANSFORM_SIZE, 1>& camera_T_world, Eigen::Vector2d& focal_lengths,
-                              Eigen::Vector2d& principal_points, Eigen::VectorXd& distortion, ceres::Problem& problem,
-                              const double loss_threshold = 1.345, const double scale_factor = 1) {
+                              Eigen::Matrix<double, TRANSFORM_FUNCTOR::kSize, 1>& camera_T_world,
+                              Eigen::Vector2d& focal_lengths, Eigen::Vector2d& principal_points,
+                              Eigen::VectorXd& distortion, ceres::Problem& problem, const double loss_threshold = 1.345,
+                              const double scale_factor = 1) {
     ceres::LossFunction* loss_function = new LOSS_FUNCTION(loss_threshold);
     AddCostFunction(image_point, world_t_point, camera_T_world, focal_lengths, principal_points, distortion, problem,
                     loss_function, scale_factor);
   }
 
-  template <int TRANSFORM_SIZE = IsometryFunctor::kSize>
   static void AddCostFunction(const Eigen::Vector2d& image_point, Eigen::Vector3d& world_t_point,
-                              Eigen::Matrix<double, TRANSFORM_SIZE, 1>& camera_T_world, Eigen::Vector2d& focal_lengths,
-                              Eigen::Vector2d& principal_points, Eigen::VectorXd& distortion, ceres::Problem& problem,
-                              ceres::LossFunction* loss_function, const double scale_factor = 1) {
+                              Eigen::Matrix<double, TRANSFORM_FUNCTOR::kSize, 1>& camera_T_world,
+                              Eigen::Vector2d& focal_lengths, Eigen::Vector2d& principal_points,
+                              Eigen::VectorXd& distortion, ceres::Problem& problem, ceres::LossFunction* loss_function,
+                              const double scale_factor = 1) {
     ceres::LossFunction* scaled_loss_function =
       new ceres::ScaledLoss(loss_function, scale_factor, ceres::TAKE_OWNERSHIP);
     ceres::CostFunction* reprojection_cost_function =
-      new ceres::AutoDiffCostFunction<ReprojectionError<DISTORTER>, 2, 3, TRANSFORM_SIZE, 2, 2, DISTORTER::kNumParams>(
-        new ReprojectionError<DISTORTER>(image_point));
+      new ceres::AutoDiffCostFunction<ReprojectionError<DISTORTER>, 2, 3, TRANSFORM_FUNCTOR::kSize, 2, 2,
+                                      DISTORTER::kNumParams>(new ReprojectionError<DISTORTER>(image_point));
     problem.AddResidualBlock(reprojection_cost_function, scaled_loss_function, world_t_point.data(),
                              camera_T_world.data(), focal_lengths.data(), principal_points.data(), distortion.data());
   }

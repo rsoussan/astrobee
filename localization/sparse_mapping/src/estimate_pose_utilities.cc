@@ -135,25 +135,6 @@ EstimatePoseResults EstimatePose(const std::string& image_filename, const Estima
   return EstimatePose(image, params, map);
 }
 
-ceres::LossFunction* GetLossFunction(std::string cost_fun, double th) {
-  // Convert to lower-case
-  std::transform(cost_fun.begin(), cost_fun.end(), cost_fun.begin(), ::tolower);
-
-  ceres::LossFunction* loss_function = NULL;
-  if      ( cost_fun == "l2"     )
-    loss_function = NULL;
-  else if ( cost_fun == "huber"  )
-    loss_function = new ceres::HuberLoss(th);
-  else if ( cost_fun == "cauchy" )
-    loss_function = new ceres::CauchyLoss(th);
-  else if ( cost_fun == "l1"     )
-    loss_function = new ceres::SoftLOneLoss(th);
-  else
-    LOG(FATAL) << "Unknown cost function: " + cost_fun;
-
-  return loss_function;
-}
-
 // if parms is null, don't worry about converting to pixels
 struct ReprojectionError {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
