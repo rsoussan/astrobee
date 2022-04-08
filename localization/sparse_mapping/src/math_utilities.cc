@@ -29,11 +29,6 @@
 #include <openMVG/robust_estimation/robust_estimator_ACRansacKernelAdaptator.hpp>
 #pragma GCC diagnostic pop
 
-// TODO(rsoussan): Remove these flags
-DEFINE_bool(verbose_parsing, false,
-              "If true, be more verbose when parsing camera data.");
-
-
 namespace sparse_mapping {
 // Compute the n-weight slerp, analogous to the linear combination
 // W[0]*Q[0] + ... + W[n-1]*Q[n-1]. This is experimental.
@@ -203,9 +198,7 @@ void RemoveInvalidPoints(const RemoveInvalidPointsParams& params,
                          const std::vector<Eigen::Affine3d>& cid_to_cam_t_global,
                          const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
                          std::vector<std::map<int, int> >* pid_to_cid_fid, std::vector<Eigen::Vector3d>* pid_to_xyz) {
-  // Reprojection error at each match point.
   std::vector<double> pid_reprojection_errors;
-
   const int num_cams = cid_to_cam_t_global.size();
   std::vector<Eigen::Vector3d> global_t_cams;
   global_t_cams.reserve(num_cams);
@@ -215,17 +208,14 @@ void RemoveInvalidPoints(const RemoveInvalidPointsParams& params,
 
   RemoveInvalidPointsStats stats;
   stats.num_points = pid_to_xyz->size();
-
-  std::vector<bool> is_bad((*pid_to_xyz).size(), false);
+  std::vector<bool> is_bad(pid_to_xyz->size(), false);
   const Eigen::Vector2d half_size = camera_params.GetUndistortedHalfSize();
   for (int pid = 0; pid < static_cast<int>(pid_to_xyz->size()); ++pid) {
     bool small_angle = false, behind_cam = false, invalid_reproj = false;
-
-    // TODO(rsoussan): Rename to ray_angle?
-    const double max_angle
-      = ComputeRaysAngle(pid, *pid_to_cid_fid,
+    const double max_angle_between_camera_rays
+      = MaxAngleBetweenCameraRays(pid, *pid_to_cid_fid,
                                          global_t_cams,  *pid_to_xyz);
-    if (max_angle < params.min_valid_ray_angle) {
+    if (max_angle_between_camera_rays < params.min_max_angle_between_camera_rays) {
       small_angle = true;
       is_bad[pid] = true;
     }
