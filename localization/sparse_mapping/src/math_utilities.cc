@@ -226,6 +226,7 @@ void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsPara
   stats.num_points = pid_to_xyz->size();
   std::vector<bool> invalid_point(pid_to_xyz->size(), false);
   const Eigen::Vector2d half_size = camera_params.GetUndistortedHalfSize();
+  const Eigen::Matrix3d intrinsics = params.camera.GetIntrinsicMatrix<camera::UNDISTORTED_C>();
   for (int pid = 0; pid < static_cast<int>(pid_to_xyz->size()); ++pid) {
     bool small_angle = false, behind_cam = false, invalid_reprojection = false;
 
@@ -250,7 +251,6 @@ void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsPara
       }
 
       // Check projection
-      const Eigen::Matrix3d intrinsics = params.camera.GetIntrinsicMatrix<camera::UNDISTORTED_C>();
       const Eigen::Vector2d projected_point = vc::Project(cam_t_point, intrinsics);
       const auto& keypoint = cid_to_keypoint_map[cid].col(cid_fid.second);
       pid_reprojection_errors.push_back((keypoint- projected_point).norm());
@@ -264,61 +264,43 @@ void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsPara
     stats.behind_cam     += static_cast<int>(behind_cam);
     stats.invalid_reprojection += static_cast<int>(invalid_reprojection);
   }
+  // TODO(rsoussan): Add anon ns function for this!
+  lc::RemoveElements(invalid_point, *pid_to_cid_fid);
+  lc::RemoveElements(invalid_point, *pid_to_xyz);
 
-  // TODO(rsoussan): Clean this up - why using reverse iterator?
-  // Use std::remove_if!!!
-  // Remove invalid points
-  for (int pid = (*pid_to_xyz).size() - 1; pid < static_cast<int>((*pid_to_xyz).size()); --pid) {
-    if (invalid_point[pid]) {
-      // TODO(rsoussan): Add this as a function in sparse map database!! (A)
-      auto cid_fid_it = (*pid_to_cid_fid).begin();
-      auto xyz_it = (*pid_to_xyz).begin();
-      std::advance(cid_fid_it, pid);
-      std::advance(xyz_it, pid);
-      pid_to_cid_fid->erase(cid_fid_it);
-      pid_to_xyz->erase(xyz_it);
-    }
-  }
-
+  std::vector<bool> invalid_point_detection_count(pid_to_xyz->size(), false);
   // Remove high reprojection error feature detections
   const double reprojection_error_threshold = ReprojectionErrorThreshold(pid_reprojection_errors, params);
   LOG(INFO) << "Filtering features with reprojection error higher than: "
             << reprojection_error_threshold << " pixels";
-  for (int pid = (*pid_to_xyz).size() - 1; pid < static_cast<int>((*pid_to_xyz).size()); --pid) {
-    const auto& cid_fid = (*pid_to_cid_fid)[pid];
-    auto itr = cid_fid.begin();
-    while (itr != cid_fid.end()) {
+  for (int pid = 0; pid < static_cast<int>(pid_to_xyz->size()); ++pid) {
+    const auto& cid_fids = (*pid_to_cid_fid)[pid];
+    const auto& global_t_point = (*pid_to_xyz)[pid];
+    for (auto cid_fid_it = cid_fids.begin(); cid_fid_it != cid_fids.end();) {
       ++stats.num_features;
-      // TODO(rsoussan): Update this as done previously!
-      const Eigen::Vector2d pix = (cid_to_cam_t_global[itr->first] *
-                             (*pid_to_xyz)[pid]).hnormalized() * camera_params.GetFocalLength();
-      const double err
-        = (cid_to_keypoint_map[itr->first].col(itr->second) - pix).norm();
-
-      if (err >= reprojection_error_threshold) {
-        auto toErase = itr;
-        ++itr;
-        // TODO(rsoussan): Add function in
-        cid_fid.erase(toErase);
-        stats.big_reproj_err++;
+      // TODO(rsoussan): Make anon ns function to compute reprojection error!!
+      const int cid = cid_fid_it->first;
+      const int fid = cid_fid_it->second;
+      const auto& cam_T_global = cid_to_cam_t_global[cid];
+      const Eigen::Vector3d cam_t_point = cam_T_global*global_t_point;
+      const Eigen::Vector2d projected_point = vc::Project(cam_t_point, intrinsics);
+      const auto& keypoint = cid_to_keypoint_map[cid].col(fid);
+      const double reprojection_error = (keypoint- projected_point).norm();
+     if (reprojection_error >= params.max_reprojection_error) {
+        cid_fid_it = cid_fids.erase(cid_fid_it);
+        ++stats.big_reproj_err;
       } else {
-        ++itr;
+        ++cid_fid_it;
       }
     }
-
     // Remove point if less than 2 valid feature detections remain
-    const int total = (*pid_to_cid_fid)[pid].size();
-    if (total < 2) {
-      // TODO(rsoussan): update this with sparse map database function!
-      auto cid_fid_it
-        = pid_to_cid_fid->begin();
-      auto xyz_it = pid_to_xyz->begin();
-      std::advance(cid_fid_it, pid);
-      std::advance(xyz_it, pid);
-      pid_to_cid_fid->erase(cid_fid_it);
-      pid_to_xyz->erase(xyz_it);
+    const int num_detections = (*pid_to_cid_fid)[pid].size();
+    if (num_detections < 2) {
+      invalid_point_detection_count[pid] = true;
     }
   }
+  lc::RemoveElements(invalid_point_detection_count, *pid_to_cid_fid);
+  lc::RemoveElements(invalid_point_detection_count, *pid_to_xyz);
 
   if (params.print_stats)
     stats.Print();

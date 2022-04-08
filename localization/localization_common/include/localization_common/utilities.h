@@ -152,6 +152,9 @@ std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>> TransformP
 Eigen::Isometry3d Interpolate(const Eigen::Isometry3d& lower_bound_pose, const Eigen::Isometry3d& upper_bound_pose,
                               const double alpha);
 
+template <class Container>
+void RemoveElements(const std::vector<bool>& elements_to_remove, Container& container);
+
 std::vector<std::string> GetImageNames(const std::string& image_directory, const std::string& image_extension = ".jpg");
 // Implementations
 template <class LocMsgType>
@@ -228,6 +231,18 @@ std::vector<T> Rotate(const std::vector<T>& a_F_a_T_elements, const Eigen::Matri
     b_F_a_T_elements.emplace_back(b_R_a * a_F_a_T_element);
   }
   return b_F_a_T_elements;
+}
+
+template <class Container>
+void RemoveElements(const std::vector<bool>& elements_to_remove, Container& container) {
+  // Reverse iterate so indices in elements_to_remove map to container indices during removal
+  for (int i = container.size() - 1; i >= 0; --i) {
+    if (elements_to_remove[i]) {
+      auto remove_it = container.begin();
+      std::advance(remove_it, i);
+      container.erase(remove_it);
+    }
+  }
 }
 }  // namespace localization_common
 
