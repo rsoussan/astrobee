@@ -37,20 +37,8 @@ DEFINE_bool(skip_filtering, false,
 DEFINE_double(reproj_thresh, 5.0,
               "Filter points with re-projection error higher than this.");
 
-// bundle adjustment phase parameters
-DEFINE_int32(max_num_iterations, 1000,
-             "Maximum number of iterations for bundle adjustment solver.");
 DEFINE_int32(num_ba_passes, 5,
              "How many times to run bundle adjustment, removing outliers each time.");
-DEFINE_string(cost_function, "Cauchy",
-              "Choose a bundle adjustment cost function from: Cauchy, PseudoHuber, Huber, L1, L2.");
-DEFINE_double(cost_function_threshold, 2.0,
-              "Threshold to use with some cost functions, e.g., Cauchy.");
-DEFINE_int32(first_ba_index, 0,
-             "Vary only cameras starting with this index during bundle adjustment.");
-DEFINE_int32(last_ba_index, std::numeric_limits<int>::max(),
-             "Vary only cameras ending with this index during bundle adjustment.");
-
 namespace {
 bool FixedCamera(const BundleAdjustmentParams& params, const int cid) {
   // TODO(rsoussan): Why would cid be out of range? would cam_t_global still be valid then?
@@ -127,8 +115,6 @@ void BundleAdjustment(sparse_mapping::SparseMap * s,
 }
 
 
-// TODO(rsoussan): When are first/last used? when are cameras fixed?
-// TODO(rsoussan): Make this more general? add wrapper that passes cid stuff, only use eigen types for this one?
 void BundleAdjust(const BundleAdjustmentParams& params, const std::vector<std::map<int, int> >& pid_to_cid_fid,
                   const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map, const double focal_length,
                   std::vector<Eigen::Affine3d>* cid_to_cam_t_global, std::vector<Eigen::Vector3d>* pid_to_xyz,
