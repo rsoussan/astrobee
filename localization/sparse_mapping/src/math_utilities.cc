@@ -168,33 +168,31 @@ double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors
   return std::max(scaled_median_reprojection_error, params.max_reprojection_error);
 }
 
-// Find the maximum angle between n rays intersecting at given
-// point. Must compute the camera centers in the global coordinate
-// system before calling this function.
-double ComputeRaysAngle(int pid,
-                                        std::vector<std::map<int, int> > const& pid_to_cid_fid,
-                                        std::vector<Eigen::Vector3d> const & global_t_cams,
-                                        std::vector<Eigen::Vector3d> const& pid_to_xyz) {
+double MaxAngleBetweenCameraRays(const int pid, const std::vector<std::map<int, int> >& pid_to_cid_fid,
+                                        const std::vector<Eigen::Vector3d>& global_t_cams,
+                                        const std::vector<Eigen::Vector3d>& pid_to_xyz) {
+  const auto& track = pid_to_cid_fid[pid];
+  const auto global_t_point = pid_to_xyz[pid];
   double max_angle = 0;
-  std::map<int, int> const& track = pid_to_cid_fid[pid];
-  for (std::map<int, int>::const_iterator it1 = track.begin();
-       it1 != track.end(); it1++) {
-    int cid1 = it1->first;
-    for (std::map<int, int>::const_iterator it2 = it1;
-         it2 != track.end(); it2++) {
-      if (it1 == it2) continue;
-
-      int cid2 = it2->first;
-      Eigen::Vector3d X1 = global_t_cams[cid1] - pid_to_xyz[pid];
-      Eigen::Vector3d X2 = global_t_cams[cid2] - pid_to_xyz[pid];
-      double l1 = X1.norm(), l2 = X2.norm();
+  int cid = 0;
+  for (auto cid_fid_it1 = track.begin();
+       cid_fid_it1 != track.end(); ++cid_fid_it1) {
+    const int cid1 = cid_fid_it1->first;
+    for (auto cid_fid_it2 = cid_fid_it1+1;
+         cid_fid_it2 != track.end(); ++cid_fid_it2) {
+      const int cid2 = cid_fid_it2->first;
+      const Eigen::Vector3d cam1_t_point = global_t_cams[cid1] - global_t_point;
+      const Eigen::Vector3d cam2_t_point = global_t_cams[cid2] - global_t_point;
+      // TODO(rsoussan): make function for this next part, call AngleBetweenRays!! (A)
+      const double l1 = cam1_t_point.norm();
+      const double l2 = cam2_t_point.norm();
       if (l1 == 0 || l2 == 0)
         continue;
 
-      double dot = X1.dot(X2)/l1/l2;
+      double dot = cam1_t_point.dot(cam2_t_point)/(l1*l2);
       dot = std::min(dot, 1.0);
       dot = std::max(-1.0, dot);
-      double angle = (180.0/M_PI)*acos(dot);
+      const double angle = (180.0/M_PI)*std::acos(dot);
       max_angle = std::max(angle, max_angle);
     }
   }

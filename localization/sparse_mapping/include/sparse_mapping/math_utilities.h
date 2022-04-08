@@ -62,10 +62,9 @@ namespace sparse_mapping {
   // Find the maximum angle between n rays intersecting at given
   // point. Must compute the camera centers in the global coordinate
   // system before calling this function.
-  double ComputeRaysAngle(int pid,
-                          std::vector<std::map<int, int> > const& pid_to_cid_fid,
-                          std::vector<Eigen::Vector3d> const & cam_ctrs,
-                          std::vector<Eigen::Vector3d> const& pid_to_xyz);
+  double MaxAngleBetweenCameraRays(const int pid, const std::vector<std::map<int, int> >& pid_to_cid_fid,
+                                   const std::vector<Eigen::Vector3d>& global_t_cams,
+                                   const std::vector<Eigen::Vector3d>& pid_to_xyz);
 
   // Remove points that don't project at valid camera pixels,
   // points behind the camera, and matches having large reprojection error.
