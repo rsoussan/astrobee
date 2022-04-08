@@ -56,8 +56,8 @@ namespace sparse_mapping {
                                  std::vector<Eigen::Affine3d> *cid_to_cam_t,
                                  std::vector<Eigen::Vector3d> *xyz);
 
-  // Get the error threshold based on a multiple of a percentile
-  double GetErrThresh(const std::vector<double> & errors, double factor);
+  double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors,
+                                    const RemoveInvalidPointsParams& params);
 
   // Find the maximum angle between n rays intersecting at given
   // point. Must compute the camera centers in the global coordinate

@@ -22,11 +22,11 @@
 namespace sparse_mapping {
 struct RemoveInvalidPointsParams {
   double max_reprojection_error = 5.0;
+  // Multiplied by median reprojection error to find threshold for removal
+  double reprojection_error_threshold_scale_factor = 3.0;
   double min_valid_ray_angle = 1e-2;
   camera::CameraParameters camera;
   bool print_stats = true;
-  // TODO(rsoussan): What is this?
-  double multiple_of_median = 3.0;
 };
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_REMOVE_INVALID_POINTS_PARAMS_H_

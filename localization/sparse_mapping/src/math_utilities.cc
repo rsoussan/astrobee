@@ -153,18 +153,19 @@ void TransformCamerasAndPoints(Eigen::Affine3d const& A,
   }
 }
 
-// Get the median error value, and multiply it by factor.
-double GetErrThresh(std::vector<double> const& errors, double factor) {
-  std::vector<double> sorted_errors = errors;
-  std::sort(sorted_errors.begin(), sorted_errors.end());
+double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors,
+                                  const RemoveInvalidPointsParams& params) {
+  const int num_errors = reprojection_errors.size();
+  if (num_errors == 0) return 0;
 
-  int len = sorted_errors.size();
-  if (len == 0) return 0;
+  std::vector<double> sorted_reprojection_errors = reprojection_errors;
+  std::sort(sorted_reprojection_errors.begin(), sorted_reprojection_errors.end());
 
-  // The case when there are too few errors
-  if (len <= 2) return factor*sorted_errors[len-1];
-
-    return factor*sorted_errors[len/2];
+  if (num_errors <= 2)
+    return params.reprojection_error_threshold_scale_factor * sorted_reprojection_errors[num_errors - 1];
+  const double scaled_median_reprojection_error =
+    params.reprojection_error_threshold_scale_factor * sorted_reprojection_errors[num_errors / 2];
+  return std::max(scaled_median_reprojection_error, params.max_reprojection_error);
 }
 
 // Find the maximum angle between n rays intersecting at given
@@ -269,9 +270,9 @@ void RemoveInvalidPoints(const RemoveInvalidPointsParams& params,
   // TODO(rsoussan): why is this done after first pass??? to get only valid thresh in geterrthresh?
   // Wipe all features who are further than the reprojection of the
   // corresponding 3D point than given threshold.
-  const double thresh = std::max(GetErrThresh(pid_reprojection_errors, params.multiple_of_median), reproj_thresh);
+  const double reprojection_error_threshold = ReprojectionErrorThreshold(pid_reprojection_errors, params);
   LOG(INFO) << "Filtering features with reprojection error higher than: "
-            << thresh << " pixels";
+            << reprojection_error_threshold << " pixels";
   for (int pid = (*pid_to_xyz).size() - 1; pid < static_cast<int>((*pid_to_xyz).size()); --pid) {
     const auto& cid_fid = (*pid_to_cid_fid)[pid];
     auto itr = cid_fid.begin();
@@ -283,7 +284,7 @@ void RemoveInvalidPoints(const RemoveInvalidPointsParams& params,
       const double err
         = (cid_to_keypoint_map[itr->first].col(itr->second) - pix).norm();
 
-      if (err >= thresh) {
+      if (err >= reprojection_error_threshold) {
         auto toErase = itr;
         ++itr;
         cid_fid.erase(toErase);
