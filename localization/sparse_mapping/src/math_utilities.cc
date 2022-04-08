@@ -16,6 +16,7 @@
  * under the License.
  */
 
+#include <localization_common/utilities.h>
 #include <sparse_mapping/math_utilities.h>
 #include <sparse_mapping/remove_invalid_points_and_detections_stats.h>
 
@@ -37,7 +38,13 @@ bool ValidProjection(const Eigen::Vector2d& centered_projected_point, const Eige
     return false;
   return true;
 }
+
+void RemoveInvalidPoints(const std::vector<bool>& invalid_points, std::vector<std::map<int, int> >& pid_to_cid_fid,
+                         std::vector<Eigen::Vector3d>& pid_to_xyz) {
+  lc::RemoveElements(invalid_points, pid_to_cid_fid);
+  lc::RemoveElements(invalid_points, pid_to_xyz);
 }
+}  // namespace
 
 namespace sparse_mapping {
 // Compute the n-weight slerp, analogous to the linear combination
@@ -264,9 +271,7 @@ void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsPara
     stats.behind_cam     += static_cast<int>(behind_cam);
     stats.invalid_reprojection += static_cast<int>(invalid_reprojection);
   }
-  // TODO(rsoussan): Add anon ns function for this!
-  lc::RemoveElements(invalid_point, *pid_to_cid_fid);
-  lc::RemoveElements(invalid_point, *pid_to_xyz);
+  RemoveInvalidPoints(invalid_point, *pid_to_cid_fid, *pid_to_xyz);
 
   std::vector<bool> invalid_point_detection_count(pid_to_xyz->size(), false);
   // Remove high reprojection error feature detections
@@ -299,8 +304,7 @@ void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsPara
       invalid_point_detection_count[pid] = true;
     }
   }
-  lc::RemoveElements(invalid_point_detection_count, *pid_to_cid_fid);
-  lc::RemoveElements(invalid_point_detection_count, *pid_to_xyz);
+  RemoveInvalidPoints(invalid_point_detection_count, *pid_to_cid_fid, *pid_to_xyz);
 
   if (params.print_stats)
     stats.Print();
