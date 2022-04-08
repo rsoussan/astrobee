@@ -19,6 +19,8 @@
 #ifndef SPARSE_MAPPING_MATH_UTILITIES_H_
 #define SPARSE_MAPPING_MATH_UTILITIES_H_
 
+#include <sparse_mapping/remove_invalid_points_params.h>
+
 #include <Eigen/Geometry>
 
 #include <map>
@@ -65,14 +67,13 @@ namespace sparse_mapping {
                           std::vector<Eigen::Vector3d> const & cam_ctrs,
                           std::vector<Eigen::Vector3d> const& pid_to_xyz);
 
-  // Filter points by reprojection error and other criteria
-  void FilterPID(double reproj_thresh,
-                 camera::CameraParameters const& camera_params,
-                 std::vector<Eigen::Affine3d > const& cid_to_cam_t_global,
-                 std::vector<Eigen::Matrix2Xd > const& cid_to_keypoint_map,
+  // Remove points that don't project at valid camera pixels,
+  // points behind the camera, and matches having large reprojection error.
+void RemoveInvalidPoints(const RemoveInvalidPointsParams& params,
+                 const std::vector<Eigen::Affine3d >& cid_to_cam_t_global,
+                 const std::vector<Eigen::Matrix2Xd >& cid_to_keypoint_map,
                  std::vector<std::map<int, int> > * pid_to_cid_fid,
-                 std::vector<Eigen::Vector3d> * pid_to_xyz,
-                 bool print_stats = true, double multiple_of_median = 3.0);
+                 std::vector<Eigen::Vector3d> * pid_to_xyz);
 
 void DetectFeatures(const cv::Mat& image,
                       const bool histogram_equalization,

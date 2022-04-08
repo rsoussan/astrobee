@@ -34,9 +34,6 @@
 
 DEFINE_bool(skip_filtering, false,
             "Skip filtering of outliers after bundle adjustment.");
-DEFINE_double(reproj_thresh, 5.0,
-              "Filter points with re-projection error higher than this.");
-
 DEFINE_int32(num_ba_passes, 5,
              "How many times to run bundle adjustment, removing outliers each time.");
 namespace {

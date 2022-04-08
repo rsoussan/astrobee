@@ -30,10 +30,6 @@
 #pragma GCC diagnostic pop
 
 // TODO(rsoussan): Remove these flags
-DEFINE_double(min_valid_angle, 1e-2,
-              "If all rays converging to a triangulated point make angles "
-              "less than this, in degrees, drop it.");
-
 DEFINE_bool(verbose_parsing, false,
               "If true, be more verbose when parsing camera data.");
 
@@ -71,32 +67,6 @@ Eigen::Quaternion<double> slerp_n(std::vector<double> const& W,
   Q2[0] = q;
   return slerp_n(W2, Q2);
 }
-
-  // Statistics for filtering
-  struct FilterStats{
-    int total;
-    int small_angle;
-    int behind_cam;
-    int invalid_reproj;
-    int big_reproj_err;
-    int num_features;
-    FilterStats():total(0), small_angle(0), behind_cam(0), invalid_reproj(0),
-                  big_reproj_err(0), num_features(0) {}
-
-    void PrintStats() {
-      // Print the stats.
-      LOG(INFO) << "Statistics of points to filter out.";
-      LOG(INFO) << "Total: " << total;
-      LOG(INFO) << "xyz points with small ray angles:     "
-                << small_angle << " (" << (100.0*small_angle)/total << " %)";
-      LOG(INFO) << "xyz points behind camera:             "
-                << behind_cam << " (" << (100.0*behind_cam)/total << " %)";
-      LOG(INFO) << "Reprojected outside of image:         "
-                << invalid_reproj << " (" << (100.0*invalid_reproj)/total << " %)";
-      LOG(INFO) << "Features with big reprojection error: "
-                << big_reproj_err << " (" << (100.0*big_reproj_err)/num_features << " %)";
-    }
-  };
 
   Eigen::Vector3d TriangulatePoint(Eigen::Vector3d const& unnormalized_pt1, Eigen::Vector3d const& unnormalized_pt2,
                                    Eigen::Matrix3d const& cam2_r_cam1, Eigen::Vector3d const& cam2_t_cam1,
@@ -202,7 +172,7 @@ double GetErrThresh(std::vector<double> const& errors, double factor) {
 // system before calling this function.
 double ComputeRaysAngle(int pid,
                                         std::vector<std::map<int, int> > const& pid_to_cid_fid,
-                                        std::vector<Eigen::Vector3d> const & cam_ctrs,
+                                        std::vector<Eigen::Vector3d> const & global_t_cams,
                                         std::vector<Eigen::Vector3d> const& pid_to_xyz) {
   double max_angle = 0;
   std::map<int, int> const& track = pid_to_cid_fid[pid];
@@ -214,8 +184,8 @@ double ComputeRaysAngle(int pid,
       if (it1 == it2) continue;
 
       int cid2 = it2->first;
-      Eigen::Vector3d X1 = cam_ctrs[cid1] - pid_to_xyz[pid];
-      Eigen::Vector3d X2 = cam_ctrs[cid2] - pid_to_xyz[pid];
+      Eigen::Vector3d X1 = global_t_cams[cid1] - pid_to_xyz[pid];
+      Eigen::Vector3d X2 = global_t_cams[cid2] - pid_to_xyz[pid];
       double l1 = X1.norm(), l2 = X2.norm();
       if (l1 == 0 || l2 == 0)
         continue;
@@ -230,46 +200,41 @@ double ComputeRaysAngle(int pid,
   return max_angle;
 }
 
-void FilterPID(double reproj_thresh,
-                               camera::CameraParameters const& camera_params,
-                               std::vector<Eigen::Affine3d > const& cid_to_cam_t_global,
-                               std::vector<Eigen::Matrix2Xd > const& cid_to_keypoint_map,
-                               std::vector<std::map<int, int> > * pid_to_cid_fid,
-                               std::vector<Eigen::Vector3d> * pid_to_xyz,
-                               bool print_stats, double multiple_of_median) {
-  // Remove points that don't project at valid camera pixels,
-  // points behind the camera, and matches having large reprojection error.
-
+void RemoveInvalidPoints(const RemoveInvalidPointsParams& params,
+                         const std::vector<Eigen::Affine3d>& cid_to_cam_t_global,
+                         const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
+                         std::vector<std::map<int, int> >* pid_to_cid_fid, std::vector<Eigen::Vector3d>* pid_to_xyz) {
   // Reprojection error at each match point.
-  std::vector<double> errors;
+  std::vector<double> pid_reprojection_errors;
 
-  int num_cams = cid_to_cam_t_global.size();
-  std::vector<Eigen::Vector3d> cam_ctrs(num_cams);
-  for (int cid = 0; cid < num_cams; cid++) {
-    cam_ctrs[cid] = cid_to_cam_t_global[cid].inverse().translation();
+  const int num_cams = cid_to_cam_t_global.size();
+  std::vector<Eigen::Vector3d> global_t_cams;
+  global_t_cams.reserve(num_cams);
+  for (int cid = 0; cid < num_cams; ++cid) {
+    global_t_cams.emplace_back(cid_to_cam_t_global[cid].inverse().translation());
   }
 
-  // Init the stats
-  FilterStats s;
-  s.total = (*pid_to_xyz).size();
+  RemoveInvalidPointsStats stats;
+  stats.num_points = pid_to_xyz->size();
 
   std::vector<bool> is_bad((*pid_to_xyz).size(), false);
-  Eigen::Vector2d half_size = camera_params.GetUndistortedHalfSize();
-  for (size_t pid = 0; pid < (*pid_to_xyz).size(); pid++) {
+  const Eigen::Vector2d half_size = camera_params.GetUndistortedHalfSize();
+  for (int pid = 0; pid < static_cast<int>(pid_to_xyz->size()); ++pid) {
     bool small_angle = false, behind_cam = false, invalid_reproj = false;
 
-    double max_angle
+    // TODO(rsoussan): Rename to ray_angle?
+    const double max_angle
       = ComputeRaysAngle(pid, *pid_to_cid_fid,
-                                         cam_ctrs,  *pid_to_xyz);
-    if (max_angle < FLAGS_min_valid_angle) {
+                                         global_t_cams,  *pid_to_xyz);
+    if (max_angle < params.min_valid_ray_angle) {
       small_angle = true;
       is_bad[pid] = true;
     }
 
-    for (std::pair<int, int> cid_fid : (*pid_to_cid_fid)[pid]) {
-      Eigen::Vector2d pix = (cid_to_cam_t_global[cid_fid.first] *
+    for (const auto cid_fid : (*pid_to_cid_fid)[pid]) {
+      const Eigen::Vector2d pix = (cid_to_cam_t_global[cid_fid.first] *
                              (*pid_to_xyz)[pid]).hnormalized() * camera_params.GetFocalLength();
-      errors.push_back((cid_to_keypoint_map[cid_fid.first].col(cid_fid.second) - pix).norm());
+      pid_reprojection_errors.push_back((cid_to_keypoint_map[cid_fid.first].col(cid_fid.second) - pix).norm());
       // Mark points which don't project at valid camera pixels
       // TODO(zmoratto) : This can probably be done with a Eigen Array reduction
       if (pix[0] < -half_size[0] || pix[0] >= half_size[0] || pix[1] < -half_size[1] || pix[1] >= half_size[1]) {
@@ -278,68 +243,71 @@ void FilterPID(double reproj_thresh,
       }
 
       // Mark points that are behind the camera
-      Eigen::Vector3d P = cid_to_cam_t_global[cid_fid.first] * (*pid_to_xyz)[pid];
+      const Eigen::Vector3d P = cid_to_cam_t_global[cid_fid.first] * (*pid_to_xyz)[pid];
       if (P[2] <= 0) {
         behind_cam = true;
         is_bad[pid] = true;
       }
     }
-    s.small_angle    += static_cast<int>(small_angle);
-    s.behind_cam     += static_cast<int>(behind_cam);
-    s.invalid_reproj += static_cast<int>(invalid_reproj);
+    stats.small_angle    += static_cast<int>(small_angle);
+    stats.behind_cam     += static_cast<int>(behind_cam);
+    stats.invalid_reproj += static_cast<int>(invalid_reproj);
   }
 
-  for (size_t pid = (*pid_to_xyz).size() - 1; pid < (*pid_to_xyz).size(); pid--) {
+  // TODO(rsoussan): Clean this up - why using reverse iterator?
+  for (int pid = (*pid_to_xyz).size() - 1; pid < static_cast<int>((*pid_to_xyz).size()); --pid) {
     if (is_bad[pid]) {
-      std::vector<std::map<int, int> >::iterator cid_fid_it = (*pid_to_cid_fid).begin();
-      std::vector<Eigen::Vector3d>::iterator xyz_it = (*pid_to_xyz).begin();
+      auto cid_fid_it = (*pid_to_cid_fid).begin();
+      auto xyz_it = (*pid_to_xyz).begin();
       std::advance(cid_fid_it, pid);
       std::advance(xyz_it, pid);
-      (*pid_to_cid_fid).erase(cid_fid_it);
-      (*pid_to_xyz).erase(xyz_it);
+      pid_to_cid_fid->erase(cid_fid_it);
+      pid_to_xyz->erase(xyz_it);
     }
   }
 
+  // TODO(rsoussan): why is this done after first pass??? to get only valid thresh in geterrthresh?
   // Wipe all features who are further than the reprojection of the
   // corresponding 3D point than given threshold.
-  double thresh = std::max(GetErrThresh(errors, multiple_of_median), reproj_thresh);
+  const double thresh = std::max(GetErrThresh(pid_reprojection_errors, params.multiple_of_median), reproj_thresh);
   LOG(INFO) << "Filtering features with reprojection error higher than: "
             << thresh << " pixels";
-  for (size_t pid = (*pid_to_xyz).size() - 1; pid < (*pid_to_xyz).size(); pid--) {
-    std::map<int, int> & cid_fid = (*pid_to_cid_fid)[pid];
-    std::map<int, int>::iterator itr = cid_fid.begin();
+  for (int pid = (*pid_to_xyz).size() - 1; pid < static_cast<int>((*pid_to_xyz).size()); --pid) {
+    const auto& cid_fid = (*pid_to_cid_fid)[pid];
+    auto itr = cid_fid.begin();
     while (itr != cid_fid.end()) {
-      s.num_features++;
-      Eigen::Vector2d pix = (cid_to_cam_t_global[itr->first] *
+      ++stats.num_features;
+      const Eigen::Vector2d pix = (cid_to_cam_t_global[itr->first] *
                              (*pid_to_xyz)[pid]).hnormalized() * camera_params.GetFocalLength();
-      double err
+      // TODO(rsoussan): Make function for this!
+      const double err
         = (cid_to_keypoint_map[itr->first].col(itr->second) - pix).norm();
 
       if (err >= thresh) {
-        std::map<int, int>::iterator toErase = itr;
+        auto toErase = itr;
         ++itr;
         cid_fid.erase(toErase);
-        s.big_reproj_err++;
+        stats.big_reproj_err++;
       } else {
         ++itr;
       }
     }
 
     // Wipe a 3D point altogether if it corresponds to less than 2 matches.
-    int total = (*pid_to_cid_fid)[pid].size();
+    const int total = (*pid_to_cid_fid)[pid].size();
     if (total < 2) {
-      std::vector<std::map<int, int> >::iterator cid_fid_it
-        = (*pid_to_cid_fid).begin();
-      std::vector<Eigen::Vector3d>::iterator xyz_it = (*pid_to_xyz).begin();
+      auto cid_fid_it
+        = pid_to_cid_fid->begin();
+      auto xyz_it = pid_to_xyz->begin();
       std::advance(cid_fid_it, pid);
       std::advance(xyz_it, pid);
-      (*pid_to_cid_fid).erase(cid_fid_it);
-      (*pid_to_xyz).erase(xyz_it);
+      pid_to_cid_fid->erase(cid_fid_it);
+      pid_to_xyz->erase(xyz_it);
     }
   }
 
-  if (print_stats)
-    s.PrintStats();
+  if (params.print_stats)
+    stats.Print();
 }
 
 void DetectFeatures(const cv::Mat& image, const bool histogram_equalization,
