@@ -17,6 +17,7 @@
  */
 
 #include <sparse_mapping/math_utilities.h>
+#include <sparse_mapping/remove_invalid_points_and_detections_stats.h>
 
 #pragma GCC diagnostic ignored "-Wunused-function"
 #pragma GCC diagnostic ignored "-Wsign-compare"
@@ -158,7 +159,7 @@ void TransformCamerasAndPoints(Eigen::Affine3d const& A,
 }
 
 double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors,
-                                  const RemoveInvalidPointsParams& params) {
+                                  const RemoveInvalidPointsAndDetectionsParams& params) {
   const int num_errors = reprojection_errors.size();
   if (num_errors == 0) return 0;
 
@@ -209,7 +210,7 @@ double MaxAngleBetweenCameraRays(const int pid, const std::vector<std::map<int, 
   return max_angle;
 }
 
-void RemoveInvalidPoints(const RemoveInvalidPointsParams& params,
+void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsParams& params,
                          const std::vector<Eigen::Affine3d>& cid_to_cam_t_global,
                          const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
                          std::vector<std::map<int, int> >* pid_to_cid_fid, std::vector<Eigen::Vector3d>* pid_to_xyz) {
@@ -221,12 +222,14 @@ void RemoveInvalidPoints(const RemoveInvalidPointsParams& params,
     global_t_cams.emplace_back(cid_to_cam_t_global[cid].inverse().translation());
   }
 
-  RemoveInvalidPointsStats stats;
+  RemoveInvalidPointsAndDetectionsStats stats;
   stats.num_points = pid_to_xyz->size();
   std::vector<bool> invalid_point(pid_to_xyz->size(), false);
   const Eigen::Vector2d half_size = camera_params.GetUndistortedHalfSize();
   for (int pid = 0; pid < static_cast<int>(pid_to_xyz->size()); ++pid) {
     bool small_angle = false, behind_cam = false, invalid_reprojection = false;
+
+    // Check camera angles
     const double max_angle_between_camera_rays
       = MaxAngleBetweenCameraRays(pid, *pid_to_cid_fid,
                                          global_t_cams,  *pid_to_xyz);
@@ -240,6 +243,13 @@ void RemoveInvalidPoints(const RemoveInvalidPointsParams& params,
       const auto& cam_T_global = cid_to_cam_t_global[cid];
       const auto& global_t_point = (*pid_to_xyz)[pid];
       const Eigen::Vector3d cam_t_point = cam_T_global*global_t_point;
+      // Check if point is behind any camera
+      if (cam_t_point.z() <= 0) {
+        behind_cam = true;
+        invalid_point[pid] = true;
+      }
+
+      // Check projection
       const Eigen::Matrix3d intrinsics = params.camera.GetIntrinsicMatrix<camera::UNDISTORTED_C>();
       const Eigen::Vector2d projected_point = vc::Project(cam_t_point, intrinsics);
       const auto& keypoint = cid_to_keypoint_map[cid].col(cid_fid.second);
@@ -249,12 +259,6 @@ void RemoveInvalidPoints(const RemoveInvalidPointsParams& params,
         invalid_reprojection = true;
         invalid_point[pid] = true;
       }
-
-      const Eigen::Vector3d cam_t_point = cid_to_cam_t_global[cid_fid.first] * (*pid_to_xyz)[pid];
-      if (cam_t_point.z() <= 0) {
-        behind_cam = true;
-        invalid_point[pid] = true;
-      }
     }
     stats.small_angle    += static_cast<int>(small_angle);
     stats.behind_cam     += static_cast<int>(behind_cam);
@@ -262,8 +266,11 @@ void RemoveInvalidPoints(const RemoveInvalidPointsParams& params,
   }
 
   // TODO(rsoussan): Clean this up - why using reverse iterator?
+  // Use std::remove_if!!!
+  // Remove invalid points
   for (int pid = (*pid_to_xyz).size() - 1; pid < static_cast<int>((*pid_to_xyz).size()); --pid) {
     if (invalid_point[pid]) {
+      // TODO(rsoussan): Add this as a function in sparse map database!! (A)
       auto cid_fid_it = (*pid_to_cid_fid).begin();
       auto xyz_it = (*pid_to_xyz).begin();
       std::advance(cid_fid_it, pid);
@@ -273,9 +280,7 @@ void RemoveInvalidPoints(const RemoveInvalidPointsParams& params,
     }
   }
 
-  // TODO(rsoussan): why is this done after first pass??? to get only valid thresh in geterrthresh?
-  // Wipe all features who are further than the reprojection of the
-  // corresponding 3D point than given threshold.
+  // Remove high reprojection error feature detections
   const double reprojection_error_threshold = ReprojectionErrorThreshold(pid_reprojection_errors, params);
   LOG(INFO) << "Filtering features with reprojection error higher than: "
             << reprojection_error_threshold << " pixels";
@@ -284,15 +289,16 @@ void RemoveInvalidPoints(const RemoveInvalidPointsParams& params,
     auto itr = cid_fid.begin();
     while (itr != cid_fid.end()) {
       ++stats.num_features;
+      // TODO(rsoussan): Update this as done previously!
       const Eigen::Vector2d pix = (cid_to_cam_t_global[itr->first] *
                              (*pid_to_xyz)[pid]).hnormalized() * camera_params.GetFocalLength();
-      // TODO(rsoussan): Make function for this!
       const double err
         = (cid_to_keypoint_map[itr->first].col(itr->second) - pix).norm();
 
       if (err >= reprojection_error_threshold) {
         auto toErase = itr;
         ++itr;
+        // TODO(rsoussan): Add function in
         cid_fid.erase(toErase);
         stats.big_reproj_err++;
       } else {
@@ -300,9 +306,10 @@ void RemoveInvalidPoints(const RemoveInvalidPointsParams& params,
       }
     }
 
-    // Wipe a 3D point altogether if it corresponds to less than 2 matches.
+    // Remove point if less than 2 valid feature detections remain
     const int total = (*pid_to_cid_fid)[pid].size();
     if (total < 2) {
+      // TODO(rsoussan): update this with sparse map database function!
       auto cid_fid_it
         = pid_to_cid_fid->begin();
       auto xyz_it = pid_to_xyz->begin();

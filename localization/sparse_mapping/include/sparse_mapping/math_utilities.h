@@ -19,7 +19,7 @@
 #ifndef SPARSE_MAPPING_MATH_UTILITIES_H_
 #define SPARSE_MAPPING_MATH_UTILITIES_H_
 
-#include <sparse_mapping/remove_invalid_points_params.h>
+#include <sparse_mapping/remove_invalid_points_and_detections_params.h>
 
 #include <Eigen/Geometry>
 
@@ -57,7 +57,7 @@ namespace sparse_mapping {
                                  std::vector<Eigen::Vector3d> *xyz);
 
   double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors,
-                                    const RemoveInvalidPointsParams& params);
+                                    const RemoveInvalidPointsAndDetectionsParams& params);
 
   boost::optional<double> AngleBetweenRays(const Eigen::Vector3d& a_t_p, const Eigen::Vector3d& b_t_p);
 
@@ -70,7 +70,7 @@ namespace sparse_mapping {
 
   // Remove points that don't project at valid camera pixels,
   // points behind the camera, and matches having large reprojection error.
-void RemoveInvalidPoints(const RemoveInvalidPointsParams& params,
+void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsParams& params,
                  const std::vector<Eigen::Affine3d >& cid_to_cam_t_global,
                  const std::vector<Eigen::Matrix2Xd >& cid_to_keypoint_map,
                  std::vector<std::map<int, int> > * pid_to_cid_fid,

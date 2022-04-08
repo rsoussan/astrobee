@@ -16,12 +16,12 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_REMOVE_INVALID_POINTS_STATS_H_
-#define SPARSE_MAPPING_REMOVE_INVALID_POINTS_STATS_H_
+#ifndef SPARSE_MAPPING_REMOVE_INVALID_POINTS_AND_DETECTIONS_STATS_H_
+#define SPARSE_MAPPING_REMOVE_INVALID_POINTS_AND_DETECTIONS_STATS_H_
 
 namespace sparse_mapping {
-  struct RemoveInvalidPointsStats{
-    RemoveInvalidPointsStats();
+  struct RemoveInvalidPointsAndDetectionsStats{
+    RemoveInvalidPointsAndDetectionsStats();
     Print();
 
     int num_points;
@@ -32,4 +32,4 @@ namespace sparse_mapping {
     int num_features;
   };
 }  // namespace sparse_mapping
-#endif  // SPARSE_MAPPING_REMOVE_INVALID_POINTS_STATS_H_
+#endif  // SPARSE_MAPPING_REMOVE_INVALID_POINTS_AND_DETECTIONS_STATS_H_

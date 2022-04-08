@@ -16,11 +16,11 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_REMOVE_INVALID_POINTS_PARAMS_H_
-#define SPARSE_MAPPING_REMOVE_INVALID_POINTS_PARAMS_H_
+#ifndef SPARSE_MAPPING_REMOVE_INVALID_POINTS_AND_DETECTIONS_PARAMS_H_
+#define SPARSE_MAPPING_REMOVE_INVALID_POINTS_AND_DETECTIONS_PARAMS_H_
 
 namespace sparse_mapping {
-struct RemoveInvalidPointsParams {
+struct RemoveInvalidPointsAndDetectionsParams {
   double max_reprojection_error = 5.0;
   // Multiplied by median reprojection error to find threshold for removal
   double reprojection_error_threshold_scale_factor = 3.0;
@@ -29,4 +29,4 @@ struct RemoveInvalidPointsParams {
   bool print_stats = true;
 };
 }  // namespace sparse_mapping
-#endif  // SPARSE_MAPPING_REMOVE_INVALID_POINTS_PARAMS_H_
+#endif  // SPARSE_MAPPING_REMOVE_INVALID_POINTS_AND_DETECTIONS_PARAMS_H_
