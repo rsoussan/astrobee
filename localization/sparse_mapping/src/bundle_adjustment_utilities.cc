@@ -138,6 +138,8 @@ void BundleAdjust(const BundleAdjustmentParams& params, const std::vector<std::m
         LOG(FATAL) << "Found a track of size < 2.";
 
       auto& point_3d = pid_to_xyz->at(pid);
+      const bool fixed_point = FixedPoint(params, pid, pid_to_cid_fid);
+      oc::AddParameterBlock(3, point_3d.data(), problem, fixed_point);
        for (const auto& cid_fid : pid_to_cid_fid[pid]) {
         const int cid = cid_fid.first;
         const int fid = cid_fid.second;
@@ -146,17 +148,18 @@ void BundleAdjust(const BundleAdjustmentParams& params, const std::vector<std::m
 
       const bool fixed_camera = FixedCamera(params, cid);
       oc::AddAffine3ParameterBlock(camera_T_global.data(), problem, fixed_camera);
-      // TODO(rsoussan): Optimize for scale??? test!! switch to subset manifold?? Can you add two local
-      // parameterizations to one param block??
-      ceres::SubsetParameterization* constant_scale_parameterization = new ceres::SubsetParameterization(7, {6});
-      problem.SetParameterization(camera_T_global.data(), constant_scale_parameterization);
+      if (!params.optimize_scale) {
+        // TODO(rsoussan): Optimize for scale??? test!! switch to subset manifold?? Can you add two local
+        // parameterizations to one param block??
+        ceres::SubsetParameterization* constant_scale_parameterization = new ceres::SubsetParameterization(7, {6});
+        problem.SetParameterization(camera_T_global.data(), constant_scale_parameterization);
+      }
 
       oc::ReprojectionError<vc::IdentityDistorter, oc::AffineFunctor>::AddCostFunction(
         image_point, point_3d, camera_T_global, const_cast<Eigen::Vector2d&>(focal_lengths),
         const_cast<Eigen::Vector2d&>(zero_principal_points), const_cast<Eigen::VectorXd&>(zero_distortion), problem,
         params.LossFunction());
       }
-        if (FixedPoint(params, pid, pid_to_cid_fid)) problem.SetParameterBlockConstant((pid_to_xyz->at(pid)).data());
     }
   ceres::Solve(params.options, &problem, summary);
 

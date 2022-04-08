@@ -25,6 +25,7 @@
 
 namespace sparse_mapping {
 struct BundleAdjustementParams {
+  // If false, all cameras other than those in fixed_cameras set are optimized
   bool optimize_camera_range = false;
   // Only used if optimize_camera_range is set to true
   int first_optimized_camera = 0;
@@ -32,6 +33,7 @@ struct BundleAdjustementParams {
 
   bool fix_all_cameras = false;
   std::unordered_set<int> fixed_cameras;
+  bool optimize_scale = false;
 
   // l1, l2, cauchy, or huber
   // l2 is equivalent to no loss since ceres is a least squares solver
