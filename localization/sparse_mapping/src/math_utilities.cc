@@ -163,6 +163,20 @@ double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors
   return std::max(scaled_median_reprojection_error, params.max_reprojection_error);
 }
 
+boost::optional<double> AngleBetweenRays(const Eigen::Vector3d& a_t_p, const Eigen::Vector3d& b_t_p) {
+      const double a_t_p_norm = a_t_p.norm();
+      const double b_t_p_norm = b_t_p.norm();
+      if (a_t_p_norm == 0 || b_t_p_norm == 0) return boost::none;
+
+      // a dot b = cos(theta)*||a||*||b||
+      // cos(theta) = (a dot b) /(||a||*||b||)
+      double cos_angle = a_t_p.dot(b_t_p)/(a_t_p_norm*b_t_p_norm);
+      // Avoid numerical errors of cos_angle being slightly larger or smaller than 1/-1
+      cos_angle = std::min(1.0, cos_angle);
+      cos_angle = std::max(-1.0, cos_angle);
+      return (180.0/M_PI)*std::acos(cos_angle);
+}
+
 double MaxAngleBetweenCameraRays(const int pid, const std::vector<std::map<int, int> >& pid_to_cid_fid,
                                         const std::vector<Eigen::Vector3d>& global_t_cams,
                                         const std::vector<Eigen::Vector3d>& pid_to_xyz) {
@@ -178,17 +192,9 @@ double MaxAngleBetweenCameraRays(const int pid, const std::vector<std::map<int, 
       const int cid2 = cid_fid_it2->first;
       const Eigen::Vector3d cam1_t_point = global_t_cams[cid1] - global_t_point;
       const Eigen::Vector3d cam2_t_point = global_t_cams[cid2] - global_t_point;
-      // TODO(rsoussan): make function for this next part, call AngleBetweenRays!! (A)
-      const double l1 = cam1_t_point.norm();
-      const double l2 = cam2_t_point.norm();
-      if (l1 == 0 || l2 == 0)
-        continue;
-
-      double dot = cam1_t_point.dot(cam2_t_point)/(l1*l2);
-      dot = std::min(dot, 1.0);
-      dot = std::max(-1.0, dot);
-      const double angle = (180.0/M_PI)*std::acos(dot);
-      max_angle = std::max(angle, max_angle);
+      const  auto angle = AngleBetweenRays(cam1_t_point, cam2_t_point);
+      if (!angle) continue;
+      max_angle = std::max(*angle, max_angle);
     }
   }
   return max_angle;

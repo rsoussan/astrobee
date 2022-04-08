@@ -59,6 +59,8 @@ namespace sparse_mapping {
   double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors,
                                     const RemoveInvalidPointsParams& params);
 
+  boost::optional<double> AngleBetweenRays(const Eigen::Vector3d& a_t_p, const Eigen::Vector3d& b_t_p);
+
   // Find the maximum angle between n rays intersecting at given
   // point. Must compute the camera centers in the global coordinate
   // system before calling this function.
