@@ -29,6 +29,15 @@
 #include <openMVG/robust_estimation/robust_estimator_ACRansacKernelAdaptator.hpp>
 #pragma GCC diagnostic pop
 
+namespace {
+bool ValidProjection(const Eigen::Vector2d& centered_projected_point, const Eigen::Vector2d& image_half_size) {
+  if (centered_projected_point.x() < -1.0 * half_size.x() || centered_projected_point.x() >= half_size.x() ||
+      centered_projected_point.y() < -1.0 * half_size.y() || centered_projected_point.y() >= half_size.y())
+    return false;
+  return true;
+}
+}
+
 namespace sparse_mapping {
 // Compute the n-weight slerp, analogous to the linear combination
 // W[0]*Q[0] + ... + W[n-1]*Q[n-1]. This is experimental.
@@ -214,44 +223,47 @@ void RemoveInvalidPoints(const RemoveInvalidPointsParams& params,
 
   RemoveInvalidPointsStats stats;
   stats.num_points = pid_to_xyz->size();
-  std::vector<bool> is_bad(pid_to_xyz->size(), false);
+  std::vector<bool> invalid_point(pid_to_xyz->size(), false);
   const Eigen::Vector2d half_size = camera_params.GetUndistortedHalfSize();
   for (int pid = 0; pid < static_cast<int>(pid_to_xyz->size()); ++pid) {
-    bool small_angle = false, behind_cam = false, invalid_reproj = false;
+    bool small_angle = false, behind_cam = false, invalid_reprojection = false;
     const double max_angle_between_camera_rays
       = MaxAngleBetweenCameraRays(pid, *pid_to_cid_fid,
                                          global_t_cams,  *pid_to_xyz);
     if (max_angle_between_camera_rays < params.min_max_angle_between_camera_rays) {
       small_angle = true;
-      is_bad[pid] = true;
+      invalid_point[pid] = true;
     }
 
     for (const auto cid_fid : (*pid_to_cid_fid)[pid]) {
-      const Eigen::Vector2d pix = (cid_to_cam_t_global[cid_fid.first] *
-                             (*pid_to_xyz)[pid]).hnormalized() * camera_params.GetFocalLength();
-      pid_reprojection_errors.push_back((cid_to_keypoint_map[cid_fid.first].col(cid_fid.second) - pix).norm());
-      // Mark points which don't project at valid camera pixels
-      // TODO(zmoratto) : This can probably be done with a Eigen Array reduction
-      if (pix[0] < -half_size[0] || pix[0] >= half_size[0] || pix[1] < -half_size[1] || pix[1] >= half_size[1]) {
-        invalid_reproj = true;
-        is_bad[pid] = true;
+      const int cid = cid_fid.first;
+      const auto& cam_T_global = cid_to_cam_t_global[cid];
+      const auto& global_t_point = (*pid_to_xyz)[pid];
+      const Eigen::Vector3d cam_t_point = cam_T_global*global_t_point;
+      const Eigen::Matrix3d intrinsics = params.camera.GetIntrinsicMatrix<camera::UNDISTORTED_C>();
+      const Eigen::Vector2d projected_point = vc::Project(cam_t_point, intrinsics);
+      const auto& keypoint = cid_to_keypoint_map[cid].col(cid_fid.second);
+      pid_reprojection_errors.push_back((keypoint- projected_point).norm());
+      const bool valid_projection = ValidProjection(projected_point, half_size);
+      if (!valid_projection) {
+        invalid_reprojection = true;
+        invalid_point[pid] = true;
       }
 
-      // Mark points that are behind the camera
-      const Eigen::Vector3d P = cid_to_cam_t_global[cid_fid.first] * (*pid_to_xyz)[pid];
-      if (P[2] <= 0) {
+      const Eigen::Vector3d cam_t_point = cid_to_cam_t_global[cid_fid.first] * (*pid_to_xyz)[pid];
+      if (cam_t_point.z() <= 0) {
         behind_cam = true;
-        is_bad[pid] = true;
+        invalid_point[pid] = true;
       }
     }
     stats.small_angle    += static_cast<int>(small_angle);
     stats.behind_cam     += static_cast<int>(behind_cam);
-    stats.invalid_reproj += static_cast<int>(invalid_reproj);
+    stats.invalid_reprojection += static_cast<int>(invalid_reprojection);
   }
 
   // TODO(rsoussan): Clean this up - why using reverse iterator?
   for (int pid = (*pid_to_xyz).size() - 1; pid < static_cast<int>((*pid_to_xyz).size()); --pid) {
-    if (is_bad[pid]) {
+    if (invalid_point[pid]) {
       auto cid_fid_it = (*pid_to_cid_fid).begin();
       auto xyz_it = (*pid_to_xyz).begin();
       std::advance(cid_fid_it, pid);
