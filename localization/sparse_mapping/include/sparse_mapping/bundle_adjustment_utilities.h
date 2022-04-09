@@ -36,19 +36,12 @@ namespace sparse_mapping {
    **/
   void CloseLoop(sparse_mapping::SparseMap * s);
 
-  /**
-   * Improve the map with bundle adjustment. Vary only the cameras
-   * between given indices.
-   **/
-  void BundleAdjust(bool fix_all_cameras, sparse_mapping::SparseMap * map,
-                    std::set<int> const& fixed_cameras = std::set<int>());
-
  /**
  * Perform bundle adjustment. 
  * All poses and point values should be set to initial guesses and are modified to improved guesses when the function returns.
  **/
   void BundleAdjust(const BundleAdjustmentParams& params, const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
-                    const double focal_length, std::vector<Eigen::Affine3d>* cid_to_cam_t_global,
+                    std::vector<Eigen::Affine3d>* cid_to_cam_t_global,
                     std::vector<std::map<int, int> >* pid_to_cid_fid, std::vector<Eigen::Vector3d>* pid_to_xyz,
                     ceres::Solver::Summary* summary);
   /**

@@ -32,8 +32,6 @@
 #include <set>
 #include <vector>
 
-DEFINE_int32(num_ba_passes, 5,
-             "How many times to run bundle adjustment, removing outliers each time.");
 namespace {
 bool FixedCamera(const BundleAdjustmentParams& params, const int cid) {
   // TODO(rsoussan): Why would cid be out of range? would cam_t_global still be valid then?
@@ -59,38 +57,8 @@ bool FixedPoint(const BundleAdjustmentParams& params, const int pid,
 namespace sparse_mapping {
 namespace oc = optimization_common;
 
-void BundleAdjust(bool fix_all_cameras, sparse_mapping::SparseMap * map,
-                  std::set<int> const& fixed_cameras) {
-  for (int i = 0; i < FLAGS_num_ba_passes; i++) {
-    LOG(INFO) << "Beginning bundle adjustment, pass: " << i << ".\n";
-
-    // perform bundle adjustment
-    ceres::Solver::Options options;
-    // options.linear_solver_type = ceres::SPARSE_SCHUR; // Need to be building SuiteSparse
-    options.linear_solver_type = ceres::ITERATIVE_SCHUR;
-    // What should the preconditioner be?
-    options.num_threads = FLAGS_num_threads;
-    options.max_num_iterations = FLAGS_max_num_iterations;
-    options.minimizer_progress_to_stdout = true;
-    ceres::Solver::Summary summary;
-    ceres::LossFunction* loss = sparse_mapping::GetLossFunction(FLAGS_cost_function,
-                                                                FLAGS_cost_function_threshold);
-    sparse_mapping::BundleAdjustment(map, loss, options, &summary,
-                                     FLAGS_first_ba_index, FLAGS_last_ba_index,
-                                     fix_all_cameras, fixed_cameras);
-
-    LOG(INFO) << summary.FullReport() << "\n";
-    LOG(INFO) << "Starting average reprojection error: "
-              << summary.initial_cost / map->GetNumObservations();
-    LOG(INFO) << "Final average reprojection error:    "
-              << summary.final_cost / map->GetNumObservations();
-    if (params.remove_invalid_points_and_detections)
-    s->InitializeCidFidToPid();
-  }
-}
-
 void BundleAdjust(const BundleAdjustmentParams& params, const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
-                  const double focal_length, std::vector<Eigen::Affine3d>* cid_to_cam_t_global,
+                  std::vector<Eigen::Affine3d>* cid_to_cam_t_global,
                   std::vector<std::map<int, int>>* pid_to_cid_fid, std::vector<Eigen::Vector3d>* pid_to_xyz,
                   ceres::Solver::Summary* summary) {
   std::vector<Eigen::Matrix<double, 7, 1>> camera_T_globals;
@@ -103,7 +71,7 @@ void BundleAdjust(const BundleAdjustmentParams& params, const std::vector<Eigen:
   // Centered, undistored camera
   const Eigen::Vector2d zero_principal_points(Eigen::Vector2d::Zero());
   const Eigen::VectorXd zero_distortion(1);
-  const Eigen::Vector2d focal_lengths(focal_length, focal_length);
+  const Eigen::Vector2d focal_lengths = camera.GetFocalVector();
   oc::AddConstantParameterBlock(2, zero_principal_points.data(), problem);
   oc::AddConstantParameterBlock(1, zero_distortion.data(), problem);
   oc::AddConstantParameterBlock(2, focal_lengths.data(), problem);

@@ -20,6 +20,7 @@
 #define SPARSE_MAPPING_SPARSE_MAP_PARAMS_H_
 
 #include <camera/camera_params.h>
+#include <sparse_mapping/bundle_adjustment_params.h>
 #include <sparse_mapping/image_database_params.h>
 #include <vision_common/brisk_dynamic_detector_params.h>
 #include <vision_common/surf_dynamic_detector_params.h>
@@ -53,6 +54,9 @@ struct SparseMapParams {
   double cauchy_loss;                          // 0.5
   int min_num_cams_to_incrementally_optimize;  // 4
   int max_num_cams_to_incrementally_optimize;  // 128
+
+  BundleAdjustmentParams bundle_adjustment;
+  int num_bundle_adjustment_iterations = 5;
 };
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_SPARSE_MAP_PARAMS_H_

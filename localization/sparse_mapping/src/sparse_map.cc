@@ -355,6 +355,23 @@ int OldestCidToOptimize(const int latest_cid) const {
     return oldest_cid_to_optimize;
 }
 
+void IterativelyBundleAdjust(const BundleAdjustmentParams& params, const int num_iterations) {
+  for (int i = 0; i < num_iterations; ++i) {
+    LOG(INFO) << "Beginning bundle adjustment, pass: " << i << ".\n";
+  ceres::Solver::Summary summary;
+BundleAdjust(params, cid_to_keypoint_map_,
+                    &cid_to_cam_t_global_,
+                    &pid_to_cid_fid_, &pid_to_xyz_,
+                    &summary);
+    LOG(INFO) << summary.FullReport() << "\n";
+    LOG(INFO) << "Starting average reprojection error: "
+              << summary.initial_cost / map->GetNumObservations();
+    LOG(INFO) << "Final average reprojection error:    "
+              << summary.final_cost / map->GetNumObservations();
+    if (params.remove_invalid_points_and_detections) InitializeCidFidToPid();
+  }
+}
+
 void ClearImageDatabase() {
   image_database_.reset();
 }

@@ -43,8 +43,9 @@ struct BundleAdjustementParams {
   double loss_threshold = 2.0;
   ceres::Solver::Options solver_options = DefaultSolverOptions();
   bool remove_invalid_points_and_detections = false;
-  // TODO(rsoussan): How to ensure cam params set properly???
+  // TODO(rsoussan): How to ensure cam params set properly for this and remove invalid pts params???
   RemoveInvalidPointsAndDetectionsParams remove_invalid_points_and_detections_params;
+  camera::CameraParameters camera;
 
   ceres::LossFunction* LossFunction() const;
   static ceres::Solver::Options DefaultSolverOptions() const;

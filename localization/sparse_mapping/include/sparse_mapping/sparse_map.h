@@ -85,6 +85,8 @@ class SparseMap : public SparseMapDatabase {
 
   void IncrementallyBundleAdjust();
 
+  void IterativelyBundleAdjust(const BundleAdjustmentParams& params, const int num_iterations);
+
   // delete feature descriptors with no matching landmark
   void PruneMap();
 
