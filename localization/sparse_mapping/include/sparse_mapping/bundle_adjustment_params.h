@@ -19,6 +19,8 @@
 #ifndef SPARSE_MAPPING_BUNDLE_ADJUSTMENT_PARAMS_H_
 #define SPARSE_MAPPING_BUNDLE_ADJUSTMENT_PARAMS_H_
 
+#include <sparse_mapping/remove_invalid_points_and_detection_params.h>
+
 #include <limits>
 #include <set>
 #include <string>
@@ -40,6 +42,9 @@ struct BundleAdjustementParams {
   std::string loss_function = "cauchy";
   double loss_threshold = 2.0;
   ceres::Solver::Options solver_options = DefaultSolverOptions();
+  bool remove_invalid_points_and_detections = false;
+  // TODO(rsoussan): How to ensure cam params set properly???
+  RemoveInvalidPointsAndDetectionsParams remove_invalid_points_and_detections_params;
 
   ceres::LossFunction* LossFunction() const;
   static ceres::Solver::Options DefaultSolverOptions() const;

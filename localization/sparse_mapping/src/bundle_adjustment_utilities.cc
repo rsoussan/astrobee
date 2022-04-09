@@ -111,10 +111,9 @@ void BundleAdjustment(sparse_mapping::SparseMap * s,
   }
 }
 
-
-void BundleAdjust(const BundleAdjustmentParams& params, const std::vector<std::map<int, int> >& pid_to_cid_fid,
-                  const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map, const double focal_length,
-                  std::vector<Eigen::Affine3d>* cid_to_cam_t_global, std::vector<Eigen::Vector3d>* pid_to_xyz,
+void BundleAdjust(const BundleAdjustmentParams& params, const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
+                  const double focal_length, std::vector<Eigen::Affine3d>* cid_to_cam_t_global,
+                  std::vector<std::map<int, int>>* pid_to_cid_fid, std::vector<Eigen::Vector3d>* pid_to_xyz,
                   ceres::Solver::Summary* summary) {
   std::vector<Eigen::Matrix<double, 7, 1>> camera_T_globals;
   camera_T_globals.reserve(cid_to_cam_t_global->size());
@@ -163,6 +162,14 @@ void BundleAdjust(const BundleAdjustmentParams& params, const std::vector<std::m
   // Write the rotations back to the transform
   for (int cid = 0; cid < cid_to_cam_t_global->size(); ++cid) {
     cid_to_cam_t_global->at(cid) = oc::Affine3d(camera_T_globals[cid]);
+  }
+
+  if (params.remove_invalid_points_and_detections) {
+    RemoveInvalidPointsAndDetections(params.remove_invalid_points_and_detections_params,
+                 *cid_to_cam_t_global,
+                 cid_to_keypoint_map,
+                 pid_to_cid_fid,
+                 pid_to_xyz);
   }
 }
 

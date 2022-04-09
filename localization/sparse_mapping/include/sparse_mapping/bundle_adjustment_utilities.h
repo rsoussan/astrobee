@@ -52,27 +52,13 @@ namespace sparse_mapping {
                         std::set<int> const& fixed_cameras = std::set<int>());
 
  /**
- * Perform bundle adjustment. Keep fixed all cameras with cid
- * not within [first, last] and all xyz points which project only onto fixed cameras.
- *
- * cid_to_cam_t_global is the camera transforms
- * focal_length is the focal_length
- * pid_to_xyz are landmark locations
- * All should be set to initial guesses and are modified to improved guesses when the function returns.
- *
- * pid_to_cid_fid is maps from landmark id to camera id and feature id
- * cid_to_keypoint_map gives a list of observations for each camera
- * Ceres loss function and options can be specified, and summary returns results from ceres.
- * Optimize only the cameras with indices in [first, last].
+ * Perform bundle adjustment. 
+ * All poses and point values should be set to initial guesses and are modified to improved guesses when the function returns.
  **/
-  void BundleAdjust(const std::vector<std::map<int, int> >& pid_to_cid_fid,
-                    const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map, const double focal_length,
-                    std::vector<Eigen::Affine3d>* cid_to_cam_t_global, std::vector<Eigen::Vector3d>* pid_to_xyz,
-                    ceres::LossFunction* loss,
-                    const ceres::Solver::Options& options, ceres::Solver::Summary* summary, const int first = 0,
-                    const int last = std::numeric_limits<int>::max(), const bool fix_cameras = false,
-                    const std::set<int>& fixed_cameras = std::set<int>());
-
+  void BundleAdjust(const BundleAdjustmentParams& params, const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
+                    const double focal_length, std::vector<Eigen::Affine3d>* cid_to_cam_t_global,
+                    std::vector<std::map<int, int> >* pid_to_cid_fid, std::vector<Eigen::Vector3d>* pid_to_xyz,
+                    ceres::Solver::Summary* summary);
   /**
    * Perform bundle adjustment.
    *
