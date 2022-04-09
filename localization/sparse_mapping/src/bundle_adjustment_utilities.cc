@@ -32,8 +32,6 @@
 #include <set>
 #include <vector>
 
-DEFINE_bool(skip_filtering, false,
-            "Skip filtering of outliers after bundle adjustment.");
 DEFINE_int32(num_ba_passes, 5,
              "How many times to run bundle adjustment, removing outliers each time.");
 namespace {
@@ -86,27 +84,7 @@ void BundleAdjust(bool fix_all_cameras, sparse_mapping::SparseMap * map,
               << summary.initial_cost / map->GetNumObservations();
     LOG(INFO) << "Final average reprojection error:    "
               << summary.final_cost / map->GetNumObservations();
-  }
-}
-
-void BundleAdjustment(sparse_mapping::SparseMap * s,
-                      ceres::LossFunction* loss,
-                      const ceres::Solver::Options & options,
-                      ceres::Solver::Summary* summary,
-                      int first, int last, bool fix_all_cameras,
-                      std::set<int> const& fixed_cameras) {
-  sparse_mapping::BundleAdjust(s->pid_to_cid_fid_, s->cid_to_keypoint_map_,
-                               s->camera_params_.GetFocalLength(), &(s->cid_to_cam_t_global_),
-                               &(s->pid_to_xyz_),
-                               s->user_pid_to_cid_fid_, s->user_cid_to_keypoint_map_,
-                               &(s->user_pid_to_xyz_),
-                               loss, options, summary, first, last, fix_all_cameras,
-                               fixed_cameras);
-
-  // First do BA, and only afterwards remove outliers.
-  if (!FLAGS_skip_filtering) {
-    FilterPID(FLAGS_reproj_thresh,  s->camera_params_, s->cid_to_cam_t_global_,
-              s->cid_to_keypoint_map_, &(s->pid_to_cid_fid_), &(s->pid_to_xyz_));
+    if (params.remove_invalid_points_and_detections)
     s->InitializeCidFidToPid();
   }
 }

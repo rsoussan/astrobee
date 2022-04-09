@@ -43,14 +43,6 @@ namespace sparse_mapping {
   void BundleAdjust(bool fix_all_cameras, sparse_mapping::SparseMap * map,
                     std::set<int> const& fixed_cameras = std::set<int>());
 
-  void BundleAdjustment(sparse_mapping::SparseMap * s,
-                        ceres::LossFunction * loss,
-                        const ceres::Solver::Options & options,
-                        ceres::Solver::Summary * summary,
-                        int first = 0, int last = std::numeric_limits<int>::max(),
-                        bool fix_all_cameras = false,
-                        std::set<int> const& fixed_cameras = std::set<int>());
-
  /**
  * Perform bundle adjustment. 
  * All poses and point values should be set to initial guesses and are modified to improved guesses when the function returns.
