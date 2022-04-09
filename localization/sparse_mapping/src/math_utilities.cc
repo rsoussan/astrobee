@@ -44,6 +44,18 @@ void RemoveInvalidPoints(const std::vector<bool>& invalid_points, std::vector<st
   lc::RemoveElements(invalid_points, pid_to_cid_fid);
   lc::RemoveElements(invalid_points, pid_to_xyz);
 }
+
+double ReprojectionError(const std::pair<int, int>& cid_fid, const Eigen::Matrix3d& intrinsics,
+                         const std::vector<Eigen::Affine3d>& cid_to_cam_t_global,
+                         const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map) {
+  const int cid = cid_fid.first;
+  const int fid = cid_fid.second;
+  const auto& cam_T_global = cid_to_cam_t_global[cid];
+  const Eigen::Vector3d cam_t_point = cam_T_global * global_t_point;
+  const Eigen::Vector2d projected_point = vc::Project(cam_t_point, intrinsics);
+  const auto& keypoint = cid_to_keypoint_map[cid].col(fid);
+  return (keypoint - projected_point).norm();
+}
 }  // namespace
 
 namespace sparse_mapping {
@@ -258,9 +270,9 @@ void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsPara
       }
 
       // Check projection
-      const Eigen::Vector2d projected_point = vc::Project(cam_t_point, intrinsics);
-      const auto& keypoint = cid_to_keypoint_map[cid].col(cid_fid.second);
-      pid_reprojection_errors.push_back((keypoint- projected_point).norm());
+      const double reprojection_error =
+        ReprojectionError(cid_fid, intrinsics, cid_to_cam_t_global, cid_to_keypoint_map);
+      pid_reprojection_errors.emplace_back(reprojection_error);
       const bool valid_projection = ValidProjection(projected_point, half_size);
       if (!valid_projection) {
         invalid_reprojection = true;
@@ -283,15 +295,9 @@ void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsPara
     const auto& global_t_point = (*pid_to_xyz)[pid];
     for (auto cid_fid_it = cid_fids.begin(); cid_fid_it != cid_fids.end();) {
       ++stats.num_features;
-      // TODO(rsoussan): Make anon ns function to compute reprojection error!!
-      const int cid = cid_fid_it->first;
-      const int fid = cid_fid_it->second;
-      const auto& cam_T_global = cid_to_cam_t_global[cid];
-      const Eigen::Vector3d cam_t_point = cam_T_global*global_t_point;
-      const Eigen::Vector2d projected_point = vc::Project(cam_t_point, intrinsics);
-      const auto& keypoint = cid_to_keypoint_map[cid].col(fid);
-      const double reprojection_error = (keypoint- projected_point).norm();
-     if (reprojection_error >= params.max_reprojection_error) {
+      const double reprojection_error =
+        ReprojectionError(*cid_fid_it, intrinsics, cid_to_cam_t_global, cid_to_keypoint_map);
+      if (reprojection_error >= params.max_reprojection_error) {
         cid_fid_it = cid_fids.erase(cid_fid_it);
         ++stats.big_reproj_err;
       } else {
