@@ -206,11 +206,8 @@ boost::optional<double> AngleBetweenRays(const Eigen::Vector3d& a_t_p, const Eig
       return (180.0/M_PI)*std::acos(cos_angle);
 }
 
-double MaxAngleBetweenCameraRays(const int pid, const std::vector<std::map<int, int> >& pid_to_cid_fid,
-                                        const std::vector<Eigen::Vector3d>& global_t_cams,
-                                        const std::vector<Eigen::Vector3d>& pid_to_xyz) {
-  const auto& track = pid_to_cid_fid[pid];
-  const auto global_t_point = pid_to_xyz[pid];
+double MaxAngleBetweenCameraRays(const std::map<int, int>& track, const std::vector<Eigen::Vector3d>& global_t_point,
+                                 const std::vector<Eigen::Vector3d>& global_t_cams) {
   double max_angle = 0;
   int cid = 0;
   for (auto cid_fid_it1 = track.begin();
@@ -250,9 +247,10 @@ void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsPara
     bool small_angle = false, behind_cam = false, invalid_reprojection = false;
 
     // Check camera angles
+    const auto& track = pid_to_cid_fid[pid];
+    const auto& global_t_point = pid_to_xyz[pid];
     const double max_angle_between_camera_rays
-      = MaxAngleBetweenCameraRays(pid, *pid_to_cid_fid,
-                                         global_t_cams,  *pid_to_xyz);
+      = MaxAngleBetweenCameraRays(track, global_t_point, global_t_cams);
     if (max_angle_between_camera_rays < params.min_max_angle_between_camera_rays) {
       small_angle = true;
       invalid_point[pid] = true;
