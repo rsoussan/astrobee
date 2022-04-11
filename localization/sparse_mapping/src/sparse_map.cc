@@ -264,11 +264,11 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
 
   cid_to_cam_t_global_ = incremental_cid_t_cam_t_global;
   // Triangulate one last time after completion of iterative bundle adjustment
-  Triangulate(true);
+  Triangulate();
 }
 
-void Triangulate(const bool remove_invalid_xyz) {
-  Triangulate(remove_invalid_xyz,
+void Triangulate(const bool remove_invalid_points) {
+  Triangulate(remove_invalid_points,
                               params_.camera.GetFocalLength(),
                               cid_to_cam_t_global_,
                               cid_to_keypoint_map_,

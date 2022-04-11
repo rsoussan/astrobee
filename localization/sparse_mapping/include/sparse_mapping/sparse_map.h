@@ -117,7 +117,7 @@ class SparseMap : public SparseMapDatabase {
 
   int OldestCidToOptimize(const int latest_cid) const;
 
-  void Triangulate(const bool remove_invalid_xyz);
+  void Triangulate(const bool remove_invalid_points = true);
 
   std::unique_ptr<ImageDatabase> image_database_;
   SparseMapParams params_;
