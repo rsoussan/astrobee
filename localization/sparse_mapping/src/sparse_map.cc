@@ -254,13 +254,11 @@ void SparseMap::PruneMap(void) {
 // most similar cameras. Fixing these would need careful testing for
 // both map quality and run-time before and after the fix.
 void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affines) {
+  std::vector<Eigen::Affine3d > incremental_cid_to_cam_t_global;
+  // Initialize first pose at identity
+  incremental_cid_to_cam_t_global.emplace_back(Eigen::Affine3d::Identity());
   // Start with second camera, update all cameras before and including this, move to next camera and repeat
   for (int latest_cid = 1; latest_cid < num_cameras(); ++latest_cid) {
-    std::vector<Eigen::Affine3d > incremental_cid_to_cam_t_global;
-    incremental_cid_to_cam_t_global.reserve(latest_cid + 1);
-    for (int incremental_cid = 0; incremental_cid < latest_cid; ++incremental_cid)
-      incremental_cid_to_cam_t_global.emplace_back(cam_T_global(incremental_cid));
-
     const int previous_cid = latest_cid -1;
     const std::pair<int, int> latest_to_previous_cid_pair(previous_cid, latest_cid);
     // Initialize latest cid pose. If relative pose not available wrt to previous cid,
@@ -311,13 +309,10 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
     // TODO(rsoussan): Add warning if ba failed?
     BundleAdjust(params.incremental_bundle_adjustment, cid_to_keypoint_map_,
                                  &incremental_cid_to_cam_t_global, incremental_pid_to_cid_fid, &incremental_pid_to_xyz);
-
-    // Update sparse map with latest incremental cam_T_globals
-    for (int cid = 0; cid <= latest_cid; ++c)
-      cam_T_global(cid) = incremental_cid_to_cam_t_global[cid];
   }
-
-  // Triangulate feature points using final camera poses after incremental bundle adjustment has finished
+    for (int cid = 0; cid <= num_cameras(); ++cid)
+      cam_T_global(cid) = incremental_cid_to_cam_t_global[cid];
+  // Triangulate one last time after completion of iterative bundle adjustment
   Triangulate(true);
 }
 
