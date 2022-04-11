@@ -20,17 +20,31 @@
 #define SPARSE_MAPPING_ESTIMATE_POSE_PARAMS_H_
 
 namespace sparse_mapping {
-struct EstimatePoseParams {
-    int num_ransac_iterations = 1000;
-    int ransac_inlier_tolerance = 3;
+struct EstimatePoseParams : vision_common::ReprojectionPoseEstimateParams {
+    EstimatePoseParams();
       // TODO(rsoussan): Change this to a bool?
     // TODO(rsoussan): should this be here or in sparse map params????
     int histogram_equalization = false;
     int max_num_total_feature_matches = 100;
     bool check_point_3d_exists = true;
     int max_image_matches = 20;
-    bool inlier_landmarks;
-    bool inlier_observations;
 };
+
+inline EstimatePoseParams::EstimatePoseParams() {
+  // ReprojectionPoseEstimateParams
+  // Optimization
+  optimization.solver_options = ???
+  optimization.verbose = false;
+  optimization.huber_loss = ? ? ?
+                                // Ransac Pnp
+    ransac_pnp.max_inlier_threshold = 3;  // is this right? something else?
+  ransac_pnp.num_iterations = 1000;
+  ransac_pnp.min_num_inliers = ? ? ? ransac_pnp.pnp_method = ? ? ?
+                                                                 // Other
+                                     optimize_estimate = true;
+  max_inlier_threshold = 3;
+  // default construct reproj pose estimate params!
+  // fill other things!
+}
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_ESTIMATE_POSE_PARAMS_H_

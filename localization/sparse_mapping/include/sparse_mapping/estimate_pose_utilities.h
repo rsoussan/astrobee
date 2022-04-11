@@ -22,28 +22,10 @@
 #include <sparse_mapping/estimate_pose_params.h>
 #include <sparse_mapping/estimate_pose_results.h>
 
-#include <ceres/ceres.h>
-
 #include <Eigen/Geometry>
 
-#include <map>
 #include <vector>
-#include <limits>
 #include <string>
-#include <set>
-
-namespace camera {
-  class CameraModel;
-}
-
-namespace cv {
-  template <class T>
-  class Point_;
-  template <class T>
-  class Point3_;
-  typedef Point_<double> Point2d;
-  typedef Point3_<double> Point3d;
-}
 
 namespace sparse_mapping {
 struct ImageMatch {
@@ -75,52 +57,9 @@ EstimatePoseResults EstimatePose(
 EstimatePoseResults EstimatePose(
   const std::string& image_filename, const EstimatePoseParams& params, SparseMap& map);
 
-// Random integer between min (inclusive) and max (exclusive)
-int RandomInt(int min, int max);
-
-// Select a Random Observations
-void SelectRandomObservations(const std::vector<Eigen::Vector3d> & all_landmarks,
-    const std::vector<Eigen::Vector2d> & all_observations, size_t num_selected,
-    std::vector<cv::Point3d> * landmarks, std::vector<cv::Point2d> * observations);
-
-// Used to find landmark and observations that best match the current camera
-// model.
-size_t CountInliers(const std::vector<Eigen::Vector3d> & landmarks,
-    const std::vector<Eigen::Vector2d> & observations,
-    const camera::CameraModel & camera, int tolerance,
-    std::vector<size_t>* inliers);
-
-/**
- * Estimate the camera matrix, with translation and rotation, that maps the points in landmarks
- * to the image coordinates observed in observations. This uses a least squares solver
- * and the initial estimate must be in the neighborhood of the true position for it
- * to converge.
- *
- * After the function is called, camera_estimate is updated to contain the results,
- * and summary summarizes them.
- **/
-void EstimateCamera(camera::CameraModel * camera_estimate, std::vector<Eigen::Vector3d> * landmarks,
-                    const std::vector<Eigen::Vector2d> & observations,
-                    const ceres::Solver::Options & options, ceres::Solver::Summary* summary);
-
-/**
- * Estimate the camera matrix, with translation and rotation, that maps the points in landmarks
- * to the image coordinates observed in observations. This uses ransac with a three
- * point perspective algorithm, and does not use an initial guess for the camera pose.
- *
- * After the function is called, camera_estimate is updated to contain the results.
- *
- * Returns zero on success, nonzero on failure.
- **/
-int RansacEstimateCamera(const std::vector<Eigen::Vector3d> & landmarks,
-                         const std::vector<Eigen::Vector2d> & observations,
-                         int num_tries, int inlier_tolerance, camera::CameraModel * camera_estimate,
-                         std::vector<Eigen::Vector3d> * inlier_landmarks_out = NULL,
-                         std::vector<Eigen::Vector2d> * inlier_observations_out = NULL,
-                         bool verbose = false);
-
 // ICP solver that given matching 3D points, finds an affine transform that
 // best fits in to out.
+// TODO(rsoussan): Move this to math_utilities.h
 void Find3DAffineTransform(Eigen::Matrix3Xd const& in,
                            Eigen::Matrix3Xd const& out,
                            Eigen::Affine3d* result);

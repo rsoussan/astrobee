@@ -19,12 +19,13 @@
 #ifndef SPARSE_MAPPING_ESTIMATE_POSE_RESULTS_H_
 #define SPARSE_MAPPING_ESTIMATE_POSE_RESULTS_H_
 
+#include <Eigen/Geometry>
+
 #include <vector>
 
 namespace sparse_mapping {
 struct EstimatePoseResults {
-  // TODO(rsoussan): Change this to Eigen::Isometry3d
-  boost::optional<camera::CameraModel> pose;
+  boost::optional<Eigen::Isometry3d> pose;
   boost::optional<std::vector<Eigen::Vector3d>> inlier_landmarks;
   boost::optional<std::vector<Eigen::Vector2d>> inlier_observations;
 };
