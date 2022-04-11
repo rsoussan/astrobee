@@ -227,9 +227,11 @@ double MaxAngleBetweenCameraRays(const std::map<int, int>& track, const std::vec
 }
 
 void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsParams& params,
-                         const std::vector<Eigen::Affine3d>& cid_to_cam_t_global,
-                         const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
-                         std::vector<std::map<int, int> >* pid_to_cid_fid, std::vector<Eigen::Vector3d>* pid_to_xyz) {
+                                      const std::vector<Eigen::Affine3d>& cid_to_cam_t_global,
+                                      const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
+                                      std::vector<std::map<int, int> >* pid_to_cid_fid,
+                                      std::vector<Eigen::Vector3d>* pid_to_xyz,
+                                      std::vector<std::map<int, int> >* cid_fid_to_pid) {
   std::vector<double> pid_reprojection_errors;
   const int num_cams = cid_to_cam_t_global.size();
   std::vector<Eigen::Vector3d> global_t_cams;
@@ -309,6 +311,10 @@ void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsPara
     }
   }
   RemoveInvalidPoints(invalid_point_detection_count, *pid_to_cid_fid, *pid_to_xyz);
+  if (cid_fid_to_pid)
+  InitializeCidFidToPid(cid_to_cam_t_global.size(),
+                                        *pid_to_cid_fid,
+                                        cid_fid_to_pid);
 
   if (params.print_stats)
     stats.Print();

@@ -61,7 +61,8 @@ ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
                                     const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
                                     std::vector<Eigen::Affine3d>* cid_to_cam_t_global,
                                     std::vector<std::map<int, int>>* pid_to_cid_fid,
-                                    std::vector<Eigen::Vector3d>* pid_to_xyz) {
+                                    std::vector<Eigen::Vector3d>* pid_to_xyz,
+                                    std::vector<std::map<int, int>>* cid_fid_to_pid) {
   std::vector<Eigen::Matrix<double, 7, 1>> camera_T_globals;
   camera_T_globals.reserve(cid_to_cam_t_global->size());
   for (int cid = 0; cid < cid_to_cam_t_global->size(); ++cid) {
@@ -117,7 +118,7 @@ ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
                  *cid_to_cam_t_global,
                  cid_to_keypoint_map,
                  pid_to_cid_fid,
-                 pid_to_xyz);
+                 pid_to_xyz, cid_fid_to_pid);
   }
 
   return summary;

@@ -250,7 +250,6 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
                                 &incremental_pid_to_cid_fid,
                                 &incremental_pid_to_xyz);
 
-
     const int oldest_cid_to_optimize = OldestCidToOptimize(latest_cid);
     // TODO(rsoussan): Add fcn to set range for params?
     params.incremental_bundle_adjustment.first_optimized_camera = oldest_cid_to_optimize;
@@ -303,13 +302,12 @@ void IterativelyBundleAdjust(const BundleAdjustmentParams& params, const int num
     LOG(INFO) << "Beginning bundle adjustment, pass: " << i << ".\n";
     const auto summary = BundleAdjust(params, cid_to_keypoint_map_,
                     &cid_to_cam_t_global_,
-                    &pid_to_cid_fid_, &pid_to_xyz_);
+                    &pid_to_cid_fid_, &pid_to_xyz_, &cid_fid_to_pid_);
     LOG(INFO) << summary.FullReport() << "\n";
     LOG(INFO) << "Starting average reprojection error: "
               << summary.initial_cost / map->GetNumObservations();
     LOG(INFO) << "Final average reprojection error:    "
               << summary.final_cost / map->GetNumObservations();
-    if (params.remove_invalid_points_and_detections) InitializeCidFidToPid();
   }
 }
 
