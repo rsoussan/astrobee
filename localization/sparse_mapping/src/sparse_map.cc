@@ -50,24 +50,6 @@ void SparseMap::DetectImageFeatures() {
                  std::ref(keypoints(cid)));
   }
   pool.Join();
-
-  // TODO(rsoussan): Remove this? Is this necessary? Initializes new pid for every feature detected??
-  // Create temporary pid_to_cid_fid_, it will contain all the raw
-  // features we found so far, without matches (matching and outlier
-  // removal will later reduce the number of features, so this is
-  // useful for comparison).
-  pid_to_cid_fid_.clear();
-  for (int cid = 0; cid < num_cameras; ++cid) {
-    for (int fid = 0; fid < num_features(cid); ++fid) {
-      std::map<int, int> cid_fid;
-      cid_fid[cid] = fid;
-      pid_to_cid_fid_.emplace_back(cid_fid);
-    }
-  }
-  // Allocate space for landmarks
-  const int num_points = pid_to_cid_fid_.size();
-  pid_to_xyz_.resize(num_points);
-  InitializeCidFidToPid();
 }
 
 void SparseMap::DetectImageFeaturesFromFile(const std::string& filename,
@@ -138,31 +120,7 @@ CIDPairAffineMap SparseMap::MatchImagesAndBuildTracks() {
     }
     ++pid;
   }
-
-  // TODO(rsoussan): Remove this?
-/* // Initial cameras based on the affines (won't be used later,
-  // just for visualization purposes).
-  int num_images = s->cid_to_filename_.size();
-  (s->cid_to_cam_t_global_).resize(num_images);
-  (s->cid_to_cam_t_global_)[0].setIdentity();
-  for (int cid = 1; cid < num_images; cid++) {
-    std::pair<int, int> P(cid-1, cid);
-    if (relative_affines.find(P) != relative_affines.end())
-      (s->cid_to_cam_t_global_)[cid] = relative_affines[P]*(s->cid_to_cam_t_global_)[cid-1];
-    else
-      (s->cid_to_cam_t_global_)[cid] = (s->cid_to_cam_t_global_)[cid-1];  // no choice
-  }
-
-
-  // Triangulate. The results should be quite inaccurate, we'll redo this
-  // later. This step is mostly for consistency.
-  Triangulate(false,
-                              s->camera_params_.GetFocalLength(),
-                              s->cid_to_cam_t_global_,
-                              s->cid_to_keypoint_map_,
-                              &(s->pid_to_cid_fid_),
-                              &(s->pid_to_xyz_),
-                              &(s->cid_fid_to_pid_));*/
+  InitializeCidFidToPid();
 
   return relative_affines;
 }
@@ -285,16 +243,12 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
 
     // Initialize points for incremental tracks
     std::vector<Eigen::Vector3d> incremental_pid_to_xyz;
-  // TODO(rsoussan): Why is this needed?
-    std::vector<std::map<int, int> > incremental_cid_fid_to_pid;
-  // TODO(rsoussan): what happens when invalid points are removed??
     Triangulate(true,
                                 params_.camera.GetFocalLength(),
                                 incremental_cid_to_cam_t_global,
                                 cid_to_keypoint_map_,
                                 &incremental_pid_to_cid_fid,
-                                &incremental_pid_to_xyz,
-                                &incremental_cid_fid_to_pid);
+                                &incremental_pid_to_xyz);
 
 
     const int oldest_cid_to_optimize = OldestCidToOptimize(latest_cid);

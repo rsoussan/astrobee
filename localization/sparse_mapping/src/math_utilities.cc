@@ -149,7 +149,7 @@ void Triangulate(const bool rm_invalid_xyz, const double focal_length,
     }
   }
 
-  if (rm_invalid_xyz)
+  if (rm_invalid_xyz && cid_fid_to_pid)
   InitializeCidFidToPid(cid_to_cam_t_global.size(),
                                         *pid_to_cid_fid,
                                         cid_fid_to_pid);
