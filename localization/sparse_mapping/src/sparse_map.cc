@@ -308,9 +308,8 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
     BundleAdjust(params.incremental_bundle_adjustment, cid_to_keypoint_map_,
                                  &incremental_cid_to_cam_t_global, incremental_pid_to_cid_fid, &incremental_pid_to_xyz);
   }
-  // TODO(rsoussan): Fix this since cam_T_globals might not be initialized yet
-    for (int cid = 0; cid <= num_cameras(); ++cid)
-      cam_T_global(cid) = incremental_cid_to_cam_t_global[cid];
+
+  cid_to_cam_t_global_ = incremental_cid_t_cam_t_global;
   // Triangulate one last time after completion of iterative bundle adjustment
   Triangulate(true);
 }
