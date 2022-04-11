@@ -261,33 +261,31 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
   for (int latest_cid = 1; latest_cid < num_cameras(); ++latest_cid) {
     const int previous_cid = latest_cid -1;
     const std::pair<int, int> latest_to_previous_cid_pair(previous_cid, latest_cid);
-    // Initialize latest cid pose. If relative pose not available wrt to previous cid,
-    // initialize to previous cid pose.
     const Eigen::Affine3d latest_cid_T_previous_cid = relative_affines.count(latest_to_previous_cid_pair) > 0
                                                         ? relative_affines(latest_to_previous_cid_pair)
                                                         : Eigen::Affine3d::Identity();
     const auto& previous_cid_T_global = incremental_cid_to_cam_t_global[previous_cid];
       incremental_cid_to_cam_t_global.emplace_back(latest_cid_T_previous_cid*previous_cid_T_global);
 
-    // Use detections for incremental tracks from first cid to latest incremental cid
-    std::vector<std::map<int, int> > incremental_pid_to_cid_fid;
-    for (int pid = 0; pid < num_points(); ++pid) {
-      const auto& feature_track = feature_track(pid);
-      std::map<int, int> incremental_track;
-      for (const auto& cid_to_fid : feature_track) {
-        const int cid = cid_to_fid.first;
-        const int fid = cid_to_fid.second;
-        if (cid <= latest_cid)
-          incremental_track[cid] = fid;
-      }
+      // Build tracks up to latest cid
+      std::vector<std::map<int, int> > incremental_pid_to_cid_fid;
+      for (int pid = 0; pid < num_points(); ++pid) {
+        const auto& feature_track = feature_track(pid);
+        std::map<int, int> incremental_track;
+        for (const auto& cid_to_fid : feature_track) {
+          const int cid = cid_to_fid.first;
+          const int fid = cid_to_fid.second;
+          if (cid <= latest_cid) incremental_track[cid] = fid;
+        }
 
-      // Only add long enough tracks
-      if ((latest_cid == 1 && track.size() > 1) || track.size() > params_.min_feature_track_length)
-        incremental_pid_to_cid_fid.push_back(incremental_track);
+        // Only add long enough tracks
+        if ((latest_cid == 1 && track.size() > 1) || track.size() > params_.min_feature_track_length)
+          incremental_pid_to_cid_fid.push_back(incremental_track);
     }
 
-    // Initialize feature point positions for incrementally added tracks
+    // Initialize points for incremental tracks
     std::vector<Eigen::Vector3d> incremental_pid_to_xyz;
+  // TODO(rsoussan): Why is this needed?
     std::vector<std::map<int, int> > incremental_cid_fid_to_pid;
   // TODO(rsoussan): what happens when invalid points are removed??
     Triangulate(true,
@@ -310,6 +308,7 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
     BundleAdjust(params.incremental_bundle_adjustment, cid_to_keypoint_map_,
                                  &incremental_cid_to_cam_t_global, incremental_pid_to_cid_fid, &incremental_pid_to_xyz);
   }
+  // TODO(rsoussan): Fix this since cam_T_globals might not be initialized yet
     for (int cid = 0; cid <= num_cameras(); ++cid)
       cam_T_global(cid) = incremental_cid_to_cam_t_global[cid];
   // Triangulate one last time after completion of iterative bundle adjustment
