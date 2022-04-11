@@ -49,6 +49,8 @@ struct BundleAdjustementParams {
 
   ceres::LossFunction* LossFunction() const;
   static ceres::Solver::Options DefaultSolverOptions() const;
+  // TODO(rsoussan): Put this somewhere else/load from config
+  static BundleAdjustmentParams IncrementalBundleAdjustmentParams();
 };
 
 inline ceres::LossFunction* BundleAdjustmentParams::LossFunction() {
@@ -72,6 +74,15 @@ inline ceres::Solver::Options BunleAdjustmentParams::DefaultSolverOptions() {
   options.minimizer_progress_to_stdout = true;
   ceres::Solver::Summary summary;
   return options;
+}
+
+
+BundleAdjustmentParams BundleAdjustmentParams::IncrementalBundleAdjustmentParams() {
+    BundleAdjustmentParams params;
+    params.options.max_num_iterations = 500;
+    options.logging_type = ceres::SILENT;
+    params.loss_threshold = 0.5;
+    params.optimize_camera_range = true;
 }
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_BUNDLE_ADJUSTMENT_PARAMS_H_

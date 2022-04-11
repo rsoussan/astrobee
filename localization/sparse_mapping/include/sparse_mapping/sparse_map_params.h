@@ -41,20 +41,10 @@ struct SparseMapParams {
   int max_num_image_pair_feature_matches;
   int min_num_inliers_for_valid_match;
   int min_feature_track_length;
-  // Incremental BA params
-  ceres::Solver::Options incremental_ba_options;
-  // TODO(rsoussan): set these when load params
-  // TODO(rsoussan): Use same options for full ba?
-  /*  ceres::Solver::Options options;
-    options.linear_solver_type = ceres::ITERATIVE_SCHUR;
-    options.max_num_iterations = 500;
-    options.logging_type = ceres::SILENT;
-    options.num_threads = FLAGS_num_threads;*/
-  // TODO(rsoussan): same for incremental and full ba?
-  double cauchy_loss;                          // 0.5
+  BundleAdjustmentParams incremental_bundle_adjustment = BundleAdjustmentParams::IncrementalBundleAdjustmentParams();
+  // TODO(rsoussan): put these somewhere else?
   int min_num_cams_to_incrementally_optimize;  // 4
   int max_num_cams_to_incrementally_optimize;  // 128
-
   BundleAdjustmentParams bundle_adjustment;
   int num_bundle_adjustment_iterations = 5;
 };

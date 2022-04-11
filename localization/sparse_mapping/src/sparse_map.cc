@@ -254,11 +254,12 @@ void SparseMap::PruneMap(void) {
 // most similar cameras. Fixing these would need careful testing for
 // both map quality and run-time before and after the fix.
 void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affines) {
+  // Start with second camera, update all cameras before and including this, move to next camera and repeat
   for (int latest_cid = 1; latest_cid < num_cameras(); ++latest_cid) {
     std::vector<Eigen::Affine3d > incremental_cid_to_cam_t_global;
     incremental_cid_to_cam_t_global.reserve(latest_cid + 1);
-    for (int previous_cid = 0; previous_cid < latest_cid; ++previous_cid)
-      incremental_cid_to_cam_t_global.emplace_back(cam_T_global(previous_cid));
+    for (int incremental_cid = 0; incremental_cid < latest_cid; ++incremental_cid)
+      incremental_cid_to_cam_t_global.emplace_back(cam_T_global(incremental_cid));
 
     const int previous_cid = latest_cid -1;
     const std::pair<int, int> latest_to_previous_cid_pair(previous_cid, latest_cid);
@@ -301,20 +302,16 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
 
 
     const int oldest_cid_to_optimize = OldestCidToOptimize(latest_cid);
+    // TODO(rsoussan): Add fcn to set range for params?
+    params.incremental_bundle_adjustment.first_optimized_camera = oldest_cid_to_optimize;
+    params.incremental_bundle_adjustment.last_optimized_camera = latest_cid;
     LOG(INFO) << "Optimizing cameras from " << oldest_cid_to_optimize << " to " << latest_cid << " (total: "
         << latest_cid-oldest_cid_to_optimize+1 << ")";
 
     ceres::Solver::Summary summary;
-    ceres::LossFunction* cauchy_loss = new ceres::CauchyLoss(params_.cauchy_loss);
-    // TODO(rsoussan): What are user_ maps? used elsewhere? make local?
-    BundleAdjust(incremental_pid_to_cid_fid, cid_to_keypoint_map_,
-                                 params_.camera.GetFocalLength(),
-                                 &incremental_cid_to_cam_t_global, &incremental_pid_to_xyz,
-                                 user_pid_to_cid_fid_,
-                                 user_cid_to_keypoint_map_,
-                                 &user_pid_to_xyz_,
-                                 cauchy_loss, params_.incremental_ba_options, &summary,
-                                 oldest_cid_to_optimize, latest_cid);
+    BundleAdjust(params.incremental_bundle_adjustment, cid_to_keypoint_map_,
+                                 &incremental_cid_to_cam_t_global, incremental_pid_to_cid_fid, &incremental_pid_to_xyz,
+                                 &summary);
 
     // Update sparse map with latest incremental cam_T_globals
     for (int cid = 0; cid <= latest_cid; ++c)
