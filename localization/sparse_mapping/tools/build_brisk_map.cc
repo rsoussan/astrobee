@@ -198,7 +198,7 @@ void Rebuild() {
     }
   }
 
-  sparse_mapping::MatchFeatures(sparse_mapping::EssentialFile(FLAGS_output_map),
+  sparse_mapping::MatchImagesAndBuildTracks(sparse_mapping::EssentialFile(FLAGS_output_map),
                                 sparse_mapping::MatchesFile(FLAGS_output_map), &map);
   for (unsigned int i = 0; i < original.GetNumFrames(); i++)
     map.SetFrameGlobalTransform(i, original.GetFrameGlobalTransform(i));
@@ -426,7 +426,7 @@ int main(int argc, char** argv) {
     map.DetectFeatures();
     LogInfo("Matching Features...");
     // TODO(rsoussan): what are these flags? how are they used?
-  sparse_mapping::MatchFeatures(sparse_mapping::EssentialFile(FLAGS_output_map),
+  sparse_mapping::MatchImagesAndBuildTracks(sparse_mapping::EssentialFile(FLAGS_output_map),
                                 sparse_mapping::MatchesFile(FLAGS_output_map), &map);
     LogInfo("Building feature tracks....");
   // TODO(rsoussan): what is this??

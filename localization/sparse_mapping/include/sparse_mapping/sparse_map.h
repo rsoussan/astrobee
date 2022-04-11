@@ -67,7 +67,7 @@ class SparseMap : public SparseMapDatabase {
   /**
    * Detect features in given images
    **/
-  void DetectFeatures();
+  void DetectImageFeatures();
 
   int GetHistogramEqualization() const {return params_.histogram_equalization;}
   /**
@@ -77,11 +77,11 @@ class SparseMap : public SparseMapDatabase {
 
   void SetCameraParameters(const camera::CameraParameters& camera_params) {params_.camera = camera_params;}
 
-  void DetectFeaturesFromFile(const std::string& filename,
+  void DetectImageFeaturesFromFile(const std::string& filename,
                               cv::Mat& descriptors,
                               Eigen::Matrix2Xd& keypoints);
 
-  CIDPairAffineMap MatchFeatures(const bool remove_invalid_traingulated_points);
+  CIDPairAffineMap MatchImagesAndBuildTracks();
 
   void IncrementallyBundleAdjust();
 

@@ -39,12 +39,12 @@ SparseMap::SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
   ResizeFeatureMaps();
 }
 
-void SparseMap::DetectFeatures() {
+void SparseMap::DetectImageFeatures() {
   ff_common::ThreadPool pool;
   const int num_cameras = num_cameras();
   for (int cid = 0; cid < num_cameras; ++cid) {
     ff_common::PrintProgressBar(stdout, static_cast<float>(cid) / static_cast<float>(num_cameras - 1));
-    pool.AddTask(&SparseMap::DetectFeaturesFromFile, this,
+    pool.AddTask(&SparseMap::DetectImageFeaturesFromFile, this,
                  std::cref(filename(cid)),
                  std::ref(descriptors(cid)),
                  std::ref(keypoints(cid)));
@@ -70,7 +70,7 @@ void SparseMap::DetectFeatures() {
   InitializeCidFidToPid();
 }
 
-void SparseMap::DetectFeaturesFromFile(const std::string& filename,
+void SparseMap::DetectImageFeaturesFromFile(const std::string& filename,
                                        cv::Mat& descriptors,
                                        Eigen::Matrix2Xd& keypoints) {
   const auto image = LoadImage(filename);
@@ -85,7 +85,7 @@ void SparseMap::DetectFeaturesFromFile(const std::string& filename,
   }
 }
 
-CIDPairAffineMap SparseMap::MatchFeatures(const bool remove_invalid_traingulated_points) {
+CIDPairAffineMap SparseMap::MatchImagesAndBuildTracks() {
   ff_common::ThreadPool thread_pool;
   std::mutex match_mutex;
   openMVG::matching::PairWiseMatches match_map;
@@ -156,7 +156,7 @@ CIDPairAffineMap SparseMap::MatchFeatures(const bool remove_invalid_traingulated
 
   // Triangulate. The results should be quite inaccurate, we'll redo this
   // later. This step is mostly for consistency.
-  Triangulate(remove_invalid_triangulated_points,
+  Triangulate(false,
                               s->camera_params_.GetFocalLength(),
                               s->cid_to_cam_t_global_,
                               s->cid_to_keypoint_map_,

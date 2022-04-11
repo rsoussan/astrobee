@@ -419,12 +419,10 @@ int main(int argc, char** argv) {
   // TODO(rsoussan): Load params!!!!
   SparseMapping::SparseMap map(images, params);
 
-    LogInfo("Detecting Features...");
-    map.DetectFeatures();
-    LogInfo("Matching Features...");
-  // Since bundle adjustment hasn't occured yet, don't remove invalid triangulated points
-  const bool remove_invalid_triangulated_points = false; 
-  const auto relative_affines = map.MatchFeatures(rm_invalid_xyz);
+    LogInfo("Detecting image features...");
+    map.DetectImageFeatures();
+    LogInfo("Matching images and building tracks...");
+  const auto relative_affines = map.MatchImagesAndBuildTracks();
   map.IncrementallyBundleAdjust(relative_affines);
   map.Save(map_filename);
 
