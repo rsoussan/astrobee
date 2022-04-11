@@ -308,10 +308,9 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
     LOG(INFO) << "Optimizing cameras from " << oldest_cid_to_optimize << " to " << latest_cid << " (total: "
         << latest_cid-oldest_cid_to_optimize+1 << ")";
 
-    ceres::Solver::Summary summary;
+    // TODO(rsoussan): Add warning if ba failed?
     BundleAdjust(params.incremental_bundle_adjustment, cid_to_keypoint_map_,
-                                 &incremental_cid_to_cam_t_global, incremental_pid_to_cid_fid, &incremental_pid_to_xyz,
-                                 &summary);
+                                 &incremental_cid_to_cam_t_global, incremental_pid_to_cid_fid, &incremental_pid_to_xyz);
 
     // Update sparse map with latest incremental cam_T_globals
     for (int cid = 0; cid <= latest_cid; ++c)
@@ -355,11 +354,9 @@ int OldestCidToOptimize(const int latest_cid) const {
 void IterativelyBundleAdjust(const BundleAdjustmentParams& params, const int num_iterations) {
   for (int i = 0; i < num_iterations; ++i) {
     LOG(INFO) << "Beginning bundle adjustment, pass: " << i << ".\n";
-  ceres::Solver::Summary summary;
-BundleAdjust(params, cid_to_keypoint_map_,
+    const auto summary = BundleAdjust(params, cid_to_keypoint_map_,
                     &cid_to_cam_t_global_,
-                    &pid_to_cid_fid_, &pid_to_xyz_,
-                    &summary);
+                    &pid_to_cid_fid_, &pid_to_xyz_);
     LOG(INFO) << summary.FullReport() << "\n";
     LOG(INFO) << "Starting average reprojection error: "
               << summary.initial_cost / map->GetNumObservations();

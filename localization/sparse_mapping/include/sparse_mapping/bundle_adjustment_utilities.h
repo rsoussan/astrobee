@@ -40,10 +40,11 @@ namespace sparse_mapping {
  * Perform bundle adjustment. 
  * All poses and point values should be set to initial guesses and are modified to improved guesses when the function returns.
  **/
-  void BundleAdjust(const BundleAdjustmentParams& params, const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
-                    std::vector<Eigen::Affine3d>* cid_to_cam_t_global,
-                    std::vector<std::map<int, int> >* pid_to_cid_fid, std::vector<Eigen::Vector3d>* pid_to_xyz,
-                    ceres::Solver::Summary* summary);
+  ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
+                                      const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
+                                      std::vector<Eigen::Affine3d>* cid_to_cam_t_global,
+                                      std::vector<std::map<int, int> >* pid_to_cid_fid,
+                                      std::vector<Eigen::Vector3d>* pid_to_xyz);
   /**
    * Perform bundle adjustment.
    *
