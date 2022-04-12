@@ -33,18 +33,20 @@ struct EstimatePoseParams : vision_common::ReprojectionPoseEstimateParams {
 inline EstimatePoseParams::EstimatePoseParams() {
   // ReprojectionPoseEstimateParams
   // Optimization
-  optimization.solver_options = ???
+  optimization.solver_options.linear_solver_type = ceres::ITERATIVE_SCHUR;
+  optimization.solver_options.num_threads = 1;
+  optimization.solver_options.max_num_iterations = 100;
+  options.minimizer_progress_to_stdout = false;
   optimization.verbose = false;
-  optimization.huber_loss = ? ? ?
-                                // Ransac Pnp
-    ransac_pnp.max_inlier_threshold = 3;  // is this right? something else?
+  optimization.huber_loss = 1.0;
+  // Ransac Pnp
+  ransac_pnp.max_inlier_threshold = 5;
   ransac_pnp.num_iterations = 1000;
-  ransac_pnp.min_num_inliers = ? ? ? ransac_pnp.pnp_method = ? ? ?
-                                                                 // Other
-                                     optimize_estimate = true;
-  max_inlier_threshold = 3;
-  // default construct reproj pose estimate params!
-  // fill other things!
+  ransac_pnp.min_num_inliers = 10;
+  ransac_pnp.pnp_method = cv::SOLVEPNP_P3P;
+  // Other
+  optimize_estimate = true;
+  max_inlier_threshold = 5;
 }
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_ESTIMATE_POSE_PARAMS_H_

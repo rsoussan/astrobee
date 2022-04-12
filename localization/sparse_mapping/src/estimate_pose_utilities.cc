@@ -20,20 +20,8 @@
 #include <sparse_mapping/sparse_mapping.h>
 #include <sparse_mapping/utilities.h>
 
-#include <ff_common/thread.h>
-#include <camera/camera_model.h>
-
-#include <ceres/rotation.h>
-#include <opencv2/calib3d/calib3d.hpp>
-#include <opencv2/core/eigen.hpp>
+#include <opencv2/core/mat.hpp>
 #include <gflags/gflags.h>
-
-#include <random>
-#include <thread>
-#include <unordered_map>
-
-DEFINE_uint64(num_min_localization_inliers, 10,
-              "If fewer than this many number of inliers, localization has failed.");
 
 namespace sparse_mapping {
 std::vector<ImageMatch> FindAndSortMatches(const std::vector<int>& matching_cids, const SparseMap& map,
@@ -103,7 +91,6 @@ EstimatePoseResults EstimatePose(const cv::Mat& descriptors, const Eigen::Matrix
   std::vector<Eigen::Vector3d> landmarks;
   GetMatchingObservationsAndLandmarks(image_matches, map, observations, landmarks);
 
-  // TODO(rsoussan): return pose estimate?
   // TODO(rsoussan): don't use camera for get focal vector! (A)
   const Eigen::Vector2d zero_principal_points(Eigen::Vector2d::Zero());
   const Eigen::VectorXd zero_distortion(1);
