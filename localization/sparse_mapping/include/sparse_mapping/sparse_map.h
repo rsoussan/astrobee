@@ -36,6 +36,7 @@
 #include <vector>
 
 namespace sparse_mapping {
+// TODO(rsoussan): change to using
 typedef std::map<std::pair<int, int>, Eigen::Affine3d, std::less<std::pair<int, int> >,
                  Eigen::aligned_allocator<std::pair<std::pair<int, int> const, Eigen::Affine3d> > >
   CIDPairAffineMap;
@@ -62,6 +63,7 @@ class SparseMap : public SparseMapDatabase {
             const std::vector<std::string> & cid_to_filename,
             const SparseMapParams& params);
 
+  void BuildMap();
 
   /**
    * Detect features in given images
@@ -90,6 +92,7 @@ class SparseMap : public SparseMapDatabase {
   // delete feature descriptors with no matching landmark
   void PruneMap();
 
+  // TODO(rsoussan): Remove this??
   std::string GetDetectorName() { return params_.detector.name; }
 
   const ImageDatabase& image_database() const { return *image_database_; }
@@ -103,6 +106,7 @@ class SparseMap : public SparseMapDatabase {
 
   void BuildBriskImageDatabase();
 
+  // TODO(rsoussan): Why is this needed??
   SparseMapParams& params() { return params_; }
 
   const SparseMapParams& params() const { return params_; }

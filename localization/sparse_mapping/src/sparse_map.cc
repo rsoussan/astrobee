@@ -39,6 +39,18 @@ SparseMap::SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
   ResizeFeatureMaps();
 }
 
+void SparseMap::BuildMap() {
+  LogInfo("Detecting image features...");
+  DetectImageFeatures();
+  LogInfo("Matching images and building tracks...");
+  const auto relative_affines = MatchImagesAndBuildTracks();
+  LogInfo("Performing incremental bundle adjustment...");
+  IncrementallyBundleAdjust(relative_affines);
+  // TODO(rsoussan): Add option to do final bundle adjustment??
+  // TODO(rsoussan): Add function to build database based on detector used!!! (AAA)
+  BuildSurfImageDatabase();
+}
+
 void SparseMap::DetectImageFeatures() {
   ff_common::ThreadPool pool;
   const int num_cameras = NumCameras();
