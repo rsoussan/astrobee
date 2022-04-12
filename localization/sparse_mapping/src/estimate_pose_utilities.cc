@@ -17,7 +17,6 @@
  */
 
 #include <sparse_mapping/estimate_pose_utilities.h>
-#include <sparse_mapping/sparse_mapping.h>
 #include <sparse_mapping/utilities.h>
 
 #include <opencv2/core/mat.hpp>

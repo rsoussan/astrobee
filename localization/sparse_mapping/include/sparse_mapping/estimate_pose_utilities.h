@@ -21,6 +21,7 @@
 #include <ff_common/eigen_vectors.h>
 #include <sparse_mapping/estimate_pose_params.h>
 #include <sparse_mapping/estimate_pose_results.h>
+#include <sparse_mapping/sparse_map.h>
 
 #include <Eigen/Geometry>
 
