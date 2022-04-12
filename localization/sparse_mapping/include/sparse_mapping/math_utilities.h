@@ -111,6 +111,12 @@ bool EstimateRTFromE(Eigen::Matrix3d const& k1, Eigen::Matrix3d const& k2, Eigen
   boost::optional<Eigen::Affine3d> EstimateRelativeAffine3D(
     const Eigen::Matrix2Xd& keypoints_a, const Eigen::Matrix2Xd& keypoints_b, const std::vector<cv::DMatch>& matches,
     const camera::CameraParameters& camera_params, const int max_num_matches, std::vector<cv::DMatch>& inlier_matches);
+
+// ICP solver that given matching 3D points, finds an affine transform that
+// best fits in to out.
+void Find3DAffineTransform(Eigen::Matrix3Xd const& in,
+                           Eigen::Matrix3Xd const& out,
+                           Eigen::Affine3d* result);
 }  // namespace sparse_mapping
 
 #endif  // SPARSE_MAPPING_MATH_UTILITIES_H_

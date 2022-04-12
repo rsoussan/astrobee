@@ -57,12 +57,6 @@ EstimatePoseResults EstimatePose(
 EstimatePoseResults EstimatePose(
   const std::string& image_filename, const EstimatePoseParams& params, SparseMap& map);
 
-// ICP solver that given matching 3D points, finds an affine transform that
-// best fits in to out.
-// TODO(rsoussan): Move this to math_utilities.h
-void Find3DAffineTransform(Eigen::Matrix3Xd const& in,
-                           Eigen::Matrix3Xd const& out,
-                           Eigen::Affine3d* result);
 }  // namespace sparse_mapping
 
 #endif  // SPARSE_MAPPING_ESTIMATE_POSE_UTILITIES_H_
