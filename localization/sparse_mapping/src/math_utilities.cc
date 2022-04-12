@@ -157,6 +157,7 @@ void Triangulate(const bool rm_invalid_xyz, const double focal_length,
 
 
 
+// TODO(rsoussan): Wtf is this?? Update/fix this!!
 // Apply a given transform to the specified xyz points, and adjust accordingly the cameras
 // for consistency. We assume that the transform is of the form
 // A(x) = scale * rotation * x + translation

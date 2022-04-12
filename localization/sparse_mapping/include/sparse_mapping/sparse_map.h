@@ -57,12 +57,11 @@ class SparseMap : public SparseMapDatabase {
   /**
    * Creates a sparse map containing only a list of image files and camera poses.
   **/
+  // TODO(rsoussan): How to use this in practice?
   SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
             const std::vector<std::string> & cid_to_filename,
             const SparseMapParams& params);
 
-
-  void BuildDatabase(const FeatureSets& feature_sets);
 
   /**
    * Detect features in given images
@@ -75,6 +74,7 @@ class SparseMap : public SparseMapDatabase {
    **/
   const camera::CameraParameters& camera_params() const {return params_.camera;}
 
+  // TODO(rsoussan): remove this?
   void SetCameraParameters(const camera::CameraParameters& camera_params) {params_.camera = camera_params;}
 
   void DetectImageFeaturesFromFile(const std::string& filename,
@@ -143,7 +143,7 @@ void SparseMap::BuildImageDatabase() {
             << std::pow(params_.image_database.vocabulary.branching_factor, params_.image_database.vocabulary.depth)
             << ", total features to insert are " << total_features << ".";
 
-  const auto feature_sets = GetAllFeatures();
+  const auto feature_sets = AllFeatures();
   image_database_.reset(new TemplatedImageDatabase<TDescriptor, F>(feature_sets, params_.image_database));
 }
 }  // namespace sparse_mapping

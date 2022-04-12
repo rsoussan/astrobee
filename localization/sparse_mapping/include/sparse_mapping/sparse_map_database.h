@@ -56,84 +56,41 @@ class SparseMapDatabase {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  // TODO(rsoussan): Rename this to NumCids, return int
-  // TODO(rsoussan): deprecate
-  size_t GetNumFrames() const {return cid_to_filename_.size();}
+  int NumCIDs() const {return static_cast<int>(cid_to_filename_.size());}
 
-  int num_cameras() const {return static_cast<int>(cid_to_filename_.size());}
-  /**
-   * Get the filename of a keyframe in the map.
-   **/
-  // TODO(rsoussan): Rename this to CidFilename
-  const std::string & GetFrameFilename(int frame) const {return cid_to_filename_[frame];}
+  const std::string& Filename(int cid) const {return cid_to_filename_[cid];}
 
   void ResizeFeatureMaps();
 
-  /**
-   * Get the global camera transform for a keyframe in the map.
-   **/
-  // TODO(rsoussan): Rename this to GlobalTCid
-  const Eigen::Affine3d & GetFrameGlobalTransform(int frame) const
-        {return cid_to_cam_t_global_[frame];}
-  // TODO(rsoussan): Rename
-  void SetFrameGlobalTransform(int frame, const Eigen::Affine3d & transform) {
-    cid_to_cam_t_global_[frame] = transform;
-  }
-  /**
-   * Get the keypoint coordinates in the specified frame.
-   **/
-  // TODO(rsoussan): Rename
-  const Eigen::Matrix2Xd & GetFrameKeypoints(int frame) const {return cid_to_keypoint_map_[frame];}
-  /**
-   * Get the descriptor for a frame and feature.
-   **/
-  cv::Mat GetDescriptor(int frame, int fid) const { return cid_to_descriptor_map_[frame].row(fid);}
-  /**
-   * Returns map of feature ids to landmark ids for the specified frame.
-   **/
-  // TODO(rsoussan): Rename
-  const std::map<int, int> & GetFrameFidToPidMap(int frame) const {return cid_fid_to_pid_[frame];}
+  const Eigen::Affine3d& CamTGlobal(int cid) const {return cid_to_cam_t_global_[cid];}
 
-  // access map landmarks
-  /**
-   * Get the number of landmark points in the map.
-   **/
-  size_t GetNumLandmarks() const {return pid_to_xyz_.size();}
-  /**
-   * Get the global position of the specified landmark.
-   **/
-  Eigen::Vector3d GetLandmarkPosition(int landmark) const {return pid_to_xyz_[landmark];}
-  /**
-   * Return a map for a specified landmark, matching the ids of all the keyframes that landmark
-   * was seen in to the feature id within that frame.
-   **/
-  const std::map<int, int> & GetLandmarkCidToFidMap(int landmark) const {return pid_to_cid_fid_[landmark];}
+  const Eigen::Matrix2Xd& Keypoints(int cid) const {return cid_to_keypoint_map_[cid];}
 
-  /**
-   * Return the number of observations. 
-   **/
-  size_t GetNumObservations() const {return std::accumulate(pid_to_cid_fid_.begin(),
+  const cv::Mat& Descriptor(int cid, int fid) const { return cid_to_descriptor_map_[cid].row(fid);}
+
+  const std::map<int, int>& FidToPid(int cid) const {return cid_fid_to_pid_[cid];}
+
+  int NumPoints() const {return pid_to_xyz_.size();}
+
+  const Eigen::Vector3d& Point(int pid) const {return pid_to_xyz_[pid];}
+
+  const std::map<int, int>& CidToFid(int pid) const {return pid_to_cid_fid_[pid];}
+
+  int NumObservations() const {return std::accumulate(pid_to_cid_fid_.begin(),
                                                                 pid_to_cid_fid_.end(),
-                                                                0, [](size_t v, std::map<int, int> const& map)
+                                                                0, [](size_t v, const std::map<int, int>& map)
                                                                 { return v + map.size(); }); }
-  /**
-   * Return the transform to real world coordinates.
-   **/
-  Eigen::Affine3d GetWorldTransform() const {return world_transform_;}
 
-  /**
-   * Apply given transform to camera positions and 3D points
-   **/
-  void ApplyTransform(Eigen::Affine3d const& T) {
+  // TODO(rsoussan): What is the framing of T?? Update!
+  void Transform(Eigen::Affine3d const& T) {
     sparse_mapping::TransformCamerasAndPoints(T, &cid_to_cam_t_global_, &pid_to_xyz_);
   }
 
-  // construct from pid_to_cid_fid
   void InitializeCidFidToPid();
 
-  FeatureSet GetCidFeatures(const int cid) const;
+  FeatureSet Features(const int cid) const;
 
-  FetaureSets GetAllCidFeatures() const;
+  FetaureSets AllFeatures() const;
 
   int NumFeatures() const;
 
@@ -146,9 +103,9 @@ class SparseMapDatabase {
   const std::map<int, int>& feature_track(const int pid) const { return pid_to_cid_fid_[pid]; }
 
   // Use pid_to_cid_fid_ instead of pid_to_xyz since this is filled sooner in the mapping pipeline
-  int num_points() const { return pid_to_cid_fid_.size(); }
+  int NumPoints() const { return pid_to_cid_fid_.size(); }
 
-  int num_features(const int cid) const { return cid_to_keypoint_map_[cid].cols(); }
+  int NumFeatures(const int cid) const { return cid_to_keypoint_map_[cid].cols(); }
 
   const Eigen::Affine3d& cam_T_global(const int cid) const { return cid_to_cam_t_global_[cid]; }
 
@@ -166,10 +123,9 @@ class SparseMapDatabase {
   std::vector<Eigen::Matrix2Xd > cid_to_keypoint_map_;
   std::vector<cv::Mat> cid_to_descriptor_map_;
   std::vector<Eigen::Affine3d > cid_to_cam_t_global_;
-  // generated on load
   std::vector<std::map<int, int> > cid_fid_to_pid_;
-  std::vector<std::map<int, int> > pid_to_cid_fid_;
   std::vector<Eigen::Vector3d> pid_to_xyz_;
+  std::vector<std::map<int, int> > pid_to_cid_fid_;
 
   // If datastructure is available, match only pairs of cids
   // that are present in it (this info can come from example from
@@ -181,6 +137,7 @@ class SparseMapDatabase {
   // Optional user defined 3D points and image observations.
   // Enables manually registering the sparse map with control points
   // from a 3D model
+  // TODO(rsoussan): Remove these??
   std::vector<Eigen::Matrix2Xd> user_cid_to_keypoint_map_;
   std::vector<std::map<int, int> > user_pid_to_cid_fid_;
   std::vector<Eigen::Vector3d> user_pid_to_xyz_;

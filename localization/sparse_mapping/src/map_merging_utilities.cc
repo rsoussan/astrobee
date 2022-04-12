@@ -675,7 +675,7 @@ void MergeMaps(sparse_mapping::SparseMap * A_in,
   std::cout << "Translation:\n" << B2A_trans.translation()  << "\n";
 
   // Bring the B map into the coordinate system of the A map
-  B.ApplyTransform(B2A_trans);
+  B.Transform(B2A_trans);
 
   // We will use this to add new tracks taking advantage
   // of all the matching between the two image sets.

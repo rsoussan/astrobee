@@ -17,39 +17,40 @@
  */
 
 #include <sparse_mapping/sparse_map_database.h>
+
 namespace sparse_mapping {
 void SparseMapDatabase::ResizeFeatureMaps() {
-  const int num_frames = GetNumFrames();
-  cid_to_keypoint_map_.resize(num_frames);
-  cid_to_descriptor_map_.resize(num_frames);
+  const int num_cids = NumCIDs();
+  cid_to_keypoint_map_.resize(num_cids);
+  cid_to_descriptor_map_.resize(num_cids);
 }
 
 void SparseMapDatabase::InitializeCidFidToPid() {
-  sparse_mapping::InitializeCidFidToPid(cid_to_filename_.size(),
+  sparse_mapping::InitializeCidFidToPid(NumCIDs(),
                                         pid_to_cid_fid_,
                                         &cid_fid_to_pid_);
 }
 
-  std::vector<cv::Mat> SparseMapDatabase::GetCidFeatures(const int cid) const {
+  std::vector<cv::Mat> SparseMapDatabase::Features(const int cid) const {
       std::vector<cv::Mat> features;
-      const int num_features = map->GetFrameKeypoints(cid).outerSize();
+      const int num_features = Keypoints(cid).outerSize();
       for (int i = 0; i < num_features; ++i) {
-        features.emplace_back(map->GetDescriptor(cid, i));
+        features.emplace_back(GetDescriptor(cid, i));
       }
   }
 
-  std::vector<std::vector<cv::Mat>> SparseMapDatabase::GetAllCidFeatures() const {
+  std::vector<std::vector<cv::Mat>> SparseMapDatabase::AllFeatures() const {
       std::vector<std::vector<cv::Mat>> all_features;
-      const int num_images = map->GetNumFrames();
-      for (int cid = 0; cid < num_images; ++cid) {
-        all_features.emplace_back(GetCidFeatures(cid));
+      const int num_cids = NumCIDs();
+      for (int cid = 0; cid < num_cids; ++cid) {
+        all_features.emplace_back(Features(cid));
       }
   }
 
 int SparseMapDatabase::NumFeatures() const {
   int num_features = 0;
-  for (int cid = 0; cid < map.GetNumFrames(); ++cid) {
-    total_features += map.GetFrameKeypoints(cid).outerSize();
+  for (int cid = 0; cid < NumCIDs(); ++cid) {
+    total_features += Keypoints(cid).outerSize();
   }
   return num_features;
 }

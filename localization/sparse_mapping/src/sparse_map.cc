@@ -41,7 +41,7 @@ SparseMap::SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
 
 void SparseMap::DetectImageFeatures() {
   ff_common::ThreadPool pool;
-  const int num_cameras = num_cameras();
+  const int num_cameras = NumCameras();
   for (int cid = 0; cid < num_cameras; ++cid) {
     ff_common::PrintProgressBar(stdout, static_cast<float>(cid) / static_cast<float>(num_cameras - 1));
     pool.AddTask(&SparseMap::DetectImageFeaturesFromFile, this,
@@ -72,12 +72,12 @@ CIDPairAffineMap SparseMap::MatchImagesAndBuildTracks() {
   std::mutex match_mutex;
   openMVG::matching::PairWiseMatches match_map;
   CIDPairAffineMap relative_affines;
-  for (int cid = 0; cid < num_cameras(); ++cid) {
+  for (int cid = 0; cid < NumCameras(); ++cid) {
     ff_common::PrintProgressBar(stdout, static_cast<float>(cid)
-                             / static_cast <float>(num_features() - 1));
+                             / static_cast <float>(NumFeatures() - 1));
     // Find sequential matches
     for (int sequential_cid = cid + 1;
-         sequential_cid < num_cameras() && cid - sequential_cid <= params_.max_sequential_image_match_candidates;
+         sequential_cid < NumCameras() && cid - sequential_cid <= params_.max_sequential_image_match_candidates;
          ++sequential_cid) {
       thread_pool.AddTask(&sparse_map::MatchImages, this, cid, candidate_cid, std::ref(relative_affines),
                           std::ref(match_map), std::ref(match_mutex));
@@ -216,7 +216,7 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
   // Initialize first pose at identity
   incremental_cid_to_cam_t_global.emplace_back(Eigen::Affine3d::Identity());
   // Start with second camera, update all cameras before and including this, move to next camera and repeat
-  for (int latest_cid = 1; latest_cid < num_cameras(); ++latest_cid) {
+  for (int latest_cid = 1; latest_cid < NumCameras(); ++latest_cid) {
     const int previous_cid = latest_cid -1;
     const std::pair<int, int> latest_to_previous_cid_pair(previous_cid, latest_cid);
     const Eigen::Affine3d latest_cid_T_previous_cid = relative_affines.count(latest_to_previous_cid_pair) > 0
@@ -227,7 +227,7 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
 
       // Build tracks up to latest cid
       std::vector<std::map<int, int> > incremental_pid_to_cid_fid;
-      for (int pid = 0; pid < num_points(); ++pid) {
+      for (int pid = 0; pid < NumPoints(); ++pid) {
         const auto& feature_track = feature_track(pid);
         std::map<int, int> incremental_track;
         for (const auto& cid_to_fid : feature_track) {
@@ -305,9 +305,9 @@ void IterativelyBundleAdjust(const BundleAdjustmentParams& params, const int num
                     &pid_to_cid_fid_, &pid_to_xyz_, &cid_fid_to_pid_);
     LOG(INFO) << summary.FullReport() << "\n";
     LOG(INFO) << "Starting average reprojection error: "
-              << summary.initial_cost / map->GetNumObservations();
+              << summary.initial_cost / NumObservations();
     LOG(INFO) << "Final average reprojection error:    "
-              << summary.final_cost / map->GetNumObservations();
+              << summary.final_cost / NumObservations();
   }
 }
 
