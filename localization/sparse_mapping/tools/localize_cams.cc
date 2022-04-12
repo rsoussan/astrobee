@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
   sparse_mapping::HistogramEqualizationCheck(reference.GetHistogramEqualization(),
                                              FLAGS_histogram_equalization);
 
-  std::string detector = reference.GetDetectorName();
+  std::string detector = reference.DetectorName();
 
   Eigen::IOFormat CSVFormat(3, 0, ", ", ",   ");
 

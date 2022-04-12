@@ -189,7 +189,7 @@ void SparseMap::Save(const std::string & protobuf_file) const {
               << "poor quality results." << std::endl;
 
   sparse_mapping_protobuf::Map map;
-  // map.set_detector_name(detector_.GetDetectorName());
+  // map.set_detector_name(detector_.DetectorName());
   if (!cid_to_descriptor_map_.empty())
     map.set_descriptor_depth(cid_to_descriptor_map_[0].depth());
   else

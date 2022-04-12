@@ -47,8 +47,8 @@ void SparseMap::BuildMap() {
   LogInfo("Performing incremental bundle adjustment...");
   IncrementallyBundleAdjust(relative_affines);
   // TODO(rsoussan): Add option to do final bundle adjustment??
-  // TODO(rsoussan): Add function to build database based on detector used!!! (AAA)
-  BuildSurfImageDatabase();
+  LogInfo("Building " << DetectorName() << " image database...");
+  BuildImageDatabase();
 }
 
 void SparseMap::DetectImageFeatures() {
@@ -325,6 +325,16 @@ void IterativelyBundleAdjust(const BundleAdjustmentParams& params, const int num
 
 void ClearImageDatabase() {
   image_database_.reset();
+}
+
+void SparseMap::BuildImageDatabase() {
+    if (DetectorName() == "surf") {
+      BuildSurfImageDatabase();
+    } else if (DetectorName() == "brisk") {
+      BuildBriskImageDatabase();
+    } else {
+      LOG(FATAL) << "Invalid detector name, cannot build image database.";
+    }
 }
 
 void SparseMap::BuildSurfImageDatabase() {

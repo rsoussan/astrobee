@@ -92,19 +92,13 @@ class SparseMap : public SparseMapDatabase {
   // delete feature descriptors with no matching landmark
   void PruneMap();
 
-  // TODO(rsoussan): Remove this??
-  std::string GetDetectorName() { return params_.detector.name; }
+  const std::string& DetectorName() { return params_.detector.name; }
 
   const ImageDatabase& image_database() const { return *image_database_; }
 
   void ClearImageDatabase();
 
-  template<class TDescriptor, class F>
   void BuildImageDatabase();
-
-  void BuildSurfImageDatabase();
-
-  void BuildBriskImageDatabase();
 
   // TODO(rsoussan): Why is this needed??
   SparseMapParams& params() { return params_; }
@@ -122,6 +116,13 @@ class SparseMap : public SparseMapDatabase {
   int OldestCidToOptimize(const int latest_cid) const;
 
   void Triangulate(const bool remove_invalid_points = true);
+
+  template<class TDescriptor, class F>
+  void BuildImageDatabase();
+
+  void BuildSurfImageDatabase();
+
+  void BuildBriskImageDatabase();
 
   std::unique_ptr<ImageDatabase> image_database_;
   SparseMapParams params_;
