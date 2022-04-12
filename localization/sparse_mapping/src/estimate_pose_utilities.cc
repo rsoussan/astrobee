@@ -90,10 +90,9 @@ EstimatePoseResults EstimatePose(const cv::Mat& descriptors, const Eigen::Matrix
   std::vector<Eigen::Vector3d> landmarks;
   GetMatchingObservationsAndLandmarks(image_matches, map, observations, landmarks);
 
-  // TODO(rsoussan): don't use camera for get focal vector! (A)
   const Eigen::Vector2d zero_principal_points(Eigen::Vector2d::Zero());
   const Eigen::VectorXd zero_distortion(1);
-  const Eigen::Vector2d focal_lengths = camera.GetFocalVector();
+  const Eigen::Vector2d focal_lengths = map.params().camera.GetFocalVector();
   const auto pose = vc::ReprojectionPoseEstimate<vc::IdentityDistorter>(observations, landmarks, focal_lengths,
                                                                         zero_principal_points, zero_distortion, params);
   EstimatePoseResults results;
