@@ -1,0 +1,46 @@
+/* Copyright (c) 2017, United States Government, as represented by the
+ * Administrator of the National Aeronautics and Space Administration.
+ *
+ * All rights reserved.
+ *
+ * The Astrobee platform is licensed under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+#ifndef SPARSE_MAPPING_SPARSE_MAP_MERGER_H_
+#define SPARSE_MAPPING_SPARSE_MAP_MERGER_H_
+
+#include <sparse_mapping/sparse_map_merger_params.h>
+
+#include <string>
+#include <vector>
+
+namespace sparse_mapping {
+class SparseMapMerger {
+ public:
+  SparseMapMerger(const SparseMap& map_a, const SparseMap& map_b, const SparseMapMergerParams& params);
+
+  SparseMapMerger(const std::string& map_a_filename, const std::string& map_b_filename,
+                  const SparseMapMergerParams& params);
+
+  void Initialize(const SparseMap& map_a, const SparseMap& map_b, const SparseMapMergerParams& params);
+
+  void MergeMaps();
+
+ private:
+  SparseMapMergerParams params_;
+  std::unique_ptr<SparseMap> map_a_;
+  std::unique_ptr<SparseMap> map_b_;
+};
+}  // namespace sparse_mapping
+
+#endif  // SPARSE_MAPPING_SPARSE_MAP_MERGER_H_

@@ -16,30 +16,11 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_MAP_MERGING_UTILITIES_H_
-#define SPARSE_MAPPING_MAP_MERGING_UTILITIES_H_
-
-#include <string>
-#include <vector>
+#ifndef SPARSE_MAPPING_SPARSE_MAP_MERGER_PARAMS_H_
+#define SPARSE_MAPPING_SPARSE_MAP_MERGER_PARAMS_H_
 
 namespace sparse_mapping {
-  /**
-     Append map file.
-  **/
-  void AppendMapFile(std::string const& mapOut, std::string const& mapIn,
-                     int num_image_overlaps_at_endpoints,
-                     double outlier_factor,
-                     bool bundle_adjust, bool fix_first_map);
-
-  /**
-     Merge two maps.
-  **/
-  void MergeMaps(sparse_mapping::SparseMap * A_in,
-                 sparse_mapping::SparseMap * B_in,
-                 int num_image_overlaps_at_endpoints,
-                 double outlier_factor,
-                 std::string const& output_map,
-                 sparse_mapping::SparseMap * C_out);
+struct SparseMapMergerParams {
+};
 }  // namespace sparse_mapping
-
-#endif  // SPARSE_MAPPING_MAP_MERGING_UTILITIES_H_
+#endif  // SPARSE_MAPPING_SPARSE_MAP_MERGER_PARAMS_H_
