@@ -20,8 +20,6 @@
 #define SPARSE_MAPPING_SPARSE_MAP_H_
 
 #include <ff_common/eigen_vectors.h>
-#include <sparse_mapping/estimate_pose_params.h>
-#include <sparse_mapping/estimate_pose_results.h>
 #include <sparse_mapping/image_database.h>
 #include <sparse_mapping/sparse_map_database.h>
 #include <sparse_mapping/sparse_map_params.h>
@@ -41,15 +39,6 @@ namespace sparse_mapping {
 typedef std::map<std::pair<int, int>, Eigen::Affine3d, std::less<std::pair<int, int> >,
                  Eigen::aligned_allocator<std::pair<std::pair<int, int> const, Eigen::Affine3d> > >
   CIDPairAffineMap;
-
-// TODO(rsoussan): Move this somewhere else?
-struct ImageMatch {
-  std::vector<cv::DMatch> matches;
-  int num_valid_matches;
-  int cid;
-  bool operator<(const ImageMatch& rhs) { return num_valid_matches < rhs.num_valid_matches; }
-};
-
 /**
  * A class representing a sparse map, which consists of a collection
  * of keyframes and detected features. To localize, an image's features
@@ -117,14 +106,6 @@ class SparseMap : public SparseMapDatabase {
   SparseMapParams& params() { return params_; }
 
   const SparseMapParams& params() const { return params_; }
-
-EstimatePoseResults EstimatePose(
-  const cv::Mat& descriptors,  // TODO(rsoussan): change this to vector of descriptors
-                               // TODO(rsoussan): change this to vector of Eigen::Vector2ds
-  const Eigen::Matrix2Xd& keypoints, const EstimatePoseParams& params);
-
-EstimatePoseResults EstimatePose(
-  const cv::Mat& image, const EstimatePoseParams& params);
 
   // Protobuf Functions
   void Save(const std::string& protobuf_file) const;
