@@ -28,30 +28,6 @@ LoadSparseMapMatcherParams(config_reader::ConfigReader& config, SparseMapMatcher
   params.map_name = mc::LoadString(config, "world_vision_map_filename");
   params.estimate_pose = sm::LoadEstimatePoseParams(config, params);
   params.brisk_detector = vc::LoadBriskDynamicDetectorParams(config, params);
-  params.histogram_equalization = mc::LoadInt(config, "histogram_equalization");
   params.num_cv_threads = mc::LoadInt(config, "num_cv_threads");
 }
-
-/* int num_similar, ransac_inlier_tolerance, ransac_iterations, early_break_landmarks, histogram_equalization;
- int min_features, max_features, detection_retries;
- double min_brisk_threshold, default_brisk_threshold, max_brisk_threshold;
- camera::CameraParameters cam_params(config, "nav_cam");
- if (!config->GetInt("num_similar", &num_similar)) ROS_FATAL("num_similar not specified in localization.");
- if (!config->GetInt("ransac_inlier_tolerance", &ransac_inlier_tolerance))
-   ROS_FATAL("ransac_inlier_tolerance not specified in localization.");
- if (!config->GetInt("ransac_iterations", &ransac_iterations))
-   ROS_FATAL("ransac_iterations not specified in localization.");
- if (!config->GetInt("min_features", &min_features)) ROS_FATAL("min_features not specified in localization.");
- if (!config->GetInt("max_features", &max_features)) ROS_FATAL("max_features not specified in localization.");
- if (!config->GetInt("detection_retries", &detection_retries))
-   ROS_FATAL("detection_retries not specified in localization.");
- if (!config->GetInt("histogram_equalization", &histogram_equalization))
-   ROS_FATAL("histogram_equalization not specified in localization.");
-
- // For the brisk thresholds and other values, quietly assume some defaults
- if (!config->GetReal("min_brisk_threshold", &min_brisk_threshold)) min_brisk_threshold = 20.0;
- if (!config->GetReal("default_brisk_threshold", &default_brisk_threshold)) default_brisk_threshold = 90.0;
- if (!config->GetReal("max_brisk_threshold", &max_brisk_threshold)) max_brisk_threshold = 110.0;
- if (!config->GetInt("early_break_landmarks", &early_break_landmarks)) early_break_landmarks = 100;
-}*/
 }  // namespace sparse_map_matcher

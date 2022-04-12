@@ -20,17 +20,14 @@
 #include <msg_conversions/msg_conversions.h>
 #include <sparse_mapping/parameter_reader.h>
 
-namespace vision_common {
+namespace sparse_mapping {
 namespace mc = msg_conversions;
+namespace vc = vision_common;
 
 void LoadEstimatePoseParams(config_reader::ConfigReader& config, EstimatePoseParams& params) {
-  params.num_ransac_iterations = mc::LoadInt(config, "num_ransac_iterations");
-  params.ransac_inlier_tolerance = mc::LoadInt(config, "ransac_inlier_tolerance");
-  params.histogram_equalization = mc::LoadInt(config, "histogram_equalization");
+  vc::LoadReprojectionPoseEstimateParams(config, params);
   params.max_num_total_feature_matches = mc::LoadInt(config, "max_num_total_feature_matches");
   params.check_point_3d_exists = mc::LoadBool(config, "check_point_3d_exists");
   params.max_image_matches = mc::LoadInt(config, "max_image_matches");
-  params.inlier_landmarks = mc::LoadBool(config, "inlier_landmarks");
-  params.inlier_observations = mc::LoadBool(config, "inlier_observations");
 }
-}  // namespace vision_common
+}  // namespace sparse_mapping

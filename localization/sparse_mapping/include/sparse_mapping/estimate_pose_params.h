@@ -21,32 +21,9 @@
 
 namespace sparse_mapping {
 struct EstimatePoseParams : vision_common::ReprojectionPoseEstimateParams {
-    EstimatePoseParams();
-      // TODO(rsoussan): Change this to a bool?
-    // TODO(rsoussan): should this be here or in sparse map params????
-    int histogram_equalization = false;
-    int max_num_total_feature_matches = 100;
-    bool check_point_3d_exists = true;
-    int max_image_matches = 20;
+    int max_num_total_feature_matches;
+    bool check_point_3d_exists;
+    int max_image_matches;
 };
-
-inline EstimatePoseParams::EstimatePoseParams() {
-  // ReprojectionPoseEstimateParams
-  // Optimization
-  optimization.solver_options.linear_solver_type = ceres::ITERATIVE_SCHUR;
-  optimization.solver_options.num_threads = 1;
-  optimization.solver_options.max_num_iterations = 100;
-  options.minimizer_progress_to_stdout = false;
-  optimization.verbose = false;
-  optimization.huber_loss = 1.0;
-  // Ransac Pnp
-  ransac_pnp.max_inlier_threshold = 5;
-  ransac_pnp.num_iterations = 1000;
-  ransac_pnp.min_num_inliers = 10;
-  ransac_pnp.pnp_method = cv::SOLVEPNP_P3P;
-  // Other
-  optimize_estimate = true;
-  max_inlier_threshold = 5;
-}
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_ESTIMATE_POSE_PARAMS_H_
