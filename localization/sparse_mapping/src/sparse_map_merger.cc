@@ -103,6 +103,8 @@ SparseMapMerger::SparseMapMerger(const std::string& map_a_filename, const std::s
 void SparseMapMerger::Initialize(const SparseMap& map_a, const SparseMap& map_b, const SparseMapMergerParams& params) {
   map_a_.reset(new SparseMap(map_a));
   map_b_.reset(new SparseMap(map_b));
+  // Initialize merged map using map_a, map_b will be merged into it later
+  merged_map_.reset(new SparseMap(map_a));
   params_ = params;
   if (!CompatableMaps()) LOG(FATAL) << "Incompatable Maps.";
 }
@@ -117,28 +119,7 @@ bool SparseMapMerger::CompatableMaps() const {
 }
 
 void SparseMapMerger::MergeMaps() {
-  // Merge things that make sense to merge and are easy to do
-  // TODO(rsoussan): Add merge function to sparse map database that does this! (AA)
-  int num_acid = A.cid_to_filename_.size();
-  int num_bcid = B.cid_to_filename_.size();
-  int num_ccid = num_acid + num_bcid;
-  C.cid_to_filename_      .resize(num_ccid);
-  C.cid_to_keypoint_map_  .resize(num_ccid);
-  C.cid_to_cam_t_global_  .resize(num_ccid);
-  C.cid_to_descriptor_map_.resize(num_ccid);
-  for (int cid = 0; cid < num_bcid; cid++) {
-    // C.cid_to_filename_ already contains A.cid_to_filename_, etc.
-    int c = num_acid + cid;
-    C.cid_to_filename_[c]       = B.cid_to_filename_[cid];
-    C.cid_to_keypoint_map_[c]   = B.cid_to_keypoint_map_[cid];
-    C.cid_to_descriptor_map_[c] = B.cid_to_descriptor_map_[cid];
-    // We will have to deal with cid_to_cam_t_global_ later
-  }
-
-  // Create cid_fid_to_pid_ for both maps, to be able to go from cid_fid to pid.
-  A.InitializeCidFidToPid();
-  B.InitializeCidFidToPid();
-
+  merged_map_->AddImagesAndFeatures(*map_b_);
   std::map<int, int> A2B, B2A;
   findMatchingTracks(&A, &B, &C, output_map,
                        num_image_overlaps_at_endpoints,

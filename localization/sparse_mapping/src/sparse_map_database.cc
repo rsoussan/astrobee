@@ -25,6 +25,20 @@ void SparseMapDatabase::ResizeFeatureMaps() {
   cid_to_descriptor_map_.resize(num_cids);
 }
 
+void SparseMapDatabase::AddImagesAndFeatures(const SparseMapDatabase& map) {
+  const int num_initial_cids = NumCIDs();
+  const int num_final_cids = num_initial_cids + map.NumCIDs();
+  cid_to_filename_.reserve(num_final_cids);
+  cid_to_keypoint_map_.reserve(num_final_cids);
+  cid_to_cam_t_global_.reserve(num_final_cids);
+  cid_to_descriptor_map_.reserve(num_final_cids);
+  for (int cid = 0; cid < map.NumCIDs(); ++cid) {
+    cid_to_filename_.emplace_back(map.cid_to_filename_[cid]);
+    cid_to_keypoint_map_.emplace_back(map.cid_to_keypoint_map_[cid]);
+    cid_to_descriptor_map_.emplace_back(map.cid_to_descriptor_map_[cid]);
+  }
+}
+
 void SparseMapDatabase::InitializeCidFidToPid() {
   sparse_mapping::InitializeCidFidToPid(NumCIDs(),
                                         pid_to_cid_fid_,

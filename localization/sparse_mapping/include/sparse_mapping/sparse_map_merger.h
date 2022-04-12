@@ -42,6 +42,7 @@ class SparseMapMerger {
   SparseMapMergerParams params_;
   std::unique_ptr<SparseMap> map_a_;
   std::unique_ptr<SparseMap> map_b_;
+  std::unique_ptr<SparseMap> merged_map_;
 };
 }  // namespace sparse_mapping
 

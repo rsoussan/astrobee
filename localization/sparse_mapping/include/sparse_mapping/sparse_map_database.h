@@ -81,6 +81,8 @@ class SparseMapDatabase {
                                                                 0, [](size_t v, const std::map<int, int>& map)
                                                                 { return v + map.size(); }); }
 
+  void AddImagesAndFeatures(const SparseMapDatabase& map);
+
   // TODO(rsoussan): What is the framing of T?? Update!
   void Transform(Eigen::Affine3d const& T) {
     sparse_mapping::TransformCamerasAndPoints(T, &cid_to_cam_t_global_, &pid_to_xyz_);
