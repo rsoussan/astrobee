@@ -104,30 +104,19 @@ void SparseMapMerger::Initialize(const SparseMap& map_a, const SparseMap& map_b,
   map_a_.reset(new SparseMap(map_a));
   map_b_.reset(new SparseMap(map_b));
   params_ = params;
+  if (!CompatableMaps()) LOG(FATAL) << "Incompatable Maps.";
+}
+
+bool SparseMapMerger::CompatableMaps() const {
+  if (map_a_->camera_params() != map_b_->camera_params())
+    LOG(FATAL) << "Input maps don't have the same camera parameters.";
+  if (map_a_->DetectorName() != map_b_->DetectorName())
+    LOG(FATAL) << "Input maps use different detectors.";
+  if (map_a_->GetHistogramEqualization() != map_b_->GetHistogramEqualization())
+    LOG(FATAL) << "Input maps use different histogram equalization.";
 }
 
 void SparseMapMerger::MergeMaps() {
-  // TODO(rsoussan): add function to check compatability!!
-  /*// Basic sanity checks (not exhaustive)
-  if ( !(A.GetCameraParameters() == B.GetCameraParameters()) )
-    LOG(FATAL) << "The input maps don't have the same camera parameters.";
-  if ( !(A.detector_ == B.detector_) )
-    LOG(FATAL) << "The input maps don't have the same detector and/or descriptor.";
-
-  sparse_mapping::HistogramEqualizationCheck(A.GetHistogramEqualization(),
-                                             B.GetHistogramEqualization());*/
-
-  /*// Wipe things that we won't merge (or not yet)
-  C.ClearImageDatabase();
-  // TODO(rsoussan): make function to do this
-  C.pid_to_cid_fid_.clear();
-  C.pid_to_xyz_.clear();
-  C.cid_fid_to_pid_.clear();
-  C.cid_to_cid_.clear();
-  C.user_cid_to_keypoint_map_.clear();
-  C.user_pid_to_cid_fid_.clear();
-  C.user_pid_to_xyz_.clear();*/
-
   // Merge things that make sense to merge and are easy to do
   // TODO(rsoussan): Add merge function to sparse map database that does this! (AA)
   int num_acid = A.cid_to_filename_.size();

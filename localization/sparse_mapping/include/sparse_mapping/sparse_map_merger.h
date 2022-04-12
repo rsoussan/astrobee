@@ -37,6 +37,8 @@ class SparseMapMerger {
   void MergeMaps();
 
  private:
+  bool CompatableMaps() const;
+
   SparseMapMergerParams params_;
   std::unique_ptr<SparseMap> map_a_;
   std::unique_ptr<SparseMap> map_b_;
