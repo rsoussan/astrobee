@@ -419,46 +419,6 @@ void AppendMapFile(std::string const& mapOut, std::string const& mapIn,
   C.Save(mapOut);
 }
 
-// TODO(rsoussan): Move this to math utils!
-// This fitting functor attempts to find a rotation + translation + scale transformation
-// between two vectors of points.
-struct TranslationRotationScaleFittingFunctor {
-  typedef Eigen::Affine3d result_type;
-
-  /// A transformation requires 3 inputs and 3 outputs to make a fit.
-  size_t min_elements_needed_for_fit() const { return 3; }
-
-  result_type operator() (std::vector<Eigen::Vector3d> const& in_vec,
-                          std::vector<Eigen::Vector3d> const& out_vec) const {
-    // check consistency
-    if (in_vec.size() != out_vec.size())
-      LOG(FATAL) << "There must be as many inputs as outputs to be "
-                 << "able to compute a transform between them.\n";
-    if (in_vec.size() < min_elements_needed_for_fit())
-      LOG(FATAL) << "Cannot compute a transformation. Insufficient data.\n";
-
-    Eigen::Matrix3Xd in_mat  = Eigen::MatrixXd(3, in_vec.size());
-    Eigen::Matrix3Xd out_mat = Eigen::MatrixXd(3, in_vec.size());
-    for (size_t it = 0; it < in_vec.size(); it++) {
-      in_mat.col(it)  = in_vec[it];
-      out_mat.col(it) = out_vec[it];
-    }
-    result_type out_trans;
-    Find3DAffineTransform(in_mat, out_mat, &out_trans);
-    return out_trans;
-  }
-};
-
-// How well does the given transform do to map p1 to p2.
-// TODO(rsoussan): MOve this to math utils!
-struct TransformError {
-  double operator() (Eigen::Affine3d const& T, Eigen::Vector3d const& p1,
-                     Eigen::Vector3d const& p2) const {
-    return (T*p1 - p2).norm();
-  }
-};
-
-
 // Given a transform from cid2cid from some cid values to some others,
 // apply the same transform to the tracks. This may make the tracks
 // shorter if cid2cid maps different inputs to the same output.
