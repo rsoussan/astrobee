@@ -46,7 +46,8 @@ void SparseMap::BuildMap() {
   const auto relative_affines = MatchImagesAndBuildTracks();
   LogInfo("Performing incremental bundle adjustment...");
   IncrementallyBundleAdjust(relative_affines);
-  // TODO(rsoussan): Add option to do final bundle adjustment??
+  LogInfo("Performing iterative bundle adjustment...");
+  IterativelyBundleAdjust(params_.iterative_bundle_adjustment, params_.num_bundle_adjustment_iterations);
   LogInfo("Building " << DetectorName() << " image database...");
   BuildImageDatabase();
 }

@@ -418,12 +418,7 @@ int main(int argc, char** argv) {
   const std::vector<std::string> images = lc::GetImageNames(image_directory);
   // TODO(rsoussan): Load params!!!!
   SparseMapping::SparseMap map(images, params);
-
-    LogInfo("Detecting image features...");
-    map.DetectImageFeatures();
-    LogInfo("Matching images and building tracks...");
-  const auto relative_affines = map.MatchImagesAndBuildTracks();
-  map.IncrementallyBundleAdjust(relative_affines);
+  map.BuildMap();
   map.Save(map_filename);
 
 /*  if (FLAGS_incremental_ba) {

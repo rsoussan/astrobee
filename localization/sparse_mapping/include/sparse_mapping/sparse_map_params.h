@@ -45,7 +45,7 @@ struct SparseMapParams {
   // TODO(rsoussan): put these somewhere else?
   int min_num_cams_to_incrementally_optimize;  // 4
   int max_num_cams_to_incrementally_optimize;  // 128
-  BundleAdjustmentParams bundle_adjustment;
+  BundleAdjustmentParams iterative_bundle_adjustment;
   int num_bundle_adjustment_iterations = 5;
 };
 }  // namespace sparse_mapping
