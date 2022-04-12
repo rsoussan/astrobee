@@ -25,13 +25,12 @@ namespace sm = sparse_mapping;
 
 SparseMapMatcher::SparseMapMatcher(const SparseMapMatcherParams& params)
     : params_(params), detector_(params.detector), map_(params.map_name, true) {
-  sm::HistogramEqualizationCheck(map_.GetHistogramEqualization(), params_.histogram_equalization);
 }
 
 sm::EstimatePoseResults SparseMapMatcher::Match(const cv::Mat& image) {
   cv::Mat descriptors;
   Eigen::Matrix2Xd keypoints;
-  sm::DetectFeatures(image, params_.histogram_equalization, detector_, &descriptors, &keypoints);
+  sm::DetectFeatures(image, map_.GetHistogramEqualization(), detector_, &descriptors, &keypoints);
   return sm::EstimatePose(descriptors, keypoints, map_, params_.estimate_pose);
 }
 }  // namespace sparse_map_matcher
