@@ -501,68 +501,31 @@ void FindPidCorrespondences(std::vector<std::map<int, int> > const& A_cid_fid_to
   }
 }
 
-void MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map) {
-  // Wipe the outputs
-  A2B.clear();
-  B2A.clear();
-
-  // Create aliases to not use pointers all the time.
-  sparse_mapping::SparseMap & A = *A_in;
-  sparse_mapping::SparseMap & B = *B_in;
-  sparse_mapping::SparseMap & C = *C_out;
-
-  int num_acid = A.cid_to_filename_.size();
-  int num_bcid = B.cid_to_filename_.size();
-
-  std::set<int> A_search, B_search;  // use sets to avoid duplicates
-  int num = num_image_overlaps_at_endpoints;
-
-  // Images in A to search for matches in B
-  for (int cid = 0; cid < num; cid++)
-    if (cid < num_acid) A_search.insert(cid);
-  for (int cid = num_acid-num; cid < num_acid; cid++)
-    if (cid >= 0) A_search.insert(cid);
-
-  // Images in B to search for matches in A. Add num_acid since we will
-  // match A and B inside of C.
-  for (int cid = 0; cid < num; cid++)
-    if (cid < num_bcid) B_search.insert(num_acid + cid);
-  for (int cid = num_bcid-num; cid < num_bcid; cid++)
-    if (cid >= 0) B_search.insert(num_acid + cid);
-
-  // Combine these into cid_to_cid_ and run the matching process.
-  C.cid_to_cid_.clear();
-  for (auto it1 = A_search.begin(); it1 != A_search.end() ; it1++) {
-    for (auto it2 = B_search.begin(); it2 != B_search.end(); it2++) {
-      if (*it1 == *it2)
-        LOG(FATAL) << "Book-keeping failure in map merging.";
-      C.cid_to_cid_[*it1].insert(*it2);
+std::vector<MatchCandidates> SparseMapMerger::DatabaseMatchCandidates(const SparseMap& map_a, const SparseMap& map_b,
+                                                                      const int max_query_matches) const {
+  const int num_map_a_cids = map_a.NumCIDs();
+  std::vector<MatchCandidates> database_match_candidates;
+  for (int cid = 0; cid < map_b.NumCIDs(); ++cid) {
+    MatchCandidates match_candidates;
+    // Offset by num_map_a_cids since map_b cid indices start at num_map_a_cids in the merged map
+    match_candidates.cid = num_map_a_cids + cid;
+    const auto db_match_candidate_cids =
+      map_a.image_database().Query(map_b.descriptors(cid), max_query_matches);
+    for (const auto candidate_cid : db_match_candidate_cids) {
+      match_candidates.candidate_cids.emplace_back(candidate_cid);
     }
+    database_match_candidates.emplace_back(match_candidates);
   }
+  return database_match_candidates;
+}
 
-  // Match features. Must set num_subsequent_images to not try to
-  // match images in same map, that was done when each map was built.
-  google::SetCommandLineOption("num_subsequent_images", "0");
-  sparse_mapping::MatchFeatures(sparse_mapping::EssentialFile(output_map),
-                                sparse_mapping::MatchesFile(output_map), &C);
-
-  // Assemble the matches into tracks, this will populate C.pid_to_cid_fid_.
-  bool rm_invalid_xyz = false;  // nothing is valid yet
-  sparse_mapping::BuildTracks(rm_invalid_xyz,
-                              sparse_mapping::MatchesFile(output_map), &C);
-
-  // This is not needed any longer
-  C.cid_to_cid_.clear();
-
-  // Wipe file that is no longer needed
-  try {
-    std::remove(sparse_mapping::EssentialFile(output_map).c_str());
-  }catch(...) {}
-
-  // For each track in A, find the map to its corresponding track in B
-  // using the information in C.pid_to_cid_fid_.
-  FindPidCorrespondences(A.cid_fid_to_pid_, B.cid_fid_to_pid_,  C.pid_to_cid_fid_,
-                         num_acid, &A2B, &B2A);
+void MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map) {
+  // TODO(rsoussan): rename max query matches??
+  const auto match_candidates = DatabaseMatchCandidates(map_a, map_b, params_.max_query_matches);
+  // TODO(rsoussan): rename this?
+  std::vector<std::map<int, int> > pid_to_cid_fid;
+  map_a.MatchImagesAndBuildTracks(match_candidates, pid_to_cid_fid);
+  // TODO(rsoussan): find new tracks from map b only, merged tracks, and new shared tracks!
 }
 
 // Given a sparse map in C_out, and a map cid2cid from camera (image)

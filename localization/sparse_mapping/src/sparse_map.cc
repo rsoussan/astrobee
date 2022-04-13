@@ -105,7 +105,7 @@ std::vector<MatchCandidates> SparseMap::DatabaseMatchCandidates(const bool avoid
     for (const auto candidate_cid : db_match_candidate_cids) {
       if (avoid_sequential_cids && std::abs(candidate_cid - cid) <= params_.max_sequential_image_match_candidates)
         continue;
-      match_candidates.candidate_cids.emplace_back(database_cid);
+      match_candidates.candidate_cids.emplace_back(candidate_cid);
     }
     database_match_candidates.emplace_back(match_candidates);
   }
