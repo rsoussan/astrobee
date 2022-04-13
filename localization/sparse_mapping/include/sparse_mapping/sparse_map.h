@@ -94,8 +94,7 @@ class SparseMap : public SparseMapDatabase {
   CIDPairAffineMap MatchImagesAndBuildTracks();
 
   CIDPairAffineMap MatchImagesAndBuildTracks(const std::vector<MatchCandidates>& match_candidates_vec,
-                                             std::vector<std::map<int, int> >& pid_to_cid_fid,
-                                             const bool initialize_cid_fid_to_pid);
+                                             std::vector<std::map<int, int> >& pid_to_cid_fid) const;
 
   void IncrementallyBundleAdjust();
 

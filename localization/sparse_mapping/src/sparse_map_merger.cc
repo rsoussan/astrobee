@@ -501,19 +501,7 @@ void FindPidCorrespondences(std::vector<std::map<int, int> > const& A_cid_fid_to
   }
 }
 
-
-// Determine which tracks from map A to merge with
-// which tracks from map B. For that, find which images in map A have
-// matches in map B.  We will look only at images close to the
-// endpoints of both maps, per num_image_overlaps_at_endpoints.
-void findMatchingTracks(sparse_mapping::SparseMap * A_in,
-                        sparse_mapping::SparseMap * B_in,
-                        sparse_mapping::SparseMap * C_out,
-                        std::string const& output_map,
-                        int num_image_overlaps_at_endpoints,
-                        std::map<int, int> & A2B,  // output
-                        std::map<int, int> & B2A   // output
-                        ) {
+void MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map) {
   // Wipe the outputs
   A2B.clear();
   B2A.clear();

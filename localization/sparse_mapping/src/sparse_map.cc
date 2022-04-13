@@ -112,8 +112,6 @@ std::vector<MatchCandidates> SparseMap::DatabaseMatchCandidates(const bool avoid
   return database_match_candidates;
 }
 
-
-
 CIDPairAffineMap SparseMap::MatchImagesAndBuildTracks() {
   const auto sequential_match_candidates = SequentialMatchCandidates();
   const auto database_match_candidates = DatabaseMatchCandidates(true);
@@ -123,12 +121,13 @@ CIDPairAffineMap SparseMap::MatchImagesAndBuildTracks() {
                               seqeuntial_match_candidates.end());
   all_match_candidates.insert(all_match_candidates.end(), database_match_candidates.begin(),
                               database_match_candidates.end());
-  return MatchImagesAndBuildTracks(all_match_candidates, pid_to_cid_fid_, true);
+  const auto relative_affines = MatchImagesAndBuildTracks(all_match_candidates, pid_to_cid_fid_);
+  InitializeCidFidToPid();
+  return relative_affines;
 }
 
 CIDPairAffineMap SparseMap::MatchImagesAndBuildTracks(const std::vector<MatchCandidates>& match_candidates_vec,
-                                                      std::vector<std::map<int, int> >& pid_to_cid_fid,
-                                                      const bool initialize_cid_fid_to_pid) {
+                                                      std::vector<std::map<int, int> >& pid_to_cid_fid) const {
   ff_common::ThreadPool thread_pool;
   std::mutex match_mutex;
   openMVG::matching::PairWiseMatches match_map;
@@ -171,9 +170,6 @@ CIDPairAffineMap SparseMap::MatchImagesAndBuildTracks(const std::vector<MatchCan
     }
     ++pid;
   }
-
-  if (initialize_cid_fid_to_pid)
-  InitializeCidFidToPid();
 
   return relative_affines;
 }
