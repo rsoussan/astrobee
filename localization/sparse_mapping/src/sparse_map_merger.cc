@@ -520,11 +520,10 @@ std::vector<MatchCandidates> SparseMapMerger::DatabaseMatchCandidates(const Spar
 }
 
 void MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map) {
-  // TODO(rsoussan): rename max query matches??
-  const auto match_candidates = DatabaseMatchCandidates(map_a, map_b, params_.max_query_matches);
+  const auto match_candidates = DatabaseMatchCandidates(map_a, map_b, params_.max_db_query_image_match_candidates);
   // TODO(rsoussan): rename this?
   std::vector<std::map<int, int> > pid_to_cid_fid;
-  map_a.MatchImagesAndBuildTracks(match_candidates, pid_to_cid_fid);
+  merged_map.MatchImagesAndBuildTracks(match_candidates, pid_to_cid_fid);
   // TODO(rsoussan): find new tracks from map b only, merged tracks, and new shared tracks!
 }
 

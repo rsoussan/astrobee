@@ -21,6 +21,7 @@
 
 namespace sparse_mapping {
 struct SparseMapMergerParams {
+  int max_db_query_image_match_candidates;
 };
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_SPARSE_MAP_MERGER_PARAMS_H_
