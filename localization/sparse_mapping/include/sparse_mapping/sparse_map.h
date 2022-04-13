@@ -36,6 +36,10 @@
 #include <vector>
 
 namespace sparse_mapping {
+struct MatchCandidates {
+  int cid;
+  std::vector<int> candidate_cids;
+};
 // TODO(rsoussan): change to using
 typedef std::map<std::pair<int, int>, Eigen::Affine3d, std::less<std::pair<int, int> >,
                  Eigen::aligned_allocator<std::pair<std::pair<int, int> const, Eigen::Affine3d> > >
@@ -83,7 +87,15 @@ class SparseMap : public SparseMapDatabase {
                               cv::Mat& descriptors,
                               Eigen::Matrix2Xd& keypoints);
 
+  std::vector<MatchCandidates> SequentialMatchCandidates() const;
+
+  std::vector<MatchCandidates> DatabaseMatchCandidates(const bool avoid_sequential_cids) const;
+
   CIDPairAffineMap MatchImagesAndBuildTracks();
+
+  CIDPairAffineMap MatchImagesAndBuildTracks(const std::vector<MatchCandidates>& match_candidates_vec,
+                                             std::vector<std::map<int, int> >& pid_to_cid_fid,
+                                             const bool initialize_cid_fid_to_pid);
 
   void IncrementallyBundleAdjust();
 
@@ -110,29 +122,29 @@ class SparseMap : public SparseMapDatabase {
   void Load(const std::string& protobuf_file, bool localization = false);
 
  private:
-  void MatchImages(const int cid_a, const int cid_b, sparse_mapping::CIDPairAffineMap& relative_affines,
-                   openMVG::matching::PairWiseMatches& match_map, std::mutex& match_mutex) const;
+void MatchImages(const int cid_a, const int cid_b, sparse_mapping::CIDPairAffineMap& relative_affines,
+                 openMVG::matching::PairWiseMatches& match_map, std::mutex& match_mutex) const;
 
-  int OldestCidToOptimize(const int latest_cid) const;
+int OldestCidToOptimize(const int latest_cid) const;
 
-  void Triangulate(const bool remove_invalid_points = true);
+void Triangulate(const bool remove_invalid_points = true);
 
-  template<class TDescriptor, class F>
-  void BuildImageDatabase();
+template <class TDescriptor, class F>
+void BuildImageDatabase();
 
-  void BuildSurfImageDatabase();
+void BuildSurfImageDatabase();
 
-  void BuildBriskImageDatabase();
+void BuildBriskImageDatabase();
 
-  std::unique_ptr<ImageDatabase> image_database_;
-  SparseMapParams params_;
+std::unique_ptr<ImageDatabase> image_database_;
+SparseMapParams params_;
 
-  // I found out the hard way that sparse maps cannot be copied
-  // correctly, hence prohibit this. The only good way seems to be to
-  // load a copy from disk. (oalexan1)
-  SparseMap();
-  SparseMap(SparseMap &);
-  SparseMap& operator=(const SparseMap&);
+// I found out the hard way that sparse maps cannot be copied
+// correctly, hence prohibit this. The only good way seems to be to
+// load a copy from disk. (oalexan1)
+SparseMap();
+SparseMap(SparseMap&);
+SparseMap& operator=(const SparseMap&);
 };
 
 // Implementation

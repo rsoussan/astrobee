@@ -80,30 +80,68 @@ void SparseMap::DetectImageFeaturesFromFile(const std::string& filename,
   }
 }
 
+std::vector<MatchCandidates> SparseMap::SequentialMatchCandidates() const {
+  std::vector<MatchCandidates> sequential_match_candidates;
+  for (int cid = 0; cid < NumCameras(); ++cid) {
+    MatchCandidates match_candidates;
+    match_candidates.cid = cid;
+    for (int sequential_cid = cid + 1;
+         sequential_cid < NumCameras() && cid - sequential_cid <= params_.max_sequential_image_match_candidates;
+         ++sequential_cid) {
+      match_candidates.candidate_cids.emplace_back(sequential_cid);
+    }
+    sequential_match_candidates.emplace_back(match_candidate);
+  }
+  return sequential_match_candidates;
+}
+
+std::vector<MatchCandidates> SparseMap::DatabaseMatchCandidates(const bool avoid_sequential_cids) const {
+  std::vector<MatchCandidates> database_match_candidates;
+  for (int cid = 0; cid < NumCameras(); ++cid) {
+    MatchCandidates match_candidates;
+    match_candidates.cid = cid;
+    const auto db_match_candidate_cids =
+      image_database().Query(descriptors(cid), params_.max_db_query_image_match_candidates);
+    for (const auto candidate_cid : db_match_candidate_cids) {
+      if (avoid_sequential_cids && std::abs(candidate_cid - cid) <= params_.max_sequential_image_match_candidates)
+        continue;
+      match_candidates.candidate_cids.emplace_back(database_cid);
+    }
+    database_match_candidates.emplace_back(match_candidates);
+  }
+  return database_match_candidates;
+}
+
+
+
 CIDPairAffineMap SparseMap::MatchImagesAndBuildTracks() {
+  const auto sequential_match_candidates = SequentialMatchCandidates();
+  const auto database_match_candidates = DatabaseMatchCandidates(true);
+  std::vector<MatchCandidates> all_match_candidates;
+  all_match_candidates.reserve(seqeuntial_match_candidates.size() + database_match_candidates.size());
+  all_match_candidates.insert(all_match_candidates.end(), seqeuntial_match_candidates.begin(),
+                              seqeuntial_match_candidates.end());
+  all_match_candidates.insert(all_match_candidates.end(), database_match_candidates.begin(),
+                              database_match_candidates.end());
+  return MatchImagesAndBuildTracks(all_match_candidates, pid_to_cid_fid_, true);
+}
+
+CIDPairAffineMap SparseMap::MatchImagesAndBuildTracks(const std::vector<MatchCandidates>& match_candidates_vec,
+                                                      std::vector<std::map<int, int> >& pid_to_cid_fid,
+                                                      const bool initialize_cid_fid_to_pid) {
   ff_common::ThreadPool thread_pool;
   std::mutex match_mutex;
   openMVG::matching::PairWiseMatches match_map;
   CIDPairAffineMap relative_affines;
-  for (int cid = 0; cid < NumCameras(); ++cid) {
-    ff_common::PrintProgressBar(stdout, static_cast<float>(cid)
-                             / static_cast <float>(NumFeatures() - 1));
-    // Find sequential matches
-    for (int sequential_cid = cid + 1;
-         sequential_cid < NumCameras() && cid - sequential_cid <= params_.max_sequential_image_match_candidates;
-         ++sequential_cid) {
-      thread_pool.AddTask(&sparse_map::MatchImages, this, cid, candidate_cid, std::ref(relative_affines),
-                          std::ref(match_map), std::ref(match_mutex));
-    }
-    // Find other matches
-    const auto db_match_candidate_cids =
-      image_database().Query(descriptors(cid), params_.max_db_query_image_match_candidates);
-    for (const auto candidate_cid : db_match_candidate_cids) {
-      // Don't check candidate cids that were already checked as sequential candidates
-      if (std::abs(candidate_cid - cid) <= params_.max_sequential_image_match_candidates) continue;
-      thread_pool.AddTask(&sparse_map::MatchImages, this, cid, candidate_cid, std::ref(relative_affines),
-                          std::ref(match_map), std::ref(match_mutex));
-    }
+  int i = 0;
+  for (const auto& match_candidates : match_candidates_vec) {
+    ff_common::PrintProgressBar(stdout, static_cast<float>(++i)
+                             / static_cast <float>(match_candidates_vec.size()));
+        const int cid = match_candidates.cid;
+        for (const auto& candidate_cid : match_candidates.candidate_cids) {
+          thread_pool.AddTask(&sparse_map::MatchImages, this, cid, candidate_cid, std::ref(relative_affines),
+                              std::ref(match_map), std::ref(match_mutex));
+        }
   }
   thread_pool.Join();
 
@@ -122,17 +160,19 @@ CIDPairAffineMap SparseMap::MatchImagesAndBuildTracks() {
 
   // Add tracks to database
   const int num_tracks = map_tracks.size();
-  pid_to_cid_fid_.clear();
-  pid_to_cid_fid_.resize(num_tracks);
+  pid_to_cid_fid.clear();
+  pid_to_cid_fid.resize(num_tracks);
   int pid = 0;
   for (const auto& map_track : map_tracks) {
     for (const auto& cid_fid_pair : map_tracks) {
       const int cid = cid_fid_pair.first;
       const int fid = cid_fid_pair.second;
-      pid_to_cid_fid_[pid][cid] = fid;
+      pid_to_cid_fid[pid][cid] = fid;
     }
     ++pid;
   }
+
+  if (initialize_cid_fid_to_pid)
   InitializeCidFidToPid();
 
   return relative_affines;
