@@ -457,13 +457,13 @@ void SparseMapMerger::IdentifyTrack(const std::map<int, int>& track, const int i
   if (b_pid) {
     b_pid_to_a_pid_match_counts[*b_pid] = a_pid_matches;
     // Merge for now, could later be identified as invalid
-    track_labels[i] = TrackLabel::Merge;
+    track_labels[i] = TrackLabel::kMerge;
   } else {
     if (a_pid_matches.empty()) {
       // TODO(rsoussan): Check if has enough measurements??
-      track_labels[i] = TrackLabel::New;
+      track_labels[i] = TrackLabel::kNew;
     } else {
-      track_labels[i] = TrackLabel::Append;
+      track_labels[i] = TrackLabel::kAppend;
     }
   }
 }
@@ -476,7 +476,7 @@ void SparseMapMerger::MatchingTracks(const SparseMap& map_a, const SparseMap& ma
 
   // Identify tracks (merge, new, append, invalid) and update match counts if necessary
   std::unordered_map<int, std::map<int, int> > b_pid_to_a_pid_match_counts;
-  std::vector<TrackLabel> track_labels(pid_to_cid_fid.size(), TrackLabel::Invalid);
+  std::vector<TrackLabel> track_labels(pid_to_cid_fid.size(), TrackLabel::kInvalid);
   for (int i = 0; i < pid_to_cid_fid.size(); ++i) {
     const auto& cid_fids = pid_to_cid_fid[i];
     IdentifyTrack(cid_fids, i, map_a, map_b, track_labels, b_pid_to_a_pid_match_counts);

@@ -27,6 +27,13 @@
 #include <vector>
 
 namespace sparse_mapping {
+enum class TrackLabel {
+  kAppend,
+  kInvalid,
+  kMerge,
+  kNew,
+};
+
 class SparseMapMerger {
  public:
   SparseMapMerger(const SparseMap& map_a, const SparseMap& map_b, const SparseMapMergerParams& params);
