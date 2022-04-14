@@ -437,7 +437,7 @@ std::vector<MatchCandidates> SparseMapMerger::DatabaseMatchCandidates(const Spar
 
 void SparseMapMerger::IdentifyTrack(const std::map<int, int>& track, const int index, const SparseMap& map_a,
                                     const SparseMap& map_b, std::vector<TrackLabel>& track_labels,
-                                    std::vector<std::pair<int, int>>& a_b_pid_tracks_to_merge) const {
+                                    std::vector<std::pair<int, int>>& a_b_pid_correspondences) const {
   std::unordered_map<int, int> a_pid_matches;
   boost::optional<int> b_pid;
   // Aggregate a_pids that a b_fid matches to
@@ -460,7 +460,7 @@ void SparseMapMerger::IdentifyTrack(const std::map<int, int>& track, const int i
     const auto best_a_pid = BestMatch(a_pid_matches);
     if (best_a_pid) {
       track_labels[index] = TrackLabel::kMerge;
-      a_b_pid_tracks_to_merge.emplace_back({*best_a_pid, *b_pid});
+      a_b_pid_correspondences.emplace_back({*best_a_pid, *b_pid});
       return;
     } else {
       track_labels[index] = TrackLabel::kInvalid;
@@ -502,19 +502,18 @@ boost::optional<int> SparseMapMerger::BestMatch(const std::map<int, int>& pid_ma
   return boost::none;
 }
 
-void SparseMapMerger::MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map) {
+MatchingTracks SparseMapMerger::MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map) {
   const auto match_candidates = DatabaseMatchCandidates(map_a, map_b, params_.max_db_query_image_match_candidates);
-  // TODO(rsoussan): rename this?
-  std::vector<std::map<int, int> > pid_to_cid_fid;
-  merged_map.MatchImagesAndBuildTracks(match_candidates, pid_to_cid_fid);
+  MatchingTracks matching_tracks;
+  merged_map.MatchImagesAndBuildTracks(match_candidates, matching_tracks.pid_to_cid_fid);
 
   // Identify tracks (merge, new, append, invalid) and update tracks to merge if necessary
-  std::vector<TrackLabel> track_labels(pid_to_cid_fid.size(), TrackLabel::kInvalid);
-  std::vector<std::pair<int, int>> a_b_pid_tracks_to_merge;
+  matching_tracks.track_labels = std::vector<TrackLabel>(matching_tracks.pid_to_cid_fid.size(), TrackLabel::kInvalid);
   for (int i = 0; i < pid_to_cid_fid.size(); ++i) {
     const auto& cid_fids = pid_to_cid_fid[i];
-    IdentifyTrack(cid_fids, i, map_a, map_b, track_labels, a_b_pid_tracks_to_merge);
+    IdentifyTrack(cid_fids, i, map_a, map_b, track_labels, matching_tracks.a_b_pid_correspondences);
   }
+  return matching_tracks;
 }
 // Given a sparse map in C_out, and a map cid2cid from camera (image)
 // indices to new indices, convert the map from being relative to old

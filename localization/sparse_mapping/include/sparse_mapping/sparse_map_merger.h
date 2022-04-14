@@ -35,6 +35,12 @@ enum class TrackLabel {
   kNew,
 };
 
+struct MatchingTracks {
+  std::vector<std::map<int, int> > pid_to_cid_fid;
+  std::vector<TrackLabel> track_labels;
+  std::vector<std::pair<int, int>> a_b_pid_correspondences;
+}
+
 class SparseMapMerger {
  public:
   SparseMapMerger(const SparseMap& map_a, const SparseMap& map_b, const SparseMapMergerParams& params);
@@ -53,7 +59,7 @@ class SparseMapMerger {
                      std::vector<std::pair<int, int>>& a_b_pid_tracks_to_merge) const;
 
   boost::optional<int> BestMatch(const std::map<int, int>& pid_match_counts) const;
-  void MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map);
+  MatchingTracks MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map);
 
   SparseMapMergerParams params_;
   std::unique_ptr<SparseMap> map_a_;
