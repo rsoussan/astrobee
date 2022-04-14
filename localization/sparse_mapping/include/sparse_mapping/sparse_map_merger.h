@@ -20,7 +20,9 @@
 #define SPARSE_MAPPING_SPARSE_MAP_MERGER_H_
 
 #include <sparse_mapping/sparse_map_merger_params.h>
+#include <sparse_mapping/SparseMap.h>
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -38,6 +40,10 @@ class SparseMapMerger {
 
  private:
   bool CompatableMaps() const;
+  void IdentifyTrack(const std::map<int, int>& track, const int index, const SparseMap& map_a, const SparseMap& map_b,
+                     std::vector<TrackLabel>& track_labels,
+                     std::unordered_map<int, std::map<int, int>>& b_pid_to_a_pid_match_counts) const;
+  void MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map);
 
   SparseMapMergerParams params_;
   std::unique_ptr<SparseMap> map_a_;

@@ -70,6 +70,8 @@ class SparseMapDatabase {
 
   const std::map<int, int>& FidToPid(int cid) const {return cid_fid_to_pid_[cid];}
 
+  int Pid(int cid, int fid) const {return cid_fid_to_pid_[cid][fid];}
+
   int NumPoints() const {return pid_to_xyz_.size();}
 
   const Eigen::Vector3d& Point(int pid) const {return pid_to_xyz_[pid];}

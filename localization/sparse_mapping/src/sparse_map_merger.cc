@@ -417,90 +417,6 @@ void TransformTracks(std::map<int, int> const& cid2cid,
   *pid_to_cid_fid = pid_to_cid_fid2;
 }
 
-// As result of matching some images in A to some images in B, we must
-// now merge some tracks in A with some tracks in B, as those tracks
-// correspond physically to the same point in space. A track in
-// C.pid_to_cid_fid_ tells us which track in A.pid_to_cid_fid_ is tied
-// with which track in B.pid_to_cid_fid_. If it turns out one track in
-// A should be merged with multiple tracks in B or vice-versa, select
-// just one candidate from each map, based on who got most votes. Note
-// that here it is easier to work with A.cid_fid_to_pid_ rather than
-// A.pid_to_cid_fid_.
-void FindPidCorrespondences(std::vector<std::map<int, int> > const& A_cid_fid_to_pid,
-                            std::vector<std::map<int, int> > const& B_cid_fid_to_pid,
-                            std::vector<std::map<int, int> > const& C_pid_to_cid_fid,
-                            int num_acid,  // How many images are in A
-                            std::map<int, int> * A2B, std::map<int, int> * B2A) {
-  A2B->clear();
-  B2A->clear();
-
-  std::map<int, std::map<int, int> > VoteMap;
-  for (int pid = 0; pid < static_cast<int>(C_pid_to_cid_fid.size()); pid++) {
-    // This track has some cid indices from A (those < num_acid)
-    // and some from B (those >= num_acid). Ignore all other combinations.
-    auto const& cid_fid_c = C_pid_to_cid_fid[pid];  // alias
-    for (auto it_a = cid_fid_c.begin(); it_a != cid_fid_c.end(); it_a++) {
-      for (auto it_b = it_a; it_b != cid_fid_c.end(); it_b++) {
-        int cid_a = it_a->first, fid_a = it_a->second;
-        int cid_b = it_b->first, fid_b = it_b->second;
-        if (cid_a >= num_acid) continue;
-        if (cid_b <  num_acid) continue;
-
-        // Subtract num_acid from cid_b so it becomes a cid in B.
-        cid_b -= num_acid;
-
-        auto it_fida = A_cid_fid_to_pid[cid_a].find(fid_a);
-        if (it_fida == A_cid_fid_to_pid[cid_a].end()) continue;
-
-        auto it_fidb = B_cid_fid_to_pid[cid_b].find(fid_b);
-        if (it_fidb == B_cid_fid_to_pid[cid_b].end()) continue;
-
-        int pid_a = it_fida->second;
-        int pid_b = it_fidb->second;
-
-        VoteMap[pid_a][pid_b]++;
-      }
-    }
-  }
-
-  // For each pid in A, keep the pid in B with most votes
-  std::map<int, std::map<int, int> > B2A_Version0;  // still not fully one-to-one
-  for (auto it_a = VoteMap.begin(); it_a != VoteMap.end(); it_a++) {
-    auto & M = it_a->second;  // all pid_b corresp to given pid_a with their votes
-    int pid_a = it_a->first;
-    int best_pid_b = -1;
-    int max_vote = -1;
-    for (auto it_b = M.begin(); it_b != M.end(); it_b++) {
-      int pid_b = it_b->first;
-      int vote = it_b->second;
-      if (vote > max_vote) {
-        best_pid_b = pid_b;
-        max_vote = vote;
-      }
-    }
-    B2A_Version0[best_pid_b][pid_a] = max_vote;
-  }
-
-  // And vice-versa
-  for (auto it_b = B2A_Version0.begin(); it_b != B2A_Version0.end(); it_b++) {
-    int pid_b = it_b->first;
-    auto & M = it_b->second;
-    int best_pid_a = -1;
-    int max_vote = -1;
-    for (auto it_a = M.begin(); it_a != M.end(); it_a++) {
-      int pid_a = it_a->first;
-      int vote = it_a->second;
-      if (vote > max_vote) {
-        best_pid_a = pid_a;
-        max_vote = vote;
-      }
-    }
-
-    (*A2B)[best_pid_a] = pid_b;  // track from A and track from B
-    (*B2A)[pid_b] = best_pid_a;  // track from B and track from A
-  }
-}
-
 std::vector<MatchCandidates> SparseMapMerger::DatabaseMatchCandidates(const SparseMap& map_a, const SparseMap& map_b,
                                                                       const int max_query_matches) const {
   const int num_map_a_cids = map_a.NumCIDs();
@@ -519,12 +435,82 @@ std::vector<MatchCandidates> SparseMapMerger::DatabaseMatchCandidates(const Spar
   return database_match_candidates;
 }
 
-void MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map) {
+void SparseMapMerger::IdentifyTrack(const std::map<int, int>& track, const int index, const SparseMap& map_a,
+                                    const SparseMap& map_b, std::vector<TrackLabel>& track_labels,
+                                    std::unordered_map<int, std::map<int, int>>& b_pid_to_a_pid_match_counts) {
+  std::unordered_map<int, int> a_pid_matches;
+  boost::optional<int> b_pid;
+  for (const auto& cid_fid : cid_fids) {
+    const int cid = cid_fid.first;
+    const int fid = cid_fid.second;
+    // Since merged map contains a cids + b cids, any a cid should have a value less than num a cids
+    if (cid < map_a.NumCams() && map_a.ContainsPid(cid, fid)) {
+      const int a_pid = map_a.Pid(cid, fid);
+      a_pid_matches[a_pid]++;
+    } else {  // Each cid_fid track contains at most one b_pid since the map_b images were individually matched to map_a
+              // images
+      // Since merged map contains a cids + b cids, any b cid should be present in map b with value -= num a cids
+      const int b_cid = cid - map_a.NumCIDs();
+      if (map_b.ContainsPid(b_cid, fid)) b_pid = map_b.Pid(b_cid, fid);
+    }
+  }
+  if (b_pid) {
+    b_pid_to_a_pid_match_counts[*b_pid] = a_pid_matches;
+    // Merge for now, could later be identified as invalid
+    track_labels[i] = TrackLabel::Merge;
+  } else {
+    if (a_pid_matches.empty()) {
+      // TODO(rsoussan): Check if has enough measurements??
+      track_labels[i] = TrackLabel::New;
+    } else {
+      track_labels[i] = TrackLabel::Append;
+    }
+  }
+}
+}  // namespace sparse_mapping
+
+void SparseMapMerger::MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map) {
   const auto match_candidates = DatabaseMatchCandidates(map_a, map_b, params_.max_db_query_image_match_candidates);
   // TODO(rsoussan): rename this?
   std::vector<std::map<int, int> > pid_to_cid_fid;
   merged_map.MatchImagesAndBuildTracks(match_candidates, pid_to_cid_fid);
-  // TODO(rsoussan): find new tracks from map b only, merged tracks, and new shared tracks!
+
+  // Identify tracks (merge, new, append, invalid) and update match counts if necessary
+  std::unordered_map<int, std::map<int, int> > b_pid_to_a_pid_match_counts;
+  std::vector<TrackLabel> track_labels(pid_to_cid_fid.size(), TrackLabel::Invalid);
+  for (int i = 0; i < pid_to_cid_fid.size(); ++i) {
+    const auto& cid_fids = pid_to_cid_fid[i];
+    IdentifyTrack(cid_fids, i, map_a, map_b, track_labels, b_pid_to_a_pid_match_counts);
+  }
+
+  // Use match counts to find best matches for b pids to a pids
+  // Filter ambiguous/invalid matches
+  std::unordered_map<int, int> b_pid_to_best_a_pid;
+  for (const auto& b_pid_to_a_pid_match_counts_pair : b_pid_to_a_pid_match_counts) {
+    const int b_pid = b_pid_to_a_pid_match_counts_pair.first;
+    const auto& a_pid_match_counts = b_pid_to_a_pid_match_counts_pair.second;
+    int total_a_pid_matches = 0;
+    int best_match_count = -1;
+    int best_a_pid;
+    for (const auto& a_pid_match_count_pair : a_pid_match_counts) {
+      const int a_pid = a_pid_match_count_pair.first;
+      const int count = a_pid_match_count_pair.second;
+      total_a_pid_matches += count;
+      if (count > best_match_count) {
+        best_a_pid = a_pid;
+        best_match_count = count;
+      }
+    }
+    const double match_ratio = best_match_count / static_cast<double>(total_a_pid_matches);
+    // TODO(rsoussan): Check what ratio of points in best_a_pid match b_pid??
+    if (best_match_count >= params_.min_shared_track_features_for_merged_tracks &&
+        match_ratio >= params_.min_match_ratio_for_merged_tracks) {
+      b_pid_to_best_a_pid.emplace_back(b_pid, best_a_pid);
+    }
+  }
+
+  // TODO(rsoussan): add function to find b only tracks, find new tracks!
+    // How to identify new tracks?? need to change previous code to account for this!!!
 }
 
 // Given a sparse map in C_out, and a map cid2cid from camera (image)
