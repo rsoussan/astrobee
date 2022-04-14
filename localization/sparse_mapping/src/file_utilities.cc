@@ -140,8 +140,8 @@ void InitializeCidFidToPid(int num_cid,
   cid_fid_to_pid->clear();
   cid_fid_to_pid->resize(num_cid, std::map<int, int>());
 
-  for (size_t pid = 0; pid < pid_to_cid_fid.size(); pid++) {
-    for (std::pair<int, int> const& cid_fid : pid_to_cid_fid[pid]) {
+  for (int pid = 0; pid < static_cast<int>(pid_to_cid_fid.size()); ++pid) {
+    for (const auto& cid_fid : pid_to_cid_fid[pid]) {
       (*cid_fid_to_pid)[cid_fid.first][cid_fid.second] = pid;
     }
   }

@@ -467,7 +467,6 @@ void SparseMapMerger::IdentifyTrack(const std::map<int, int>& track, const int i
     }
   }
 }
-}  // namespace sparse_mapping
 
 void SparseMapMerger::MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map) {
   const auto match_candidates = DatabaseMatchCandidates(map_a, map_b, params_.max_db_query_image_match_candidates);
@@ -483,6 +482,7 @@ void SparseMapMerger::MatchingTracks(const SparseMap& map_a, const SparseMap& ma
     IdentifyTrack(cid_fids, i, map_a, map_b, track_labels, b_pid_to_a_pid_match_counts);
   }
 
+  // TODO(rsoussan): Make function for this!!
   // Use match counts to find best matches for b pids to a pids
   // Filter ambiguous/invalid matches
   std::unordered_map<int, int> b_pid_to_best_a_pid;
@@ -508,9 +508,6 @@ void SparseMapMerger::MatchingTracks(const SparseMap& map_a, const SparseMap& ma
       b_pid_to_best_a_pid.emplace_back(b_pid, best_a_pid);
     }
   }
-
-  // TODO(rsoussan): add function to find b only tracks, find new tracks!
-    // How to identify new tracks?? need to change previous code to account for this!!!
 }
 
 // Given a sparse map in C_out, and a map cid2cid from camera (image)

@@ -72,6 +72,8 @@ class SparseMapDatabase {
 
   int Pid(int cid, int fid) const {return cid_fid_to_pid_[cid][fid];}
 
+  bool ContainsPid(int cid, int fid) const { return (cid_fid_to_pid[cid].count(fid) > 0);}
+
   int NumPoints() const {return pid_to_xyz_.size();}
 
   const Eigen::Vector3d& Point(int pid) const {return pid_to_xyz_[pid];}
@@ -121,6 +123,7 @@ class SparseMapDatabase {
   Eigen::Affine3d& cam_T_global(const int cid) { return cid_to_cam_t_global_[cid]; }
 
   // TODO(rsoussan): These should be private
+  // TODO(rsoussan): Make maps unodered?
   // stored in map file
   std::vector<std::string> cid_to_filename_;
   // TODO(bcoltin) replace Eigen2Xd everywhere with one keypoint class
