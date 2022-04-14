@@ -24,6 +24,7 @@
 
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace sparse_mapping {
@@ -49,7 +50,9 @@ class SparseMapMerger {
   bool CompatableMaps() const;
   void IdentifyTrack(const std::map<int, int>& track, const int index, const SparseMap& map_a, const SparseMap& map_b,
                      std::vector<TrackLabel>& track_labels,
-                     std::unordered_map<int, std::map<int, int>>& b_pid_to_a_pid_match_counts) const;
+                     std::vector<std::pair<int, int>>& a_b_pid_tracks_to_merge) const;
+
+  boost::optional<int> BestMatch(const std::map<int, int>& pid_match_counts) const;
   void MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map);
 
   SparseMapMergerParams params_;

@@ -24,6 +24,8 @@ struct SparseMapMergerParams {
   int max_db_query_image_match_candidates;
   int min_shared_track_features_for_merged_tracks = 2;
   double min_match_ratio_for_merged_tracks = 0.75;
+  int min_num_features_for_new_track = 3;
+  int max_num_matching_pids_for_appended_track = 1;
 };
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_SPARSE_MAP_MERGER_PARAMS_H_

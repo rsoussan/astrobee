@@ -437,9 +437,10 @@ std::vector<MatchCandidates> SparseMapMerger::DatabaseMatchCandidates(const Spar
 
 void SparseMapMerger::IdentifyTrack(const std::map<int, int>& track, const int index, const SparseMap& map_a,
                                     const SparseMap& map_b, std::vector<TrackLabel>& track_labels,
-                                    std::unordered_map<int, std::map<int, int>>& b_pid_to_a_pid_match_counts) {
+                                    std::vector<std::pair<int, int>>& a_b_pid_tracks_to_merge) const {
   std::unordered_map<int, int> a_pid_matches;
   boost::optional<int> b_pid;
+  // Aggregate a_pids that a b_fid matches to
   for (const auto& cid_fid : cid_fids) {
     const int cid = cid_fid.first;
     const int fid = cid_fid.second;
@@ -454,18 +455,51 @@ void SparseMapMerger::IdentifyTrack(const std::map<int, int>& track, const int i
       if (map_b.ContainsPid(b_cid, fid)) b_pid = map_b.Pid(b_cid, fid);
     }
   }
+  // Check whether to merge a b_pid to an a_pid if the track contains each of these
   if (b_pid) {
-    b_pid_to_a_pid_match_counts[*b_pid] = a_pid_matches;
-    // Merge for now, could later be identified as invalid
-    track_labels[i] = TrackLabel::kMerge;
-  } else {
-    if (a_pid_matches.empty()) {
-      // TODO(rsoussan): Check if has enough measurements??
-      track_labels[i] = TrackLabel::kNew;
+    const auto best_a_pid = BestMatch(a_pid_matches);
+    if (best_a_pid) {
+      track_labels[index] = TrackLabel::kMerge;
+      a_b_pid_tracks_to_merge.emplace_back({*best_a_pid, *b_pid});
+      return;
     } else {
-      track_labels[i] = TrackLabel::kAppend;
+      track_labels[index] = TrackLabel::kInvalid;
+      return;
+    }
+  } else {  // Otherwise, check whether to create a new track or append a b_fid to an existing a_pid
+    if (a_pid_matches.empty()) {
+      if (cid_fids.size() >= params_.min_num_features_for_new_track) track_labels[index] = TrackLabel::kNew;
+      return;
+    } else {
+      if (a_pid_matches.size() <= params_.max_num_matching_pids_for_appended_track)
+        track_labels[index] = TrackLabel::kAppend;
+      return;
     }
   }
+}
+
+boost::optional<int> SparseMapMerger::BestMatch(const std::map<int, int>& pid_match_counts) const {
+  int total_pid_matches = 0;
+  int best_match_count = -1;
+  int best_pid;
+  // Find best match
+  for (const auto& pid_match_count_pair : pid_match_counts) {
+    const int pid = pid_match_count_pair.first;
+    const int count = pid_match_count_pair.second;
+    total_pid_matches += count;
+    if (count > best_match_count) {
+      best_pid = pid;
+      best_match_count = count;
+    }
+  }
+  // Make sure it's valid
+  const double match_ratio = best_match_count / static_cast<double>(total_pid_matches);
+  // TODO(rsoussan): Check what ratio of points in best_pid match b_pid??
+  if (best_match_count >= params_.min_shared_track_features_for_merged_tracks &&
+      match_ratio >= params_.min_match_ratio_for_merged_tracks) {
+    return best_pid;
+  }
+  return boost::none;
 }
 
 void SparseMapMerger::MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map) {
@@ -474,42 +508,14 @@ void SparseMapMerger::MatchingTracks(const SparseMap& map_a, const SparseMap& ma
   std::vector<std::map<int, int> > pid_to_cid_fid;
   merged_map.MatchImagesAndBuildTracks(match_candidates, pid_to_cid_fid);
 
-  // Identify tracks (merge, new, append, invalid) and update match counts if necessary
-  std::unordered_map<int, std::map<int, int> > b_pid_to_a_pid_match_counts;
+  // Identify tracks (merge, new, append, invalid) and update tracks to merge if necessary
   std::vector<TrackLabel> track_labels(pid_to_cid_fid.size(), TrackLabel::kInvalid);
+  std::vector<std::pair<int, int>> a_b_pid_tracks_to_merge;
   for (int i = 0; i < pid_to_cid_fid.size(); ++i) {
     const auto& cid_fids = pid_to_cid_fid[i];
-    IdentifyTrack(cid_fids, i, map_a, map_b, track_labels, b_pid_to_a_pid_match_counts);
-  }
-
-  // TODO(rsoussan): Make function for this!!
-  // Use match counts to find best matches for b pids to a pids
-  // Filter ambiguous/invalid matches
-  std::unordered_map<int, int> b_pid_to_best_a_pid;
-  for (const auto& b_pid_to_a_pid_match_counts_pair : b_pid_to_a_pid_match_counts) {
-    const int b_pid = b_pid_to_a_pid_match_counts_pair.first;
-    const auto& a_pid_match_counts = b_pid_to_a_pid_match_counts_pair.second;
-    int total_a_pid_matches = 0;
-    int best_match_count = -1;
-    int best_a_pid;
-    for (const auto& a_pid_match_count_pair : a_pid_match_counts) {
-      const int a_pid = a_pid_match_count_pair.first;
-      const int count = a_pid_match_count_pair.second;
-      total_a_pid_matches += count;
-      if (count > best_match_count) {
-        best_a_pid = a_pid;
-        best_match_count = count;
-      }
-    }
-    const double match_ratio = best_match_count / static_cast<double>(total_a_pid_matches);
-    // TODO(rsoussan): Check what ratio of points in best_a_pid match b_pid??
-    if (best_match_count >= params_.min_shared_track_features_for_merged_tracks &&
-        match_ratio >= params_.min_match_ratio_for_merged_tracks) {
-      b_pid_to_best_a_pid.emplace_back(b_pid, best_a_pid);
-    }
+    IdentifyTrack(cid_fids, i, map_a, map_b, track_labels, a_b_pid_tracks_to_merge);
   }
 }
-
 // Given a sparse map in C_out, and a map cid2cid from camera (image)
 // indices to new indices, convert the map from being relative to old
 // indices to relative to the new indices. If cid2cid maps two input
