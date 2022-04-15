@@ -226,8 +226,17 @@ void SparseMapMerger::AddTracksToMerge(const std::vector<std::pair<int, int>>& a
     const int a_pid = a_b_pid_correspondence.first;
     const int b_pid = a_b_pid_correspondence.second;
     const int global_t_b_point = map_b_->Point(b_pid);
-    const auto b_cid_to_fid = map_b_->CidToFid(b_pid);
+    const auto& b_cid_to_fid = map_b_->CidToFid(b_pid);
     map_a_->MergeTrack(a_pid, global_t_b_point, b_cid_to_fid);
+  }
+}
+
+void SparseMapMerger::AddTracksToAppend(const MatchingTracks& matching_tracks) {
+  for (i = 0; i < matching_tracks.pid_to_cid_fid.size(); ++i) {
+    if (matching_tracks.track_labels[i] == TrackLabel::kAppend) {
+      const auto& b_cid_to_fid = map_b_->CidToFid(b_pid);
+      map_a_->AppendTrack(a_pid, b_cid_to_fid);
+    }
   }
 }
 

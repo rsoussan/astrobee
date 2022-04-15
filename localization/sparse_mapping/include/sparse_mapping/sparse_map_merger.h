@@ -68,6 +68,7 @@ class SparseMapMerger {
   boost::optional<int> BestMatch(const std::map<int, int>& pid_match_counts) const;
   MatchingTracks MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map);
   void AddTracksToMerge(const std::vector<std::pair<int, int>>& a_b_pid_correspondences);
+  void AddTracksToAppend(const MatchingTracks& matching_tracks);
 
   SparseMapMergerParams params_;
   std::unique_ptr<SparseMap> map_a_;
