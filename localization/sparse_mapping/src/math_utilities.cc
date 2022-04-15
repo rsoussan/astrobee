@@ -157,27 +157,6 @@ void Triangulate(const bool rm_invalid_xyz, const double focal_length,
 
 
 
-// TODO(rsoussan): Wtf is this?? Update/fix this!!
-// Apply a given transform to the specified xyz points, and adjust accordingly the cameras
-// for consistency. We assume that the transform is of the form
-// A(x) = scale * rotation * x + translation
-void TransformCamerasAndPoints(Eigen::Affine3d const& A,
-                                               std::vector<Eigen::Affine3d> *cid_to_cam_t,
-                                               std::vector<Eigen::Vector3d> *xyz) {
-  for (size_t pid = 0; pid < (*xyz).size(); pid++)
-    (*xyz)[pid] = A * (*xyz)[pid];
-
-  // Inverse of rotation component
-  double scale = pow(A.linear().determinant(), 1.0/3.0);
-  Eigen::MatrixXd Ainv = (A.linear()/scale).inverse();
-
-  for (size_t cid = 0; cid < (*cid_to_cam_t).size(); cid++) {
-    (*cid_to_cam_t)[cid].linear() = (*cid_to_cam_t)[cid].linear()*Ainv;
-    (*cid_to_cam_t)[cid].translation() = scale*(*cid_to_cam_t)[cid].translation() -
-      (*cid_to_cam_t)[cid].linear()*A.translation();
-  }
-}
-
 double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors,
                                   const RemoveInvalidPointsAndDetectionsParams& params) {
   const int num_errors = reprojection_errors.size();

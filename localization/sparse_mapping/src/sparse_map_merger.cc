@@ -54,7 +54,9 @@ bool SparseMapMerger::CompatableMaps() const {
 
 void SparseMapMerger::MergeMaps() {
   auto matching_tracks = MatchingTracks(*map_a_, *map_b_, *merged_map_);
-  const auto relative_transform = EstimateRelativePoseAndPruneOutlierMatches(*map_a_, *map_b_, matching_tracks);
+  const auto map_a_T_map_b = EstimateRelativePoseAndPruneOutlierMatches(*map_a_, *map_b_, matching_tracks);
+  LOG(INFO) << "map_a_T_map_b: " << std::endl << map_a_T_map_b.matrix();
+  map_b_->Transform(map_a_T_map_b);
 }
 
 std::vector<MatchCandidates> SparseMapMerger::DatabaseMatchCandidates(const SparseMap& map_a, const SparseMap& map_b,
@@ -182,8 +184,9 @@ double SparseMapMerger::InlierThreshold(const std::vector<Eigen::Vector3d>& poin
   return inlier_threshld;
 }
 
-void SparseMapMerger::EstimateRelativePoseAndPruneOutlierMatches(const SparseMap& map_a, const SparseMap& map_b,
-                                                                 MatchingTracks& matching_tracks) {
+Eigen::Affine3d SparseMapMerger::EstimateRelativePoseAndPruneOutlierMatches(const SparseMap& map_a,
+                                                                            const SparseMap& map_b,
+                                                                            MatchingTracks& matching_tracks) const {
   std::vector<Eigen::Vector3d> a_points;
   std::vector<Eigen::Vector3d> b_points;
   for (const auto& a_b_pid_correspondence : matching_tracks.a_b_pid_correspondences) {
@@ -197,19 +200,16 @@ void SparseMapMerger::EstimateRelativePoseAndPruneOutlierMatches(const SparseMap
   RansacEstimateAffine3d ransac_affine3d(num_iterations,
            inlier_threshold, min_num_output_inliers,
            params_.ransac_reduce_min_num_output_inliers_if_no_fit, params_.ransac_increase_threshold_if_no_fit);
-  // TODO(rsoussan): b_T_a or a_T_b???
-  const auto map_b_T_map_a = ransac_affine3d(b_points, a_points);
+  const auto map_a_T_map_b = ransac_affine3d(b_points, a_points);
 
   // Remove outliers from correspondences
-  const auto inlier_indices = ransac_affine3d.inlier_indices(map_b_T_map_a, b_points, a_points);
+  const auto inlier_indices = ransac_affine3d.inlier_indices(map_a_T_map_b, b_points, a_points);
   std::vector<bool> indices_to_remove(matching_tracks.a_b_pid_correspondences.size(), true);
   for (const auto inlier_index : inlier_indices) {
     indices_to_remove[inlier_index] = false;
   }
   lc::RemoveElements(indices_to_remove, matching_tracks.a_b_pid_correspondences);
 
-  // TODO(rsoussan): Clean up transform code??? Is this in sparse_map??
-  B.Transform(map_b_T_map_a);
-  LOG(INFO) << "map_b_T_map_a: " << std::endl << map_b_T_map_a.matrix();
+  return map_a_T_map_b;
 }
 }  // namespace sparse_mapping

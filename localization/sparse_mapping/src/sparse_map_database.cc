@@ -68,4 +68,15 @@ int SparseMapDatabase::NumFeatures() const {
   }
   return num_features;
 }
+
+void SparseMapDatabase::Transform(const Eigen::Affine3d& new_global_T_global) {
+  for (auto& point : pid_to_xyz_) {
+    point = new_global_T_global * point;
+  }
+
+  const Eigen::Affine3d global_T_new_global = new_global_T_global.inverse();
+  for (auto& cam_T_global : cid_to_cam_t_global_) {
+    cam_T_global = cam_T_global * global_T_new_global;
+  }
+}
 }  // namespace sparse_mapping

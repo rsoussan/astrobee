@@ -50,12 +50,6 @@ namespace sparse_mapping {
                    std::vector<std::map<int, int> >* pid_to_cid_fid, std::vector<Eigen::Vector3d>* pid_to_xyz,
                    std::vector<std::map<int, int> >* cid_fid_to_pid = nullptr);
 
-  // Apply a given transform to the specified xyz points, and adjust
-  // accordingly the cameras for consistency.
-  void TransformCamerasAndPoints(Eigen::Affine3d const& A,
-                                 std::vector<Eigen::Affine3d> *cid_to_cam_t,
-                                 std::vector<Eigen::Vector3d> *xyz);
-
   double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors,
                                     const RemoveInvalidPointsAndDetectionsParams& params);
 

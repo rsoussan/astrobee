@@ -62,8 +62,9 @@ class SparseMapMerger {
 // Computes a low and high index and uses the scaled distance between sorted values
 // for each point axis at these indices to calculate the threshold.
   double InlierThreshold(const std::vector<Eigen::Vector3d>& points) const;
-  void EstimateRelativePoseAndPruneOutlierMatches(const SparseMap& map_a, const SparseMap& map_b,
-                                                  MatchingTracks& matching_tracks);
+  // Returns map_a_T_map_b
+  Eigen::Affine3d EstimateRelativePoseAndPruneOutlierMatches(const SparseMap& map_a, const SparseMap& map_b,
+                                                  MatchingTracks& matching_tracks) const;
   boost::optional<int> BestMatch(const std::map<int, int>& pid_match_counts) const;
   MatchingTracks MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map);
 
