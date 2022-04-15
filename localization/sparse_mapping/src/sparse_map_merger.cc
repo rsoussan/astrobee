@@ -193,49 +193,23 @@ void SparseMapMerger::EstimateRelativePoseAndPruneOutlierMatches(const SparseMap
     b_points.emplace_back(map_b.Point(b_pid));
   }
   const double inlier_threshold = InlierThreshold(a_points);
-
-  // Estimate the transform from B_vec to A_vec using RANSAC.
-  // A lot of outliers are possible.
-  // TODO(rsoussan): add these as params!
-  int  num_iterations = 1000;
-  int  min_num_output_inliers = A_vec.size()/2;
-  bool reduce_min_num_output_inliers_if_no_fit = true;  // If too many outliers
-  bool increase_threshold_if_no_fit = true;  // Coz our threshold was done by a heuristic
-  // TODO(rsoussan): update this to use ransacestiamteaffine3d!!
+  const int min_num_output_inliers = a_points.size()* params_.ransac_min_num_ouput_inliers_percent;
   RansacEstimateAffine3d ransac_affine3d(num_iterations,
            inlier_threshold, min_num_output_inliers,
-           reduce_min_num_output_inliers_if_no_fit, increase_threshold_if_no_fit);
+           params_.ransac_reduce_min_num_output_inliers_if_no_fit, params_.ransac_increase_threshold_if_no_fit);
   // TODO(rsoussan): b_T_a or a_T_b???
-  const auto map_b_T_map_a = ransac_affine3d(B_vec, A_vec);
-  std::vector<size_t> inlier_indices = ransac_affine3d.inlier_indices(map_b_T_map_a, B_vec, A_vec);
-  std::set<int> inlier_set;
-  for (size_t it = 0; it < inlier_indices.size(); it++) {
-    inlier_set.insert(inlier_indices[it]);
+  const auto map_b_T_map_a = ransac_affine3d(b_points, a_points);
+
+  // Remove outliers from correspondences
+  const auto inlier_indices = ransac_affine3d.inlier_indices(map_b_T_map_a, b_points, a_points);
+  std::vector<bool> indices_to_remove(matching_tracks.a_b_pid_correspondences.size(), true);
+  for (const auto inlier_index : inlier_indices) {
+    indices_to_remove[inlier_index] = false;
   }
+  lc::RemoveElements(indices_to_remove, matching_tracks.a_b_pid_correspondences);
 
-  // Remove from A2B and B2A the outliers
-  // TODO(rsoussan): Update this to remove ab correspondences from matching tracks!!
-  std::map<int, int> A2B_orig = A2B;
-  point_count = 0;
-  for (auto it = A2B_orig.begin(); it != A2B_orig.end(); it++) {
-    int pid_a = it->first;
-    int pid_b = it->second;
-    if (inlier_set.find(point_count) == inlier_set.end()) {
-      auto iter_a = A2B.find(pid_a);
-      A2B.erase(iter_a);
-      auto iter_b = B2A.find(pid_b);
-      B2A.erase(iter_b);
-    }
-    point_count++;
-  }
-
-  // LOG(INFO) does not do well with Eiegn.
-  std::cout << "Affine transform from second map to first map:\n";
-  std::cout << "Matrix:\n"      << map_b_T_map_a.linear()       << "\n";
-  std::cout << "Translation:\n" << map_b_T_map_a.translation()  << "\n";
-
-  // Bring the B map into the coordinate system of the A map
   // TODO(rsoussan): Clean up transform code??? Is this in sparse_map??
   B.Transform(map_b_T_map_a);
+  LOG(INFO) << "map_b_T_map_a: " << std::endl << map_b_T_map_a.matrix();
 }
 }  // namespace sparse_mapping

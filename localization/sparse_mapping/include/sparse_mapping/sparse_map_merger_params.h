@@ -29,6 +29,10 @@ struct SparseMapMergerParams {
   double inlier_threshold_low_index_percent = 0.25;
   double inlier_threshold_high_index_percent = 0.75;
   double inlier_threshold_scale_factor = 0.2;
+  int  ransac_num_iterations = 1000;
+  double ransac_min_num_ouput_inliers_percent = 0.5;
+  bool ransac_reduce_min_num_output_inliers_if_no_fit = true;
+  bool ransac_increase_threshold_if_no_fit = true;
 };
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_SPARSE_MAP_MERGER_PARAMS_H_

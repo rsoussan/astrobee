@@ -48,11 +48,11 @@ class SparseMapMerger {
   SparseMapMerger(const std::string& map_a_filename, const std::string& map_b_filename,
                   const SparseMapMergerParams& params);
 
-  void Initialize(const SparseMap& map_a, const SparseMap& map_b, const SparseMapMergerParams& params);
 
   void MergeMaps();
 
  private:
+  void Initialize(const SparseMap& map_a, const SparseMap& map_b, const SparseMapMergerParams& params);
   bool CompatableMaps() const;
   void IdentifyTrack(const std::map<int, int>& track, const int index, const SparseMap& map_a, const SparseMap& map_b,
                      std::vector<TrackLabel>& track_labels,
@@ -62,7 +62,8 @@ class SparseMapMerger {
 // Computes a low and high index and uses the scaled distance between sorted values
 // for each point axis at these indices to calculate the threshold.
   double InlierThreshold(const std::vector<Eigen::Vector3d>& points) const;
-
+  void EstimateRelativePoseAndPruneOutlierMatches(const SparseMap& map_a, const SparseMap& map_b,
+                                                  MatchingTracks& matching_tracks);
   boost::optional<int> BestMatch(const std::map<int, int>& pid_match_counts) const;
   MatchingTracks MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map);
 
