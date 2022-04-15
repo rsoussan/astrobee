@@ -79,8 +79,7 @@ std::vector<MatchCandidates> SparseMapMerger::DatabaseMatchCandidates(const Spar
 }
 
 void SparseMapMerger::IdentifyTrack(const std::map<int, int>& track, const int index, const SparseMap& map_a,
-                                    const SparseMap& map_b, std::vector<TrackLabel>& track_labels,
-                                    std::vector<std::pair<int, int>>& a_b_pid_correspondences) const {
+                                    const SparseMap& map_b, MatchingTracks& matching_tracks) const {
   std::unordered_map<int, int> a_pid_matches;
   boost::optional<int> b_pid;
   // Aggregate a_pids that a b_fid matches to
@@ -102,20 +101,22 @@ void SparseMapMerger::IdentifyTrack(const std::map<int, int>& track, const int i
   if (b_pid) {
     const auto best_a_pid = BestMatch(a_pid_matches);
     if (best_a_pid) {
-      track_labels[index] = TrackLabel::kMerge;
-      a_b_pid_correspondences.emplace_back({*best_a_pid, *b_pid});
+      matching_tracks.track_labels[index] = TrackLabel::kMerge;
+      matching_tracks.a_b_pid_correspondences.emplace_back({*best_a_pid, *b_pid});
       return;
     } else {
-      track_labels[index] = TrackLabel::kInvalid;
+      matching_tracks.track_labels[index] = TrackLabel::kBOnly;
+      matching_tracks.non_matching_b_pids.emplace_back(*b_pid);
       return;
     }
   } else {  // Otherwise, check whether to create a new track or append a b_fid to an existing a_pid
     if (a_pid_matches.empty()) {
-      if (cid_fids.size() >= params_.min_num_features_for_new_track) track_labels[index] = TrackLabel::kNew;
+      if (cid_fids.size() >= params_.min_num_features_for_new_track)
+        matching_tracks.track_labels[index] = TrackLabel::kNew;
       return;
     } else {
       if (a_pid_matches.size() <= params_.max_num_matching_pids_for_appended_track)
-        track_labels[index] = TrackLabel::kAppend;
+        matching_tracks.track_labels[index] = TrackLabel::kAppend;
       return;
     }
   }
@@ -154,7 +155,7 @@ MatchingTracks SparseMapMerger::MatchingTracks(const SparseMap& map_a, const Spa
   matching_tracks.track_labels = std::vector<TrackLabel>(matching_tracks.pid_to_cid_fid.size(), TrackLabel::kInvalid);
   for (int i = 0; i < pid_to_cid_fid.size(); ++i) {
     const auto& cid_fids = pid_to_cid_fid[i];
-    IdentifyTrack(cid_fids, i, map_a, map_b, track_labels, matching_tracks.a_b_pid_correspondences);
+    IdentifyTrack(cid_fids, i, map_a, map_b, matching_tracks);
   }
   return matching_tracks;
 }
@@ -217,8 +218,8 @@ Eigen::Affine3d SparseMapMerger::EstimateRelativePoseAndPruneOutlierMatches(cons
 void SparseMapMerger::MergeTracks(const MatchingTracks& matching_tracks) {
   AddTracksToMerge(matching_tracks.a_b_pid_correspondences);
   AddTracksToAppend(matching_tracks);
+  AddRemainingMapBTracks(matching_tracks);
   if (params_.add_new_tracks) AddNewTracks(matching_tracks);
-  AddRemainingTracks(matching_tracks);
 }
 
 void SparseMapMerger::AddTracksToMerge(const std::vector<std::pair<int, int>>& a_b_pid_correspondences) {
@@ -239,6 +240,15 @@ void SparseMapMerger::AddTracksToAppend(const MatchingTracks& matching_tracks) {
     }
   }
 }
+
+void SparseMapMerger::AddRemaingMapBTracks(const std::vector<int>& non_matching_b_pids) {
+  for (const auto b_pid : non_matching_b_pids) {
+    const int global_t_b_point = map_b_->Point(b_pid);
+    const auto& b_cid_to_fid = map_b_->CidToFid(b_pid);
+    map_a_->AddTrack(global_t_b_point, b_cid_to_fid);
+  }
+}
+
 
 void SparseMapMerger::MergeTracks(const MatchingTracks& matching_tracks) {
   // We will use this to add new tracks taking advantage

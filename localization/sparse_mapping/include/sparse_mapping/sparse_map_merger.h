@@ -30,15 +30,17 @@
 namespace sparse_mapping {
 enum class TrackLabel {
   kAppend,
+  kBOnly,
   kInvalid,
   kMerge,
   kNew,
 };
 
 struct MatchingTracks {
-  std::vector<std::map<int, int> > pid_to_cid_fid;
   std::vector<TrackLabel> track_labels;
+  std::vector<std::map<int, int> > pid_to_cid_fid;
   std::vector<std::pair<int, int>> a_b_pid_correspondences;
+  std::vector<int> non_matching_b_pids;
 }
 
 class SparseMapMerger {
@@ -69,6 +71,7 @@ class SparseMapMerger {
   MatchingTracks MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map);
   void AddTracksToMerge(const std::vector<std::pair<int, int>>& a_b_pid_correspondences);
   void AddTracksToAppend(const MatchingTracks& matching_tracks);
+  void AddRemaingMapBTracks(const std::vector<int>& non_matching_b_pids);
 
   SparseMapMergerParams params_;
   std::unique_ptr<SparseMap> map_a_;
