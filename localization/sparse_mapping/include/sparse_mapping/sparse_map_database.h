@@ -76,6 +76,7 @@ class SparseMapDatabase {
 
   int NumPoints() const {return pid_to_xyz_.size();}
 
+  // TODO(rsoussan): rename this to global_t_point
   const Eigen::Vector3d& Point(int pid) const {return pid_to_xyz_[pid];}
 
   const std::map<int, int>& CidToFid(int pid) const {return pid_to_cid_fid_[pid];}

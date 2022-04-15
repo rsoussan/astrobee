@@ -33,6 +33,7 @@ struct SparseMapMergerParams {
   double ransac_min_num_ouput_inliers_percent = 0.5;
   bool ransac_reduce_min_num_output_inliers_if_no_fit = true;
   bool ransac_increase_threshold_if_no_fit = true;
+  bool add_new_tracks = false;
 };
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_SPARSE_MAP_MERGER_PARAMS_H_
