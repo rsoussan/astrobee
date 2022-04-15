@@ -58,6 +58,11 @@ class SparseMapMerger {
                      std::vector<TrackLabel>& track_labels,
                      std::vector<std::pair<int, int>>& a_b_pid_tracks_to_merge) const;
 
+// Uses the range of the point axes to find an inlier threshold.
+// Computes a low and high index and uses the scaled distance between sorted values
+// for each point axis at these indices to calculate the threshold.
+  double InlierThreshold(const std::vector<Eigen::Vector3d>& points) const;
+
   boost::optional<int> BestMatch(const std::map<int, int>& pid_match_counts) const;
   MatchingTracks MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map);
 

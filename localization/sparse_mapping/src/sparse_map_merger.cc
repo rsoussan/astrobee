@@ -156,6 +156,32 @@ MatchingTracks SparseMapMerger::MatchingTracks(const SparseMap& map_a, const Spa
   return matching_tracks;
 }
 
+double SparseMapMerger::InlierThreshold(const std::vector<Eigen::Vector3d>& points) const {
+  const int num_pts = points.size();
+  if (num_pts <= 0) LOG(FATAL) << "Empty set of points.\n";
+
+  // TODO(rsoussan): Is bounding here really necessary?
+  const int low_index = std::min(num_pts - 1, std::round(num_pts*params_.inlier_threshold_low_index_percent));
+  const int high_index = std::min(num_pts -1, std::round(num_pts*params_.inlier_threshold_high_index_percent));
+
+  Eigen::Vector3d scaled_bounds;
+  for (int i = 0; i < 3; ++i) {
+    std::vector<double> vals;
+    vals.reserve(num_pts);
+    for (const auto& point : points) {
+      vals.emplace_back(point[i]);
+    }
+    std::sort(vals.begin(), vals.end());
+    const double low_val = vals[low_index];
+    const double high_val = vals[high_index];
+    scaled_bounds[i] = params_.inlier_threshold_scale_factor*(high_val - low_val);
+  }
+
+  // TODO(rsoussan): Use norm or some better distance metric than averaged indices?
+  const double inlier_threshold = scaled_bounds.sum()/3.0;
+  return inlier_threshld;
+}
+
 void SparseMapMerger::EstimateRelativePoseAndPruneOutlierMatches(const SparseMap& map_a, const SparseMap& map_b,
                                                                  MatchingTracks& matching_tracks) {
   std::vector<Eigen::Vector3d> a_points;
@@ -166,8 +192,7 @@ void SparseMapMerger::EstimateRelativePoseAndPruneOutlierMatches(const SparseMap
     a_points.emplace_back(map_a.Point(a_pid));
     b_points.emplace_back(map_b.Point(b_pid));
   }
-  // TODO(rsoussan): what does this do?? -> Rename to RansacAffine3dInlierThreshold, add better comments!
-  double inlier_threshold = estimateCloseDistance(A_vec);
+  const double inlier_threshold = InlierThreshold(a_points);
 
   // Estimate the transform from B_vec to A_vec using RANSAC.
   // A lot of outliers are possible.
