@@ -72,6 +72,7 @@ class SparseMapMerger {
   void AddTracksToMerge(const std::vector<std::pair<int, int>>& a_b_pid_correspondences);
   void AddTracksToAppend(const MatchingTracks& matching_tracks);
   void AddRemaingMapBTracks(const std::vector<int>& non_matching_b_pids);
+  void AddNewTracks(const MatchingTracks& matching_tracks);
 
   SparseMapMergerParams params_;
   std::unique_ptr<SparseMap> map_a_;

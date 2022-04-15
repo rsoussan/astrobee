@@ -250,6 +250,17 @@ void SparseMapMerger::AddRemaingMapBTracks(const std::vector<int>& non_matching_
 }
 
 
+void SparseMapMerger::AddNewTracks(const MatchingTracks& matching_tracks) {
+  for (int i = 0; i < matching_tracks.pid_to_cid_fid.size(); ++i) {
+    if (matching_tracks.track_label[i] == TrackLabel::KNewTrack) {
+      const auto& cid_to_fid = matching_tracks.pid_to_cid_fid[i];
+      // TODO(rsoussan): triangulate point!
+      // TODO(rsoussan): make sure all cam poses have been added to map a from map b first!!
+      map_a_->AddTrack(global_t_b_point, cid_to_fid);
+    }
+  }
+}
+
 void SparseMapMerger::MergeTracks(const MatchingTracks& matching_tracks) {
   // We will use this to add new tracks taking advantage
   // of all the matching between the two image sets.
