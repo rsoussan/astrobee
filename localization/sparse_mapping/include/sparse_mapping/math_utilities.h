@@ -42,6 +42,10 @@ namespace sparse_mapping {
                    Eigen::Vector3d const& cam2_t_cam1,
                    double* error);
 
+boost::optional<Eigen::Vector3d> Triangulate(const Eigen::Matrix3d& intrinsics,
+                 const std::vector<Eigen::Affine3d>& camera_T_worlds,
+                 const std::vector<Eigen::Matrix2Xd>& keypoints);
+
   // Triangulates all points given camera positions. This is better
   // than what is in sparse map as it uses multiple view information.
   void Triangulate(const bool rm_invalid_xyz, const double focal_length,

@@ -114,6 +114,24 @@ Eigen::Quaternion<double> slerp_n(std::vector<double> const& W,
     return 0.5 * (closestPoint2 + closestPoint1);
   }
 
+  boost::optional<Eigen::Vector3d> Triangulate(const Eigen::Matrix3d& intrinsics,
+                                               const std::vector<Eigen::Affine3d>& camera_T_worlds,
+                                               const std::vector<Eigen::Matrix2Xd>& keypoints) {
+    std::vector<openMVG::Mat34> projection_matrices(camera_T_worlds.size());
+    openMVG::Triangulation triangulation;
+    for (int i = 0; i < camera_T_worlds.size(); ++i) {
+      const auto& camera_T_world = camera_T_worlds[i];
+      auto& projection_matrix = projection_matrices[i];
+      // TODO(rsoussan): Issue if rotation contains scaling?
+      openMVG::P_From_KRt(intrinsics, camera_T_world.linear(), camera_T_world.translation(), &projection_matrix);
+      triangulation.add(projection_matrix, keypoints[i]);
+    }
+
+    const Eigen::Vector3d world_t_point = triangulation.compute();
+    if (std::isnan(world_t_point.x()) || triangulation.minDepth() < 0) return boost::none;
+    return world_t_point;
+  }
+
 void Triangulate(const bool rm_invalid_xyz, const double focal_length,
                  const std::vector<Eigen::Affine3d>& cid_to_cam_t_global,
                  const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
@@ -154,8 +172,6 @@ void Triangulate(const bool rm_invalid_xyz, const double focal_length,
                                         *pid_to_cid_fid,
                                         cid_fid_to_pid);
 }
-
-
 
 double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors,
                                   const RemoveInvalidPointsAndDetectionsParams& params) {
