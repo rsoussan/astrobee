@@ -57,8 +57,7 @@ void SparseMapMerger::MergeMaps() {
   const auto map_a_T_map_b = EstimateRelativePoseAndPruneOutlierMatches(*map_a_, *map_b_, matching_tracks);
   LOG(INFO) << "map_a_T_map_b: " << std::endl << map_a_T_map_b.matrix();
   map_b_->Transform(map_a_T_map_b);
-  // TODO(rsoussan): make sure all cam poses have been added to merged_map from map b first!!
-    // add function here that does this!
+  merged_map_->AddPoses(map_b_->cid_to_cam_T_global());
   MergeTracks(matching_tracks);
 }
 

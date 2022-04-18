@@ -62,6 +62,13 @@ class SparseMapDatabase {
 
   void ResizeFeatureMaps();
 
+  // Assumes cid filenames, keypoints, and descriptors have already been added using AddImagesAndFeatures
+  void AddPoses(const std::vector<Eigen::Affine3d>& cam_T_global_vec);
+
+  // TODO(rsoussan): these should all be lower snake case!!!!
+
+  const std::vector<Eigen::Affine3d>& cid_to_cam_T_global() const { return cid_to_cam_t_global_; }
+
   const Eigen::Affine3d& CamTGlobal(int cid) const {return cid_to_cam_t_global_[cid];}
 
   const Eigen::Matrix2Xd& Keypoints(int cid) const {return cid_to_keypoint_map_[cid];}
@@ -88,6 +95,7 @@ class SparseMapDatabase {
                                                                 0, [](size_t v, const std::map<int, int>& map)
                                                                 { return v + map.size(); }); }
 
+  // TODO(rsoussan): rename this??
   void AddImagesAndFeatures(const SparseMapDatabase& map);
 
   // TODO(rsoussan): What is the framing of T?? Update!

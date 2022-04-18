@@ -39,6 +39,12 @@ void SparseMapDatabase::AddImagesAndFeatures(const SparseMapDatabase& map) {
   }
 }
 
+void SparseMapDatabase::AddPoses(const std::vector<Eigen::Affine3d>& cam_T_global_vec) {
+  for (const auto& cam_T_global : cam_T_global_vec) {
+    cid_to_cam_t_global_.emplace_back(cam_T_global);
+  }
+}
+
 void SparseMapDatabase::InitializeCidFidToPid() {
   sparse_mapping::InitializeCidFidToPid(NumCIDs(),
                                         pid_to_cid_fid_,
