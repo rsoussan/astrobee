@@ -82,7 +82,7 @@ std::vector<MatchCandidates> SparseMapMerger::DatabaseMatchCandidates(const Spar
 void SparseMapMerger::IdentifyTrack(const std::map<int, int>& track, const int index, const SparseMap& map_a,
                                     const SparseMap& map_b, MatchingTracks& matching_tracks) const {
   std::unordered_map<int, int> a_pid_matches;
-  boost::optional<int> b_pid;
+  std::vector<int> b_pids;
   // Aggregate a_pids that a b_fid matches to
   for (const auto& cid_fid : cid_fids) {
     const int cid = cid_fid.first;
@@ -91,23 +91,26 @@ void SparseMapMerger::IdentifyTrack(const std::map<int, int>& track, const int i
     if (cid < map_a.NumCams() && map_a.ContainsPid(cid, fid)) {
       const int a_pid = map_a.Pid(cid, fid);
       a_pid_matches[a_pid]++;
-    } else {  // Each cid_fid track contains at most one b_pid since the map_b images were individually matched to map_a
-              // images
+    } else {
       // Since merged map contains a cids + b cids, any b cid should be present in map b with value -= num a cids
       const int b_cid = cid - map_a.NumCIDs();
-      if (map_b.ContainsPid(b_cid, fid)) b_pid = map_b.Pid(b_cid, fid);
+      if (map_b.ContainsPid(b_cid, fid)) b_pids.emplace_back(map_b.Pid(b_cid, fid));
     }
   }
   // Check whether to merge a b_pid to an a_pid if the track contains each of these
-  if (b_pid) {
+  if (b_pids.size() > 0) {
     const auto best_a_pid = BestMatch(a_pid_matches);
     if (best_a_pid) {
       matching_tracks.track_labels[index] = TrackLabel::kMerge;
-      matching_tracks.a_b_pid_correspondences.emplace_back({*best_a_pid, *b_pid});
+      // Choose the first b_pid
+      // TODO(rsoussan): Better way to disambiguate two matching b pids? Use longest or shortest one?
+      // TODO(rsoussan): Add option to add all matches? Assume ransac/optimization will prune outlier?
+      matching_tracks.a_b_pid_correspondences.emplace_back({*best_a_pid, b_pid[0]});
       return;
     } else {
       matching_tracks.track_labels[index] = TrackLabel::kBOnly;
-      matching_tracks.non_matching_b_pids.emplace_back(*b_pid);
+      matching_tracks.non_matching_b_pids.insert(matching_tracks.non_matching_b_pids.end(), b_pids.begin(),
+                                                 b_pids.end());
       return;
     }
   } else {  // Otherwise, check whether to create a new track or append a b_fid to an existing a_pid
