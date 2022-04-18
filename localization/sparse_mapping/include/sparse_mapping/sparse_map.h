@@ -126,7 +126,7 @@ void MatchImages(const int cid_a, const int cid_b, sparse_mapping::CIDPairAffine
 
 int OldestCidToOptimize(const int latest_cid) const;
 
-void Triangulate(const bool remove_invalid_points = true);
+void TriangulateAllPoints(const bool remove_invalid_points = true);
 
 template <class TDescriptor, class F>
 void BuildImageDatabase();

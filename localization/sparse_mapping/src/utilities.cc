@@ -363,8 +363,8 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
   // in the virtual coordinate system
   std::vector<Eigen::Vector3d> pid_to_xyz;
   std::vector<std::map<int, int> > cid_fid_to_pid_local;
-  bool rm_invalid_xyz = false;  // there should be nothing to remove hopefully
-  sparse_mapping::Triangulate(rm_invalid_xyz,
+  const bool remove_invalid_points = false;  // there should be nothing to remove hopefully
+  TriangulateAllPoints(remove_invalid_points,
                               map->camera_params_.GetFocalLength(),
                               map->cid_to_cam_t_global_,
                               map->user_cid_to_keypoint_map_,

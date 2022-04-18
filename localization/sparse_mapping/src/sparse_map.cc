@@ -292,7 +292,7 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
 
     // Initialize points for incremental tracks
     std::vector<Eigen::Vector3d> incremental_pid_to_xyz;
-    Triangulate(true,
+    TriangulateAllPoints(true,
                                 params_.camera.GetFocalLength(),
                                 incremental_cid_to_cam_t_global,
                                 cid_to_keypoint_map_,
@@ -313,11 +313,11 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
 
   cid_to_cam_t_global_ = incremental_cid_t_cam_t_global;
   // Triangulate one last time after completion of iterative bundle adjustment
-  Triangulate();
+  TriangulateAllPoints();
 }
 
-void Triangulate(const bool remove_invalid_points) {
-  Triangulate(remove_invalid_points,
+void TriangulateAllPoints(const bool remove_invalid_points) {
+  TriangulateAllPoints(remove_invalid_points,
                               params_.camera.GetFocalLength(),
                               cid_to_cam_t_global_,
                               cid_to_keypoint_map_,

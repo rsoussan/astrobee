@@ -46,28 +46,27 @@ boost::optional<Eigen::Vector3d> Triangulate(const Eigen::Matrix3d& intrinsics,
                  const std::vector<Eigen::Affine3d>& camera_T_worlds,
                  const std::vector<Eigen::Matrix2Xd>& keypoints);
 
-  // Triangulates all points given camera positions. This is better
-  // than what is in sparse map as it uses multiple view information.
-  void Triangulate(const bool rm_invalid_xyz, const double focal_length,
-                   const std::vector<Eigen::Affine3d>& cid_to_cam_t_global,
-                   const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
-                   std::vector<std::map<int, int> >* pid_to_cid_fid, std::vector<Eigen::Vector3d>* pid_to_xyz,
-                   std::vector<std::map<int, int> >* cid_fid_to_pid = nullptr);
+// Triangulates all points given camera positions.
+void TriangulateAllPoints(const bool remove_invalid_points, const double focal_length,
+                          const std::vector<Eigen::Affine3d>& cid_to_cam_t_global,
+                          const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
+                          std::vector<std::map<int, int> >* pid_to_cid_fid, std::vector<Eigen::Vector3d>* pid_to_xyz,
+                          std::vector<std::map<int, int> >* cid_fid_to_pid = nullptr);
 
-  double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors,
-                                    const RemoveInvalidPointsAndDetectionsParams& params);
+double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors,
+                                  const RemoveInvalidPointsAndDetectionsParams& params);
 
-  boost::optional<double> AngleBetweenRays(const Eigen::Vector3d& a_t_p, const Eigen::Vector3d& b_t_p);
+boost::optional<double> AngleBetweenRays(const Eigen::Vector3d& a_t_p, const Eigen::Vector3d& b_t_p);
 
-  // Find the maximum angle between n rays intersecting at given
-  // point. Must compute the camera centers in the global coordinate
-  // system before calling this function.
-  double MaxAngleBetweenCameraRays(const int pid, const std::vector<std::map<int, int> >& pid_to_cid_fid,
-                                   const std::vector<Eigen::Vector3d>& global_t_cams,
-                                   const std::vector<Eigen::Vector3d>& pid_to_xyz);
+// Find the maximum angle between n rays intersecting at given
+// point. Must compute the camera centers in the global coordinate
+// system before calling this function.
+double MaxAngleBetweenCameraRays(const int pid, const std::vector<std::map<int, int> >& pid_to_cid_fid,
+                                 const std::vector<Eigen::Vector3d>& global_t_cams,
+                                 const std::vector<Eigen::Vector3d>& pid_to_xyz);
 
-  // Remove points that don't project at valid camera pixels,
-  // points behind the camera, and matches having large reprojection error.
+// Remove points that don't project at valid camera pixels,
+// points behind the camera, and matches having large reprojection error.
 void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsParams& params,
                  const std::vector<Eigen::Affine3d >& cid_to_cam_t_global,
                  const std::vector<Eigen::Matrix2Xd >& cid_to_keypoint_map,
