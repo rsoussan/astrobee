@@ -245,7 +245,7 @@ void SparseMapMerger::AddTracksToAppend(const MatchingTracks& matching_tracks) {
   }
 }
 
-void SparseMapMerger::AddRemaingMapBTracks(const std::vector<int>& non_matching_b_pids) {
+void SparseMapMerger::AddRemainingMapBTracks(const std::vector<int>& non_matching_b_pids) {
   for (const auto b_pid : non_matching_b_pids) {
     const int global_t_b_point = map_b_->Point(b_pid);
     const auto& b_cid_to_fid = map_b_->CidToFid(b_pid);
