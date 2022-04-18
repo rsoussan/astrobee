@@ -66,6 +66,8 @@ class SparseMapDatabase {
 
   const Eigen::Matrix2Xd& Keypoints(int cid) const {return cid_to_keypoint_map_[cid];}
 
+  const Eigen::Matrix2Xd& Keypoint(int cid, int fid) {return Keypoints(cid).col(fid);}
+
   const cv::Mat& Descriptor(int cid, int fid) const { return cid_to_descriptor_map_[cid].row(fid);}
 
   const std::map<int, int>& FidToPid(int cid) const {return cid_fid_to_pid_[cid];}

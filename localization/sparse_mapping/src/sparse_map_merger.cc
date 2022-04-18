@@ -57,6 +57,8 @@ void SparseMapMerger::MergeMaps() {
   const auto map_a_T_map_b = EstimateRelativePoseAndPruneOutlierMatches(*map_a_, *map_b_, matching_tracks);
   LOG(INFO) << "map_a_T_map_b: " << std::endl << map_a_T_map_b.matrix();
   map_b_->Transform(map_a_T_map_b);
+  // TODO(rsoussan): make sure all cam poses have been added to merged_map from map b first!!
+    // add function here that does this!
   MergeTracks(matching_tracks);
 }
 
@@ -251,12 +253,25 @@ void SparseMapMerger::AddRemaingMapBTracks(const std::vector<int>& non_matching_
 
 
 void SparseMapMerger::AddNewTracks(const MatchingTracks& matching_tracks) {
+      // TODO(rsoussan): add intrinsics creation in constructor, store as member variable???
+      const double focal_length = map_a_->params().camera.GetFocalLength();
+      Eigen::Matrix3d intrinsics;
+  intrinsics << focal_length, 0, 0,
+    0, focal_length, 0,
+    0, 0, 1;
   for (int i = 0; i < matching_tracks.pid_to_cid_fid.size(); ++i) {
     if (matching_tracks.track_label[i] == TrackLabel::KNewTrack) {
-      const auto& cid_to_fid = matching_tracks.pid_to_cid_fid[i];
-      // TODO(rsoussan): triangulate point!
-      // TODO(rsoussan): make sure all cam poses have been added to map a from map b first!!
-      map_a_->AddTrack(global_t_b_point, cid_to_fid);
+     const auto& cid_to_fid = matching_tracks.pid_to_cid_fid[i];
+      std::vector<Eigen::Affine3d> poses;
+      std::vector<Eigen::MatrixXd> keypoints;
+      for (const auto& cid_fid_pair : cid_to_fid) {
+        const int cid = cid_fid_pair.first;
+        const int fid = cid_fid_pair.second;
+        poses.emplace_back(merged_map_->CamTGlobal(cid));
+        keypoints.emplace_back(merged_map_->Keypoint(cid, fid));
+      }
+      const auto global_t_point = Triangulate(intrinsics, poses, keypoints);
+      merged_map_->AddTrack(global_t_b_point, cid_to_fid);
     }
   }
 }
