@@ -32,16 +32,6 @@ namespace sparse_mapping {
   Eigen::Quaternion<double> slerp_n(std::vector<double> const& W,
                                     std::vector<Eigen::Quaternion<double> > const& Q);
 
-  // Triangulate metric camera point
-  //     unnormalized point means that the point is:
-  //     [px (image loc) - cx (optical center), py - cy, f (f length in px)]
-  Eigen::Vector3d
-  TriangulatePoint(Eigen::Vector3d const& unnormalized_pt1,
-                   Eigen::Vector3d const& unnormalized_pt2,
-                   Eigen::Matrix3d const& cam2_r_cam1,
-                   Eigen::Vector3d const& cam2_t_cam1,
-                   double* error);
-
 boost::optional<Eigen::Vector3d> Triangulate(const Eigen::Matrix3d& intrinsics,
                  const std::vector<Eigen::Affine3d>& camera_T_worlds,
                  const std::vector<Eigen::Matrix2Xd>& keypoints);

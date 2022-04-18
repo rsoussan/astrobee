@@ -92,28 +92,6 @@ Eigen::Quaternion<double> slerp_n(std::vector<double> const& W,
   return slerp_n(W2, Q2);
 }
 
-  Eigen::Vector3d TriangulatePoint(Eigen::Vector3d const& unnormalized_pt1, Eigen::Vector3d const& unnormalized_pt2,
-                                   Eigen::Matrix3d const& cam2_r_cam1, Eigen::Vector3d const& cam2_t_cam1,
-                                   double* error) {
-    // The second camera's center in the coordinate system of the first
-    // camera.
-    Eigen::Vector3d p2 = -cam2_r_cam1.transpose() * cam2_t_cam1;
-
-    // Calculate the two unit pointing vectors in the domain of cam1
-    Eigen::Vector3d unit1 = unnormalized_pt1.normalized();
-    Eigen::Vector3d unit2 = cam2_r_cam1.transpose() * unnormalized_pt2.normalized();
-
-    Eigen::Vector3d v12 = unit1.cross(unit2);
-    Eigen::Vector3d v1 = v12.cross(unit1);
-    Eigen::Vector3d v2 = v12.cross(unit2);
-
-    Eigen::Vector3d closestPoint1 = v2.dot(p2) / v2.dot(unit1) * unit1;
-    Eigen::Vector3d closestPoint2 = p2 + v1.dot(-p2) / v1.dot(unit2) * unit2;
-    *error = (closestPoint2 - closestPoint1).norm();
-
-    return 0.5 * (closestPoint2 + closestPoint1);
-  }
-
   boost::optional<Eigen::Vector3d> Triangulate(const Eigen::Matrix3d& intrinsics,
                                                const std::vector<Eigen::Affine3d>& camera_T_worlds,
                                                const std::vector<Eigen::Matrix2Xd>& keypoints) {
