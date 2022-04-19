@@ -25,7 +25,7 @@ struct SparseMapMergerParams {
   int min_shared_track_features_for_merged_tracks = 2;
   double min_match_ratio_for_merged_tracks = 0.75;
   int min_num_features_for_new_track = 3;
-  int max_num_matching_pids_for_appended_track = 1;
+  int max_num_matching_pids_for_extended_track = 1;
   double inlier_threshold_low_index_percent = 0.25;
   double inlier_threshold_high_index_percent = 0.75;
   double inlier_threshold_scale_factor = 0.2;

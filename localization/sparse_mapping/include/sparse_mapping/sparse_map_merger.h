@@ -29,10 +29,10 @@
 
 namespace sparse_mapping {
 enum class TrackLabel {
-  kAppend,
+  kExtend,
   kBOnly,
   kInvalid,
-  kMerge,
+  kCombine,
   kNew,
 };
 
@@ -69,8 +69,10 @@ class SparseMapMerger {
                                                   MatchingTracks& matching_tracks) const;
   boost::optional<int> BestMatch(const std::map<int, int>& pid_match_counts) const;
   MatchingTracks MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map);
-  void AddTracksToMerge(const std::vector<std::pair<int, int>>& a_b_pid_correspondences);
-  void AddTracksToAppend(const MatchingTracks& matching_tracks);
+  // Use track identifications to combine/extend/add tracks from map b to merged map
+  void MergeTracks(const MatchingTracks& matching_tracks);
+  void CombineTracks(const std::vector<std::pair<int, int>>& a_b_pid_correspondences);
+  void ExtendTracks(const MatchingTracks& matching_tracks);
   void AddRemaingMapBTracks(const std::vector<int>& non_matching_b_pids);
   void AddNewTracks(const MatchingTracks& matching_tracks);
 
