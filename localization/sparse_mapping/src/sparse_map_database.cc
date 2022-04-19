@@ -87,7 +87,14 @@ void SparseMapDatabase::Transform(const Eigen::Affine3d& new_global_T_global) {
 }
 
 void SparseMapDatabase::AddTrack(const Eigen::Vector3d& global_t_point, const std::map<int, int>& cid_to_fid) {
+  // Assumes feature points and descriptors are already in the map
   pid_to_cid_fid_.emplace_back(cid_to_fid);
   pid_to_xyz_.emplace_back(global_t_point);
+}
+
+void SparseMapDatabase::ExtendTrack(const int pid, const std::map<int, int>& cid_to_fid) {
+  // Assumes feature points and descriptors are already in the map
+  auto& feature_track = feature_track(pid);
+  feature_track.insert(cid_to_fid.begin(), cid_to_fid.end());
 }
 }  // namespace sparse_mapping

@@ -135,6 +135,8 @@ class SparseMapDatabase {
 
   Eigen::Affine3d& cam_T_global(const int cid) { return cid_to_cam_t_global_[cid]; }
 
+  std::map<int, int>& feature_track(const int pid) { return pid_to_cid_fid_[pid]; }
+
   // TODO(rsoussan): These should be private
   // TODO(rsoussan): Make maps unodered?
   // stored in map file
