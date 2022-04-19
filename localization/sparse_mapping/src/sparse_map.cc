@@ -375,10 +375,10 @@ void SparseMap::BuildImageDatabase() {
 }
 
 void SparseMap::BuildSurfImageDatabase() {
-  BuildImageDatabase<DBoW2::FSurf64::TDescriptor, DBoW2::FSurf64>();
+  BuildTemplatedImageDatabase<DBoW2::FSurf64::TDescriptor, DBoW2::FSurf64>();
 }
 
 void SparseMap::BuildBriskImageDatabase() {
-  BuildImageDatabase<DBoW2::FBrisk::TDescriptor, DBoW2::FBrisk>();
+  BuildTemplatedImageDatabase<DBoW2::FBrisk::TDescriptor, DBoW2::FBrisk>();
 }
 }  // namespace sparse_mapping

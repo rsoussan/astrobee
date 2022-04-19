@@ -129,7 +129,7 @@ int OldestCidToOptimize(const int latest_cid) const;
 void TriangulateAllPoints(const bool remove_invalid_points = true);
 
 template <class TDescriptor, class F>
-void BuildImageDatabase();
+void BuildTemplatedImageDatabase();
 
 void BuildSurfImageDatabase();
 
@@ -148,7 +148,7 @@ SparseMap& operator=(const SparseMap&);
 
 // Implementation
 template<class TDescriptor, class F>
-void SparseMap::BuildImageDatabase() {
+void SparseMap::BuildTemplatedImageDatabase() {
   const int total_features = NumFeatures();
   while (std::pow(params_.image_database.vocabulary.branching_factor, params_.image_database.vocabulary.depth) <
          total_features) {
