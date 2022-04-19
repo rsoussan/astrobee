@@ -126,6 +126,8 @@ class SparseMapDatabase {
 
   const Eigen::Affine3d& cam_T_global(const int cid) const { return cid_to_cam_t_global_[cid]; }
 
+  void AddTrack(const Eigen::Vector3d& global_t_point, const std::map<int, int>& cid_to_fid);
+
  protected:
   cv::Mat& descriptors(const int cid) { return cid_to_descriptor_map_[cid]; }
 

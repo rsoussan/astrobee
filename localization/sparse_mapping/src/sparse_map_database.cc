@@ -85,4 +85,9 @@ void SparseMapDatabase::Transform(const Eigen::Affine3d& new_global_T_global) {
     cam_T_global = cam_T_global * global_T_new_global;
   }
 }
+
+void SparseMapDatabase::AddTrack(const Eigen::Vector3d& global_t_point, const std::map<int, int>& cid_to_fid) {
+  pid_to_cid_fid_.emplace_back(cid_to_fid);
+  pid_to_xyz_.emplace_back(global_t_point);
+}
 }  // namespace sparse_mapping
