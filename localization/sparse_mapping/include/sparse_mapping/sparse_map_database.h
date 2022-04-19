@@ -128,6 +128,10 @@ class SparseMapDatabase {
 
   void AddTrack(const Eigen::Vector3d& global_t_point, const std::map<int, int>& cid_to_fid);
 
+  void ExtendTrack(const int pid, const std::map<int, int>& cid_to_fid);
+
+  void MergeTrack(const int pid, const Eigen::Vector3d& global_t_point, const std::map<int, int>& cid_to_fid);
+
  protected:
   cv::Mat& descriptors(const int cid) { return cid_to_descriptor_map_[cid]; }
 
@@ -136,6 +140,8 @@ class SparseMapDatabase {
   Eigen::Affine3d& cam_T_global(const int cid) { return cid_to_cam_t_global_[cid]; }
 
   std::map<int, int>& feature_track(const int pid) { return pid_to_cid_fid_[pid]; }
+
+  Eigen::Vector3d& global_t_point(int pid) {return pid_to_xyz_[pid];}
 
   // TODO(rsoussan): These should be private
   // TODO(rsoussan): Make maps unodered?

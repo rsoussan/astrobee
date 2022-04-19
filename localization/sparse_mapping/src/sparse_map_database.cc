@@ -97,4 +97,15 @@ void SparseMapDatabase::ExtendTrack(const int pid, const std::map<int, int>& cid
   auto& feature_track = feature_track(pid);
   feature_track.insert(cid_to_fid.begin(), cid_to_fid.end());
 }
+
+void SparseMapDatabase::MergeTrack(const int pid, const Eigen::Vector3d& global_t_point,
+                                   const std::map<int, int>& cid_to_fid) {
+  // Assumes feature points and descriptors are already in the map
+  ExtendTrack(pid, cid_to_fid);
+  auto& current_global_t_point = global_t_point(pid);
+  const int total_size = feature_track(pid).size();
+  // TODO(rsoussan): Allow for user defined weight?
+  const double weight = cid_to_fid.size()/(static_cast<double>(total_size));
+  current_global_t_point = (1.0 - weight)*current_global_t_point + weight*global_t_point;
+}
 }  // namespace sparse_mapping
