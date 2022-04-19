@@ -61,7 +61,7 @@ void SparseMapMerger::MergeMaps() {
   MergeTracks(matching_tracks);
   merged_map_->InitializeCidFidToPid();
   merged_map_->BuildImageDatabase();
-  // TODO(rsoussan): Add option to perform bundle adjustment!! (AAA)
+  if (params_.bundle_adjust_result) merged_map_->IterativelyBundleAdjust(params_.bundle_adjustment);
 }
 
 std::vector<MatchCandidates> SparseMapMerger::DatabaseMatchCandidates(const SparseMap& map_a, const SparseMap& map_b,
