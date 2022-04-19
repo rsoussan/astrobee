@@ -35,6 +35,7 @@ struct BundleAdjustementParams {
 
   bool fix_all_cameras = false;
   std::unordered_set<int> fixed_cameras;
+  std::unordered_set<int> fixed_points;
   bool optimize_scale = false;
 
   // l1, l2, cauchy, or huber

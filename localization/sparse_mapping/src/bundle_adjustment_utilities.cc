@@ -34,21 +34,20 @@
 
 namespace {
 bool FixedCamera(const BundleAdjustmentParams& params, const int cid) {
-  // TODO(rsoussan): Why would cid be out of range? would cam_t_global still be valid then?
+  if (params.fix_all_cameras || params.fixed_cameras.count(cid) > 0) return true;
   const bool in_optimize_range =
     params.optimize_camera_range && (cid >= params.first_optimized_camera && cid <= params.last_optimized_camera);
-  if (params.fix_all_cameras || !in_optimize_range || fixed_cameras.find(cid) != fixed_cameras.end()) {
-    return true;
-  }
+  if (!in_optimize_range) return true;
   return false;
 }
 
-// Vary points which project into cameras that are not fixed
 bool FixedPoint(const BundleAdjustmentParams& params, const int pid,
                 const std::vector<std::map<int, int>>& pid_to_cid_fid) {
+  if (params.fixed_points.count(pid) > 0) return true;
+  // Points which project into cameras that are not fixed are also not fixed
   for (const auto& cid_fid : pid_to_cid_fid[pid]) {
     const int cid = cid_fid.first;
-    if (cid >= params.first_optimized_camera && cid <= params.last_optimized_camera) return false;
+    if (!FixedCamera(cid)) return false;
   }
   return true;
 }
