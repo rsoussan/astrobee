@@ -61,7 +61,7 @@ void SparseMapMerger::MergeMaps() {
   MergeTracks(matching_tracks);
   merged_map_->InitializeCidFidToPid();
   merged_map_->BuildImageDatabase();
-  if (params_.bundle_adjust_result) merged_map_->IterativelyBundleAdjust(params_.bundle_adjustment);
+  if (params_.bundle_adjust_result) BundleAdjust(matching_tracks);
 }
 
 std::vector<MatchCandidates> SparseMapMerger::DatabaseMatchCandidates(const SparseMap& map_a, const SparseMap& map_b,
@@ -277,6 +277,54 @@ void SparseMapMerger::AddNewTracks(const MatchingTracks& matching_tracks) {
       const auto global_t_point = Triangulate(intrinsics, poses, keypoints);
       merged_map_->AddTrack(global_t_b_point, cid_to_fid);
     }
+  }
+}
+
+void SparseMapMerger::BundleAdjust(const std::vector<std::pair<int, int>>& a_b_pid_correspondences) {
+  switch (params_.optimization_strategy) {
+    case kOptimizeAllPosesAndPoints:
+      params_.bundle_adjustment.optimize_camera_range = false;
+      params_.bundle_adjustment.fix_all_cameras = false;
+      break;
+  case kOptimizeMergedPosesAndPoints:
+  params_.bundle_adjustment.fix_all_cameras = false;
+  params_.bundle_adjustment.optimize_camera_range = true;
+  // Map b cameras in merged map start after the last map a camera
+  params_.bundle_adjustment.first_optimized_camera = map_a_->NumCIDs();
+  params_.bundle_adjustment.last_optimized_camera = merged_map_->NumCIDs() - 1;
+      break;
+  case kOptimizeMergedAndUpdatedPosesAndPoints:
+  params_.bundle_adjustment.fix_all_cameras = false;
+  params_.bundle_adjustment.optimize_camera_range = false;
+  FillUnmodifiedCamerasAndPoints(a_b_pid_correspondences, params_.bundle_adjustment.fixed_cameras,
+                                 params_.bundle_adjustment.fixed_points);
+  break;
+  }
+  merged_map_->IterativelyBundleAdjust(params_.bundle_adjustment, params_.num_bundle_adjustment_iterations);
+}
+
+void SparseMapMerger::FillUnmodifiedCamerasAndPoints(const std::vector<std::pair<int, int>>& a_b_pid_correspondences,
+                                                     std::unorderd_map<int>& fixed_cameras,
+                                                     std::unordered_map<int>& fixed_points) const {
+  std::unordered_set<int> modified_a_pids;
+  std::unordered_set<int> modified_a_cids;
+  // a_b_pid_correspondences contain list of feature tracks that were merged, so
+  // each a pid here has been modified
+  for (const auto& a_b_pid_correspondence : a_b_pid_correspondences) {
+    const int a_pid = a_b_pid_correspondences.first;
+    modified_a_pids.emplace_back(a_pid);
+    for (const auto& cid_fid : CidToFid(a_pid)) {
+      modified_a_cids.emplace(cid_fid.first);
+    }
+  }
+
+  // Mark as fixed points and cameras that have not been modified
+  for (int a_pid = 0; a_pid < map_a_->NumPoints(); ++a_pid) {
+    if (modified_a_pids.count(a_pid) == 0) fixed_points.emplace(a_pid);
+  }
+
+  for (int a_cid = 0; a_cid < map_a_->NumCIDs(); ++a_cid) {
+    if (modified_a_cids.count(a_cid) == 0) fixed_cameras.emplace(a_cid);
   }
 }
 }  // namespace sparse_mapping

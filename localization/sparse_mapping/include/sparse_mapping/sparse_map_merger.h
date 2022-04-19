@@ -41,7 +41,7 @@ struct MatchingTracks {
   std::vector<std::map<int, int> > pid_to_cid_fid;
   std::vector<std::pair<int, int>> a_b_pid_correspondences;
   std::vector<int> non_matching_b_pids;
-}
+};
 
 class SparseMapMerger {
  public:
@@ -75,6 +75,9 @@ class SparseMapMerger {
   void ExtendTracks(const MatchingTracks& matching_tracks);
   void AddRemaingMapBTracks(const std::vector<int>& non_matching_b_pids);
   void AddNewTracks(const MatchingTracks& matching_tracks);
+  void FillUnmodifiedCamerasAndPoints(const std::vector<std::pair<int, int>>& a_b_pid_correspondences,
+                                      std::unorderd_map<int>& fixed_cameras,
+                                      std::unordered_map<int>& fixed_points) const;
 
   SparseMapMergerParams params_;
   std::unique_ptr<SparseMap> map_a_;

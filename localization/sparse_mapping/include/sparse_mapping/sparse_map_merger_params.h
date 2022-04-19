@@ -21,6 +21,12 @@
 
 #include <sparse_mapping/bundle_adjustment_params.h>
 
+enum class OptimizationStrategy {
+  kOptimizeAllPosesAndPoints,
+  kOptimizeMergedPosesAndPoints,
+  kOptimizeMergedAndUpdatedPosesAndPoints
+};
+
 namespace sparse_mapping {
 struct SparseMapMergerParams {
   int max_db_query_image_match_candidates;
@@ -39,6 +45,8 @@ struct SparseMapMergerParams {
   bool bundle_adjust_result = true;
   // TODO(rsoussan): Set these!!
   BundleAdjustmentParams bundle_adjustment;
+  OptimizationStrategy optimization_strategy;
+  int num_bundle_adjustment_iterations = 1;
 };
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_SPARSE_MAP_MERGER_PARAMS_H_
