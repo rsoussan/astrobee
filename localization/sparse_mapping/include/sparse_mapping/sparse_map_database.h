@@ -132,13 +132,13 @@ class SparseMapDatabase {
   PidFeatureTrackMap pid_to_feature_track_;
   CidFidPidMap cid_to_fid_to_pid_;
 
-  // Optional user defined 3D points and image observations.
+  /*// Optional user defined 3D points and image observations.
   // Enables manually registering the sparse map with control points
   // from a 3D model
   // TODO(rsoussan): Remove these??
   std::vector<Eigen::Matrix2Xd> user_cid_to_keypoint_map_;
   std::vector<std::map<int, int> > user_pid_to_cid_fid_;
-  std::vector<Eigen::Vector3d> user_pid_to_xyz_;
+  std::vector<Eigen::Vector3d> user_pid_to_xyz_;*/
 };
 }  // namespace sparse_mapping
 

@@ -56,15 +56,15 @@ class SparseMap : public SparseMapDatabase {
   /**
    * Creates a sparse map containing only a list of image files.
   **/
-  SparseMap(const std::vector<std::string> & cid_to_filename,
+  SparseMap(const CidFilenameMap& cid_to_filename,
             const SparseMapParams& params);
 
   /**
    * Creates a sparse map containing only a list of image files and camera poses.
   **/
   // TODO(rsoussan): How to use this in practice?
-  SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
-            const std::vector<std::string> & cid_to_filename,
+  SparseMap(const CidPoseMap& cid_to_cam_T_global,
+            const CidFilenameMap& cid_to_filename,
             const SparseMapParams& params);
 
   void BuildMap();
@@ -84,8 +84,8 @@ class SparseMap : public SparseMapDatabase {
   void SetCameraParameters(const camera::CameraParameters& camera_params) {params_.camera = camera_params;}
 
   void DetectImageFeaturesFromFile(const std::string& filename,
-                              cv::Mat& descriptors,
-                              Eigen::Matrix2Xd& keypoints);
+                              Descriptors& descriptors,
+                              Keypoints& keypoints);
 
   std::vector<MatchCandidates> SequentialMatchCandidates() const;
 
@@ -94,7 +94,7 @@ class SparseMap : public SparseMapDatabase {
   CIDPairAffineMap MatchImagesAndBuildTracks();
 
   CIDPairAffineMap MatchImagesAndBuildTracks(const std::vector<MatchCandidates>& match_candidates_vec,
-                                             std::vector<std::map<int, int> >& pid_to_cid_fid) const;
+                                             PidFeatureTrackMap& pid_to_feature_track) const;
 
   void IncrementallyBundleAdjust();
 
@@ -138,12 +138,12 @@ void BuildBriskImageDatabase();
 std::unique_ptr<ImageDatabase> image_database_;
 SparseMapParams params_;
 
-// I found out the hard way that sparse maps cannot be copied
+/*// I found out the hard way that sparse maps cannot be copied
 // correctly, hence prohibit this. The only good way seems to be to
 // load a copy from disk. (oalexan1)
 SparseMap();
 SparseMap(SparseMap&);
-SparseMap& operator=(const SparseMap&);
+SparseMap& operator=(const SparseMap&);*/
 };
 
 // Implementation

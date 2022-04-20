@@ -16,25 +16,23 @@
  * under the License.
  */
 
-#include <camera/camera_params.h>
 #include <ff_common/thread.h>
 #include <ff_common/utils.h>
 #include <sparse_mapping/sparse_map.h>
-#include <sparse_mapping/sparse_mapping.h>
-#include <sparse_mapping/tensor.h>
 #include <sparse_mapping/utilities.h>
 
 #include <Eigen/Geometry>
 
 namespace sparse_mapping {
+using fc = ff_common;
 
-SparseMap::SparseMap(const std::vector<std::string>& cid_to_filename, const SparseMapParams& params)
+SparseMap::SparseMap(const CidFilenameMap& cid_to_filename, const SparseMapParams& params)
     : params_(params), cid_to_filename_(cid_to_filename) {
     ResizeFeatureMaps();
 }
 
-SparseMap::SparseMap(const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
-                     const std::vector<std::string>& cid_to_filename, const SparseMapParams& params)
+SparseMap::SparseMap(const CidPoseMap& cid_to_cam_T_global,
+                     const CidFilenameMap& cid_to_filename, const SparseMapParams& params)
     : params_(params), cid_to_filename_(cid_to_filename), cid_to_cam_T_global_(cid_to_cam_T_global) {
   ResizeFeatureMaps();
 }
@@ -53,10 +51,10 @@ void SparseMap::BuildMap() {
 }
 
 void SparseMap::DetectImageFeatures() {
-  ff_common::ThreadPool pool;
+  fc::ThreadPool pool;
   const int num_cameras = NumCameras();
   for (int cid = 0; cid < num_cameras; ++cid) {
-    ff_common::PrintProgressBar(stdout, static_cast<float>(cid) / static_cast<float>(num_cameras - 1));
+    fc::PrintProgressBar(stdout, static_cast<float>(cid) / static_cast<float>(num_cameras - 1));
     pool.AddTask(&SparseMap::DetectImageFeaturesFromFile, this,
                  std::cref(filename(cid)),
                  std::ref(descriptors(cid)),
@@ -66,8 +64,8 @@ void SparseMap::DetectImageFeatures() {
 }
 
 void SparseMap::DetectImageFeaturesFromFile(const std::string& filename,
-                                       cv::Mat& descriptors,
-                                       Eigen::Matrix2Xd& keypoints) {
+                                       Descriptors& descriptors,
+                                       Keypoints& keypoints) {
   const auto image = LoadImage(filename);
   if (params_.detector_name == "surf") {
     vision_common::SurfDynamicDetector surf_detector(params_.surf_detector);
@@ -127,14 +125,14 @@ CIDPairAffineMap SparseMap::MatchImagesAndBuildTracks() {
 }
 
 CIDPairAffineMap SparseMap::MatchImagesAndBuildTracks(const std::vector<MatchCandidates>& match_candidates_vec,
-                                                      std::vector<std::map<int, int> >& pid_to_cid_fid) const {
-  ff_common::ThreadPool thread_pool;
+                                                      PidFeatureTrackMap& pid_to_feature_track) const {
+  fc::ThreadPool thread_pool;
   std::mutex match_mutex;
   openMVG::matching::PairWiseMatches match_map;
   CIDPairAffineMap relative_affines;
   int i = 0;
   for (const auto& match_candidates : match_candidates_vec) {
-    ff_common::PrintProgressBar(stdout, static_cast<float>(++i)
+    fc::PrintProgressBar(stdout, static_cast<float>(++i)
                              / static_cast <float>(match_candidates_vec.size()));
         const int cid = match_candidates.cid;
         for (const auto& candidate_cid : match_candidates.candidate_cids) {
@@ -159,14 +157,14 @@ CIDPairAffineMap SparseMap::MatchImagesAndBuildTracks(const std::vector<MatchCan
 
   // Add tracks to database
   const int num_tracks = map_tracks.size();
-  pid_to_cid_fid.clear();
-  pid_to_cid_fid.resize(num_tracks);
+  pid_to_feature_track.clear();
+  pid_to_feature_track.resize(num_tracks);
   int pid = 0;
   for (const auto& map_track : map_tracks) {
     for (const auto& cid_fid_pair : map_tracks) {
       const int cid = cid_fid_pair.first;
       const int fid = cid_fid_pair.second;
-      pid_to_cid_fid[pid][cid] = fid;
+      pid_to_feature_track[pid][cid] = fid;
     }
     ++pid;
   }
@@ -197,11 +195,11 @@ void MatchImages(const int cid_a, const int cid_b, CIDPairAffineMap& relative_af
 // delete all the features that do not match to a landmark but are still around!
 void SparseMap::PruneMap() {
   // Remove unused features
-  for (unsigned int cid = 0; cid < cid_fid_to_pid_.size(); cid++) {
+  for (unsigned int cid = 0; cid < cid_to_fid_to_pid_.size(); cid++) {
     std::vector<int> deleted_features;
-    for (int fid = 0; fid < cid_to_descriptor_map_[cid].rows; fid++) {
+    for (int fid = 0; fid < cid_to_descriptors_[cid].rows; fid++) {
       // delete if no matching landmark!
-      if (cid_fid_to_pid_[cid].count(fid) == 0) {
+      if (cid_to_fid_to_pid_[cid].count(fid) == 0) {
         deleted_features.emplace_back(fid);
       }
     }
@@ -209,43 +207,43 @@ void SparseMap::PruneMap() {
       continue;
     // create new descriptor map
     cv::Mat next_descriptor_map;
-    next_descriptor_map.create(cid_to_descriptor_map_[cid].rows - deleted_features.size(),
-                               cid_to_descriptor_map_[cid].cols, cid_to_descriptor_map_[cid].depth());
+    next_descriptor_map.create(cid_to_descriptors_[cid].rows - deleted_features.size(),
+                               cid_to_descriptors_[cid].cols, cid_to_descriptors_[cid].depth());
     int new_fid = 0;
-    for (int fid = 0; fid < cid_to_descriptor_map_[cid].rows; fid++) {
+    for (int fid = 0; fid < cid_to_descriptors_[cid].rows; fid++) {
       // delete if no matching landmark!
-      if (cid_fid_to_pid_[cid].count(fid) == 0) {
+      if (cid_to_fid_to_pid_[cid].count(fid) == 0) {
         continue;
       } else {
-        cid_to_descriptor_map_[cid].row(fid).copyTo(next_descriptor_map.row(new_fid));
+        cid_to_descriptors_[cid].row(fid).copyTo(next_descriptor_map.row(new_fid));
         // fix indexing
         if (new_fid < fid) {
-          int pid = cid_fid_to_pid_[cid][fid];
+          int pid = cid_to_fid_to_pid_[cid][fid];
           // in localization mode this is empty
-          if (pid_to_cid_fid_.size() > 0)
-            pid_to_cid_fid_[pid][cid] = new_fid;
-          cid_fid_to_pid_[cid][new_fid] = pid;
-          cid_fid_to_pid_[cid].erase(fid);
+          if (pid_to_feature_track_.size() > 0)
+            pid_to_feature_track_[pid][cid] = new_fid;
+          cid_to_fid_to_pid_[cid][new_fid] = pid;
+          cid_to_fid_to_pid_[cid].erase(fid);
         }
         new_fid++;
       }
     }
-    cid_to_descriptor_map_[cid] = next_descriptor_map;
+    cid_to_descriptors_[cid] = next_descriptor_map;
 
     // clean up other stuff
     for (int i = static_cast<int>(deleted_features.size() - 1); i >= 0; i--) {
       int fid = deleted_features[i];
       // these may not always exist if localizing
-      if (cid_to_keypoint_map_.size() > 0) {
-        int rows = cid_to_keypoint_map_[cid].rows();  // must be equal to 2
-        int cols = cid_to_keypoint_map_[cid].cols();
+      if (cid_to_keypoints_.size() > 0) {
+        int rows = cid_to_keypoints_[cid].rows();  // must be equal to 2
+        int cols = cid_to_keypoints_[cid].cols();
         // TODO(oalexan1): Copying blocks like this repeatedly is
         // expensive.  It is simpler to just shift columns left one by
         // one, as done above.
         if (fid < cols - 1)
-          cid_to_keypoint_map_[cid].block(0, fid, rows, cols - 1 - fid) =
-            cid_to_keypoint_map_[cid].block(0, fid + 1, rows, cols - 1 - fid);
-        cid_to_keypoint_map_[cid].conservativeResize(rows, cols - 1);
+          cid_to_keypoints_[cid].block(0, fid, rows, cols - 1 - fid) =
+            cid_to_keypoints_[cid].block(0, fid + 1, rows, cols - 1 - fid);
+        cid_to_keypoints_[cid].conservativeResize(rows, cols - 1);
       }
     }
   }
@@ -257,9 +255,9 @@ void SparseMap::PruneMap() {
 // TODO(rsoussan): Only triangulate newly added points in between bundle adjustment iterations,
 // only bundle adjust cameras and points that have been modified (ala isam2)
 void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affines) {
-  std::vector<Eigen::Affine3d > incremental_cid_to_cam_t_global;
+  CidPoseMap incremental_cid_to_cam_T_global;
   // Initialize first pose at identity
-  incremental_cid_to_cam_t_global.emplace_back(Eigen::Affine3d::Identity());
+  incremental_cid_to_cam_T_global.emplace_back(Eigen::Affine3d::Identity());
   // Start with second camera, update all cameras before and including this, move to next camera and repeat
   for (int latest_cid = 1; latest_cid < NumCameras(); ++latest_cid) {
     const int previous_cid = latest_cid -1;
@@ -267,11 +265,11 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
     const Eigen::Affine3d latest_cid_T_previous_cid = relative_affines.count(latest_to_previous_cid_pair) > 0
                                                         ? relative_affines(latest_to_previous_cid_pair)
                                                         : Eigen::Affine3d::Identity();
-    const auto& previous_cid_T_global = incremental_cid_to_cam_t_global[previous_cid];
-      incremental_cid_to_cam_t_global.emplace_back(latest_cid_T_previous_cid*previous_cid_T_global);
+    const auto& previous_cid_T_global = incremental_cid_to_cam_T_global[previous_cid];
+      incremental_cid_to_cam_T_global.emplace_back(latest_cid_T_previous_cid*previous_cid_T_global);
 
       // Build tracks up to latest cid
-      std::vector<std::map<int, int> > incremental_pid_to_cid_fid;
+      PidFeatureTrackMap incremental_pid_to_feature_track;
       for (int pid = 0; pid < NumPoints(); ++pid) {
         const auto& feature_track = feature_track(pid);
         std::map<int, int> incremental_track;
@@ -283,17 +281,17 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
 
         // Only add long enough tracks
         if ((latest_cid == 1 && track.size() > 1) || track.size() > params_.min_feature_track_length)
-          incremental_pid_to_cid_fid.push_back(incremental_track);
+          incremental_pid_to_feature_track.push_back(incremental_track);
     }
 
     // Initialize points for incremental tracks
-    std::vector<Eigen::Vector3d> incremental_pid_to_xyz;
+    PidPointMap incremental_pid_to_global_t_point;
     TriangulateAllPoints(true,
                                 params_.camera.GetFocalLength(),
-                                incremental_cid_to_cam_t_global,
-                                cid_to_keypoint_map_,
-                                &incremental_pid_to_cid_fid,
-                                &incremental_pid_to_xyz);
+                                incremental_cid_to_cam_T_global,
+                                cid_to_keypoints_,
+                                &incremental_pid_to_feature_track,
+                                &incremental_pid_to_global_t_point);
 
     const int oldest_cid_to_optimize = OldestCidToOptimize(latest_cid);
     // TODO(rsoussan): Add fcn to set range for params?
@@ -303,11 +301,11 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
         << latest_cid-oldest_cid_to_optimize+1 << ")";
 
     // TODO(rsoussan): Add warning if ba failed?
-    BundleAdjust(params.incremental_bundle_adjustment, cid_to_keypoint_map_,
-                                 &incremental_cid_to_cam_t_global, incremental_pid_to_cid_fid, &incremental_pid_to_xyz);
+    BundleAdjust(params.incremental_bundle_adjustment, cid_to_keypoints_, &incremental_cid_to_cam_T_global,
+                 incremental_pid_to_feature_track, &incremental_pid_to_global_t_point);
   }
 
-  cid_to_cam_t_global_ = incremental_cid_t_cam_t_global;
+  cid_to_cam_T_global_ = incremental_cid_t_cam_T_global;
   // Triangulate one last time after completion of iterative bundle adjustment
   TriangulateAllPoints();
 }
@@ -315,11 +313,11 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
 void TriangulateAllPoints(const bool remove_invalid_points) {
   TriangulateAllPoints(remove_invalid_points,
                               params_.camera.GetFocalLength(),
-                              cid_to_cam_t_global_,
-                              cid_to_keypoint_map_,
-                              &pid_to_cid_fid_,
-                              &pid_to_xyz_,
-                              &cid_fid_to_pid_);
+                              cid_to_cam_T_global_,
+                              cid_to_keypoints_,
+                              &pid_to_feature_track_,
+                              &pid_to_global_t_point_,
+                              &cid_to_fid_to_pid_);
 }
 
 int OldestCidToOptimize(const int latest_cid) const {
@@ -345,9 +343,9 @@ int OldestCidToOptimize(const int latest_cid) const {
 void IterativelyBundleAdjust(const BundleAdjustmentParams& params, const int num_iterations) {
   for (int i = 0; i < num_iterations; ++i) {
     LOG(INFO) << "Beginning bundle adjustment, pass: " << i << ".\n";
-    const auto summary = BundleAdjust(params, cid_to_keypoint_map_,
-                    &cid_to_cam_t_global_,
-                    &pid_to_cid_fid_, &pid_to_xyz_, &cid_fid_to_pid_);
+    const auto summary = BundleAdjust(params, cid_to_keypoints_,
+                    &cid_to_cam_T_global_,
+                    &pid_to_feature_track_, &pid_to_global_t_point_, &cid_to_fid_to_pid_);
     const int num_used_observations = NumUsedFeatures();
     LOG(INFO) << summary.FullReport() << "\n";
     LOG(INFO) << "Starting average reprojection error: "
