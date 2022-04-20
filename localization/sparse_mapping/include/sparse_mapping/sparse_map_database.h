@@ -123,7 +123,6 @@ class SparseMapDatabase {
 
   Eigen::Vector3d& global_t_point(const Pid pid) {return pid_to_global_t_point_[pid];}
 
- private:
   CidFilenameMap cid_to_filename_;
   CidKeypointsMap cid_to_keypoints_;
   CidDescriptorsMap cid_to_descriptors_;
