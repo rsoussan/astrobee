@@ -32,11 +32,11 @@ SparseMap::SparseMap(const std::string& filename,
   std::string ext = ff_common::file_extension(filename);
   boost::to_lower(ext);
 
-  sparse_mapping::ReadNVM(filename, &cid_to_keypoint_map_, &cid_to_filename_, &pid_to_feature_track_,
+  sparse_mapping::ReadNVM(filename, &cid_to_keypoints_, &cid_to_filename_, &pid_to_feature_track_,
                           &pid_to_global_t_point_, &cid_to_cam_T_global_);
 
   // Descriptors are not saved, so let them be empty
-  cid_to_descriptor_map_.resize(cid_to_keypoint_map_.size());
+  cid_to_descriptors_.resize(cid_to_keypoints_.size());
 
   // When the NVM file is created by Theia, it saves the images
   // without a path, in random order, and it may not have used up
@@ -100,7 +100,7 @@ void SparseMap::reorderMap(std::map<int, int> const& old_cid_to_new_cid) {
   // TODO(rsoussan): Make clear function to do this
   ClearImageDatabase();
   cid_to_cid_.clear();
-  user_cid_to_keypoint_map_.clear();
+  user_cid_to_keypoints_.clear();
   user_pid_to_feature_track_.clear();
   user_pid_to_global_t_point_.clear();
   cid_to_fid_to_pid_.clear();  // Will recreate this later
@@ -108,9 +108,9 @@ void SparseMap::reorderMap(std::map<int, int> const& old_cid_to_new_cid) {
   // TODO(rsoussan): Avoid all this by creating a new sparse map database and assigning it to the sparse map
   // Must create temporary structures
   std::vector<std::string>        new_cid_to_filename(num_cid);
-  std::vector<Eigen::Matrix2Xd>   new_cid_to_keypoint_map(num_cid);
+  std::vector<Eigen::Matrix2Xd>   new_cid_to_keypoints(num_cid);
   std::vector<Eigen::Affine3d>    new_cid_to_cam_T_global(num_cid);
-  std::vector<cv::Mat>            new_cid_to_descriptor_map(num_cid);
+  std::vector<cv::Mat>            new_cid_to_descriptors(num_cid);
   std::vector<std::map<int, int>> new_pid_to_feature_track(pid_to_feature_track_.size());
 
   // Note that pid_to_global_t_point_ is not changed by this reordering
@@ -124,9 +124,9 @@ void SparseMap::reorderMap(std::map<int, int> const& old_cid_to_new_cid) {
     int new_cid = it->second;
 
     new_cid_to_filename[new_cid] = cid_to_filename_[old_cid];
-    new_cid_to_keypoint_map[new_cid] = cid_to_keypoint_map_[old_cid];
+    new_cid_to_keypoints[new_cid] = cid_to_keypoints_[old_cid];
     new_cid_to_cam_T_global[new_cid] = cid_to_cam_T_global_[old_cid];
-    new_cid_to_descriptor_map[new_cid] = cid_to_descriptor_map_[old_cid];
+    new_cid_to_descriptors[new_cid] = cid_to_descriptors_[old_cid];
   }
 
   // pid_to_feature_track needs special treatment
@@ -149,9 +149,9 @@ void SparseMap::reorderMap(std::map<int, int> const& old_cid_to_new_cid) {
 
   // Swap in the new values
   cid_to_filename_.swap(new_cid_to_filename);
-  cid_to_keypoint_map_.swap(new_cid_to_keypoint_map);
+  cid_to_keypoints_.swap(new_cid_to_keypoints);
   cid_to_cam_T_global_.swap(new_cid_to_cam_T_global);
-  cid_to_descriptor_map_.swap(new_cid_to_descriptor_map);
+  cid_to_descriptors_.swap(new_cid_to_descriptors);
   pid_to_feature_track_.swap(new_pid_to_feature_track);
 
   // Recreate cid_to_fid_to_pid_ from pid_to_feature_track_.
@@ -159,7 +159,7 @@ void SparseMap::reorderMap(std::map<int, int> const& old_cid_to_new_cid) {
 }
 
 // Writes the NVM control network format.
-void WriteNVM(std::vector<Eigen::Matrix2Xd > const& cid_to_keypoint_map,
+void WriteNVM(std::vector<Eigen::Matrix2Xd > const& cid_to_keypoints,
                               std::vector<std::string> const& cid_to_filename,
                               std::vector<std::map<int, int> > const& pid_to_feature_track,
                               std::vector<Eigen::Vector3d> const& pid_to_global_t_point,
@@ -170,7 +170,7 @@ void WriteNVM(std::vector<Eigen::Matrix2Xd > const& cid_to_keypoint_map,
   std::fstream f(output_filename, std::ios::out);
   f << "NVM_V3\n";
 
-  CHECK(cid_to_filename.size() == cid_to_keypoint_map.size())
+  CHECK(cid_to_filename.size() == cid_to_keypoints.size())
     << "Unequal number of filenames and keypoints";
   CHECK(pid_to_feature_track.size() == pid_to_global_t_point.size())
     << "Unequal number of pid_to_feature_track and xyz measurements";
@@ -209,8 +209,8 @@ void WriteNVM(std::vector<Eigen::Matrix2Xd > const& cid_to_keypoint_map,
     for (std::map<int, int>::const_iterator it = pid_to_feature_track[pid].begin();
          it != pid_to_feature_track[pid].end(); it++) {
       f << " " << it->first << " " << it->second << " "
-        << cid_to_keypoint_map[it->first].col(it->second)[0] << " "
-        << cid_to_keypoint_map[it->first].col(it->second)[1];
+        << cid_to_keypoints[it->first].col(it->second)[0] << " "
+        << cid_to_keypoints[it->first].col(it->second)[1];
     }
     f << std::endl;
   }
@@ -222,7 +222,7 @@ void WriteNVM(std::vector<Eigen::Matrix2Xd > const& cid_to_keypoint_map,
 
 // Reads the NVM control network format.
 void ReadNVM(std::string const& input_filename,
-                             std::vector<Eigen::Matrix2Xd > * cid_to_keypoint_map,
+                             std::vector<Eigen::Matrix2Xd > * cid_to_keypoints,
                              std::vector<std::string> * cid_to_filename,
                              std::vector<std::map<int, int> > * pid_to_feature_track,
                              std::vector<Eigen::Vector3d> * pid_to_global_t_point,
@@ -245,12 +245,12 @@ void ReadNVM(std::string const& input_filename,
   }
 
   // Resize all our structures to support the number of cameras we now expect
-  cid_to_keypoint_map->resize(number_of_cid);
+  cid_to_keypoints->resize(number_of_cid);
   cid_to_filename->resize(number_of_cid);
   cid_to_cam_T_global->resize(number_of_cid);
   for (ptrdiff_t cid = 0; cid < number_of_cid; cid++) {
     // Clear keypoints from map. We'll read these in shortly
-    cid_to_keypoint_map->at(cid).resize(Eigen::NoChange_t(), 2);
+    cid_to_keypoints->at(cid).resize(Eigen::NoChange_t(), 2);
 
     // Read the line that contains camera information
     double focal, dist1, dist2;
@@ -293,10 +293,10 @@ void ReadNVM(std::string const& input_filename,
 
       pid_to_feature_track->at(pid)[cid] = fid;
 
-      if (cid_to_keypoint_map->at(cid).cols() <= fid) {
-        cid_to_keypoint_map->at(cid).conservativeResize(Eigen::NoChange_t(), fid + 1);
+      if (cid_to_keypoints->at(cid).cols() <= fid) {
+        cid_to_keypoints->at(cid).conservativeResize(Eigen::NoChange_t(), fid + 1);
       }
-      cid_to_keypoint_map->at(cid).col(fid) = pt;
+      cid_to_keypoints->at(cid).col(fid) = pt;
     }
 
     if (!f.good())

@@ -37,7 +37,7 @@ namespace sparse_mapping {
  * All poses and point values should be set to initial guesses and are modified to improved guesses when the function returns.
  **/
   ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
-                                    const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
+                                    const std::vector<Eigen::Matrix2Xd>& cid_to_keypoints,
                                     PidPoseMap* cid_to_cam_T_global,
                                     PidFeatureTrackMap* pid_to_feature_track,
                                     PidPointMap* pid_to_global_t_point,

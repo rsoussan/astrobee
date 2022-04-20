@@ -61,9 +61,9 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
   int num_landmarks = map.num_landmarks();
 
   cid_to_filename_.resize(num_frames);
-  cid_to_descriptor_map_.resize(num_frames);
+  cid_to_descriptors_.resize(num_frames);
   if (!localization) {
-    cid_to_keypoint_map_.resize(num_frames);
+    cid_to_keypoints_.resize(num_frames);
     cid_to_cam_T_global_.resize(num_frames);
   }
 
@@ -80,18 +80,18 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
 
     // load keypoints
     if (!localization)
-      cid_to_keypoint_map_[cid].resize(Eigen::NoChange_t(), frame.feature_size());
+      cid_to_keypoints_[cid].resize(Eigen::NoChange_t(), frame.feature_size());
 
     // Poke the first frame's first descriptor to see how long the
     // descriptor is.
     if (frame.feature_size()) {
       size_t descriptor_length = frame.feature(0).description().size() /
         cv::getElemSize(map.descriptor_depth());
-      cid_to_descriptor_map_[cid].create(frame.feature_size(),  // rows
+      cid_to_descriptors_[cid].create(frame.feature_size(),  // rows
                                          descriptor_length,     // columns
                                          map.descriptor_depth());
     } else {
-      cid_to_descriptor_map_[cid].create(0, 0, map.descriptor_depth());
+      cid_to_descriptors_[cid].create(0, 0, map.descriptor_depth());
     }
 
     for (int fid = 0; fid < frame.feature_size(); fid++) {
@@ -99,10 +99,10 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
 
       // Copy the features
       if (!localization)
-        cid_to_keypoint_map_[cid].col(fid) << feature.x(), feature.y();
+        cid_to_keypoints_[cid].col(fid) << feature.x(), feature.y();
 
       // Copy the descriptors
-      memcpy(cid_to_descriptor_map_[cid].ptr<uint8_t>(fid),  // Destination
+      memcpy(cid_to_descriptors_[cid].ptr<uint8_t>(fid),  // Destination
              feature.description().data(),                   // Source
              feature.description().size());                  // Length
     }
@@ -190,8 +190,8 @@ void SparseMap::Save(const std::string & protobuf_file) const {
 
   sparse_mapping_protobuf::Map map;
   // map.set_detector_name(detector_.DetectorName());
-  if (!cid_to_descriptor_map_.empty())
-    map.set_descriptor_depth(cid_to_descriptor_map_[0].depth());
+  if (!cid_to_descriptors_.empty())
+    map.set_descriptor_depth(cid_to_descriptors_[0].depth());
   else
     map.set_descriptor_depth(0);
 
@@ -208,9 +208,9 @@ void SparseMap::Save(const std::string & protobuf_file) const {
     camera->add_distortion(camera_params_.GetDistortion()[i]);
   }
 
-  CHECK(cid_to_filename_.size() == cid_to_keypoint_map_.size())
+  CHECK(cid_to_filename_.size() == cid_to_keypoints_.size())
     << "Number of CIDs in filenames and keypoint map do not match";
-  CHECK(cid_to_filename_.size() == cid_to_descriptor_map_.size())
+  CHECK(cid_to_filename_.size() == cid_to_descriptors_.size())
     << "Number of CIDs in filenames and descriptor map do not match";
 
   map.set_num_frames(cid_to_filename_.size());
@@ -242,13 +242,13 @@ void SparseMap::Save(const std::string & protobuf_file) const {
     }
 
     // set the features, required
-    for (int fid = 0; fid < cid_to_keypoint_map_[cid].cols(); fid++) {
+    for (int fid = 0; fid < cid_to_keypoints_[cid].cols(); fid++) {
       sparse_mapping_protobuf::Feature* f = frame.add_feature();
-      f->set_x(cid_to_keypoint_map_[cid].col(fid).x());
-      f->set_y(cid_to_keypoint_map_[cid].col(fid).y());
-      f->set_description(cid_to_descriptor_map_[cid].ptr<uint8_t>(fid),
-                         cid_to_descriptor_map_[cid].elemSize() *
-                         cid_to_descriptor_map_[cid].cols);
+      f->set_x(cid_to_keypoints_[cid].col(fid).x());
+      f->set_y(cid_to_keypoints_[cid].col(fid).y());
+      f->set_description(cid_to_descriptors_[cid].ptr<uint8_t>(fid),
+                         cid_to_descriptors_[cid].elemSize() *
+                         cid_to_descriptors_[cid].cols);
     }
 
     // set the camera pose if available.

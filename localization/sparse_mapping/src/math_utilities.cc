@@ -48,13 +48,13 @@ void RemoveInvalidPoints(const std::vector<bool>& invalid_points,
 
 double ReprojectionError(const std::pair<int, int>& cid_fid, const Eigen::Matrix3d& intrinsics,
                          const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
-                         const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map) {
+                         const std::vector<Eigen::Matrix2Xd>& cid_to_keypoints) {
   const int cid = cid_fid.first;
   const int fid = cid_fid.second;
   const auto& cam_T_global = cid_to_cam_T_global[cid];
   const Eigen::Vector3d cam_t_point = cam_T_global * global_t_point;
   const Eigen::Vector2d projected_point = vc::Project(cam_t_point, intrinsics);
-  const auto& keypoint = cid_to_keypoint_map[cid].col(fid);
+  const auto& keypoint = cid_to_keypoints[cid].col(fid);
   return (keypoint - projected_point).norm();
 }
 }  // namespace
@@ -199,7 +199,7 @@ double MaxAngleBetweenCameraRays(const std::map<int, int>& track, const std::vec
 
 void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsParams& params,
                                       const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
-                                      const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
+                                      const std::vector<Eigen::Matrix2Xd>& cid_to_keypoints,
                                       std::vector<std::map<int, int> >* pid_to_feature_track,
                                       std::vector<Eigen::Vector3d>* pid_to_global_t_point,
                                       std::vector<std::map<int, int> >* cid_to_fid_to_pid) {
@@ -242,7 +242,7 @@ void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsPara
 
       // Check projection
       const double reprojection_error =
-        ReprojectionError(cid_fid, intrinsics, cid_to_cam_T_global, cid_to_keypoint_map);
+        ReprojectionError(cid_fid, intrinsics, cid_to_cam_T_global, cid_to_keypoints);
       pid_reprojection_errors.emplace_back(reprojection_error);
       const bool valid_projection = ValidProjection(projected_point, half_size);
       if (!valid_projection) {
@@ -267,7 +267,7 @@ void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsPara
     for (auto cid_fid_it = cid_fids.begin(); cid_fid_it != cid_fids.end();) {
       ++stats.num_features;
       const double reprojection_error =
-        ReprojectionError(*cid_fid_it, intrinsics, cid_to_cam_T_global, cid_to_keypoint_map);
+        ReprojectionError(*cid_fid_it, intrinsics, cid_to_cam_T_global, cid_to_keypoints);
       if (reprojection_error >= params.max_reprojection_error) {
         cid_fid_it = cid_fids.erase(cid_fid_it);
         ++stats.big_reproj_err;

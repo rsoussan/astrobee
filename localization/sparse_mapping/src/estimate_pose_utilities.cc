@@ -30,7 +30,7 @@ std::vector<ImageMatch> FindAndSortMatches(const std::vector<int>& matching_cids
   int total_matches = 0;
   // TODO(oalexan1): Use multiple threads here?
   for (const auto cid : matching_cids) {
-    const auto& map_image_descriptors = map.cid_to_descriptor_map_[cid];
+    const auto& map_image_descriptors = map.cid_to_descriptors_[cid];
     ImageMatch image_match;
     image_match.cid = cid;
     FindMatches(descriptors,

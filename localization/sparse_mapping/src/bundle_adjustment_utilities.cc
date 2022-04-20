@@ -58,7 +58,7 @@ namespace sparse_mapping {
 namespace oc = optimization_common;
 
 ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
-                                    const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
+                                    const std::vector<Eigen::Matrix2Xd>& cid_to_keypoints,
                                     PidPoseMap* cid_to_cam_T_global,
                                     PidFeatureTrackMap* pid_to_feature_track,
                                     PidPointMap* pid_to_global_t_point,
@@ -87,7 +87,7 @@ ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
        for (const auto& cid_fid : pid_to_feature_track[pid]) {
         const int cid = cid_fid.first;
         const int fid = cid_fid.second;
-        const auto& image_point = cid_to_keypoint_map[cid].col(fid);
+        const auto& image_point = cid_to_keypoints[cid].col(fid);
         auto& camera_T_global = camera_T_globals[cid];
 
       const bool fixed_camera = FixedCamera(params, cid);
@@ -116,7 +116,7 @@ ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
   if (params.remove_invalid_points_and_detections) {
     RemoveInvalidPointsAndDetections(params.remove_invalid_points_and_detections_params,
                  *cid_to_cam_T_global,
-                 cid_to_keypoint_map,
+                 cid_to_keypoints,
                  pid_to_feature_track,
                  pid_to_global_t_point, cid_to_fid_to_pid);
   }

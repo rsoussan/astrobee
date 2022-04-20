@@ -104,7 +104,7 @@ void ExtractSubmap(std::vector<std::string> * keep_ptr,
   map.pid_to_global_t_point_.clear();
   map.cid_to_fid_to_pid_.clear();
   map.cid_to_cid_.clear();
-  map.user_cid_to_keypoint_map_.clear();
+  map.user_cid_to_keypoints_.clear();
   map.user_pid_to_feature_track_.clear();
   map.user_pid_to_global_t_point_.clear();
 
@@ -163,14 +163,14 @@ void ExtractSubmap(std::vector<std::string> * keep_ptr,
     if (cid2cid.find(cid) == cid2cid.end()) continue;
     size_t new_cid = cid2cid[cid];
     map.cid_to_filename_[new_cid]             = map.cid_to_filename_[cid];
-    map.cid_to_keypoint_map_[new_cid]         = map.cid_to_keypoint_map_[cid];
+    map.cid_to_keypoints_[new_cid]         = map.cid_to_keypoints_[cid];
     map.cid_to_cam_T_global_[new_cid]         = map.cid_to_cam_T_global_[cid];
-    map.cid_to_descriptor_map_[new_cid]       = map.cid_to_descriptor_map_[cid];
+    map.cid_to_descriptors_[new_cid]       = map.cid_to_descriptors_[cid];
   }
   map.cid_to_filename_             .resize(num_cid);
-  map.cid_to_keypoint_map_         .resize(num_cid);
+  map.cid_to_keypoints_         .resize(num_cid);
   map.cid_to_cam_T_global_         .resize(num_cid);
-  map.cid_to_descriptor_map_       .resize(num_cid);
+  map.cid_to_descriptors_       .resize(num_cid);
 
   // Create new pid_to_feature_track_.
   std::vector<std::map<int, int> > pid_to_feature_track;
@@ -306,7 +306,7 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
   // Iterate over the control points in the hugin file. Copy the
   // control points to the list of user keypoints, and create the
   // corresponding user_pid_to_feature_track_.
-  map->user_cid_to_keypoint_map_.resize(map->cid_to_filename_.size());
+  map->user_cid_to_keypoints_.resize(map->cid_to_filename_.size());
   map->user_pid_to_feature_track_.resize(num_points);
   for (int pid = 0; pid < num_points; pid++) {
     // Left and right image indices
@@ -328,29 +328,29 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
     int cid2 = filename_to_cid[images[id2]];
 
     // Append to the keypoints for cid1
-    Eigen::Matrix<double, 2, -1> &M1 = map->user_cid_to_keypoint_map_[cid1];  // alias
+    Eigen::Matrix<double, 2, -1> &M1 = map->user_cid_to_keypoints_[cid1];  // alias
     Eigen::Matrix<double, 2, -1> N1(M1.rows(), M1.cols()+1);
     N1 << M1, user_ip.block(2, pid, 2, 1);  // left image pixel x and pixel y
     M1.swap(N1);
 
     // Append to the keypoints for cid2
-    Eigen::Matrix<double, 2, -1> &M2 = map->user_cid_to_keypoint_map_[cid2];  // alias
+    Eigen::Matrix<double, 2, -1> &M2 = map->user_cid_to_keypoints_[cid2];  // alias
     Eigen::Matrix<double, 2, -1> N2(M2.rows(), M2.cols()+1);
     N2 << M2, user_ip.block(4, pid, 2, 1);  // right image pixel x and pixel y
     M2.swap(N2);
 
     // The corresponding user_pid_to_feature_track_
-    map->user_pid_to_feature_track_[pid][cid1] = map->user_cid_to_keypoint_map_[cid1].cols()-1;
-    map->user_pid_to_feature_track_[pid][cid2] = map->user_cid_to_keypoint_map_[cid2].cols()-1;
+    map->user_pid_to_feature_track_[pid][cid1] = map->user_cid_to_keypoints_[cid1].cols()-1;
+    map->user_pid_to_feature_track_[pid][cid2] = map->user_cid_to_keypoints_[cid2].cols()-1;
   }
 
   // Shift the keypoints. Undistort if necessary.
   Eigen::Vector2d output;
-  for (size_t cid = 0; cid < map->user_cid_to_keypoint_map_.size(); cid++) {
-    for (int i = 0; i < map->user_cid_to_keypoint_map_[cid].cols(); i++) {
+  for (size_t cid = 0; cid < map->user_cid_to_keypoints_.size(); cid++) {
+    for (int i = 0; i < map->user_cid_to_keypoints_[cid].cols(); i++) {
       map->camera_params_.Convert<camera::DISTORTED, camera::UNDISTORTED_C>
-        (map->user_cid_to_keypoint_map_[cid].col(i), &output);
-      map->user_cid_to_keypoint_map_[cid].col(i) = output;
+        (map->user_cid_to_keypoints_[cid].col(i), &output);
+      map->user_cid_to_keypoints_[cid].col(i) = output;
     }
   }
 
@@ -367,7 +367,7 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
   TriangulateAllPoints(remove_invalid_points,
                               map->camera_params_.GetFocalLength(),
                               map->cid_to_cam_T_global_,
-                              map->user_cid_to_keypoint_map_,
+                              map->user_cid_to_keypoints_,
                               &(map->user_pid_to_feature_track_),
                               &pid_to_global_t_point,
                               &cid_to_fid_to_pid_local);

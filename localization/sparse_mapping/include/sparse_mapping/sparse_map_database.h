@@ -135,7 +135,7 @@ class SparseMapDatabase {
   // Enables manually registering the sparse map with control points
   // from a 3D model
   // TODO(rsoussan): Remove these??
-  std::vector<Eigen::Matrix2Xd> user_cid_to_keypoint_map_;
+  std::vector<Eigen::Matrix2Xd> user_cid_to_keypoints_;
   std::vector<std::map<int, int> > user_pid_to_feature_track_;
   std::vector<Eigen::Vector3d> user_pid_to_xyz_;*/
 };
