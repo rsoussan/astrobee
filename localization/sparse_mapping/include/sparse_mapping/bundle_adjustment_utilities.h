@@ -30,12 +30,6 @@
 #include <vector>
 
 namespace sparse_mapping {
-  // TODO(rsoussan): What does this do?
-  /**
-   * Close a loop with repeated images.
-   **/
-  void CloseLoop(sparse_mapping::SparseMap * s);
-
  /**
  * Perform bundle adjustment. 
  * All poses and point values should be set to initial guesses and are modified to improved guesses when the function returns.
