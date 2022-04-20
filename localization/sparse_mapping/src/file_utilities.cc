@@ -132,17 +132,17 @@ void ParseXYZ(std::string const& xyz_file,
   }
 }
 
-// From pid_to_cid_fid, create cid_fid_to_pid for lookup.
+// From pid_to_feature_track, create cid_to_fid_to_pid for lookup.
 // TODO(rsoussan): Move this to sparse_map_database!!
 void InitializeCidFidPidMap(int num_cid,
-                           std::vector<std::map<int, int> > const& pid_to_cid_fid,
-                           std::vector<std::map<int, int> > * cid_fid_to_pid) {
-  cid_fid_to_pid->clear();
-  cid_fid_to_pid->resize(num_cid, std::map<int, int>());
+                           std::vector<std::map<int, int> > const& pid_to_feature_track,
+                           std::vector<std::map<int, int> > * cid_to_fid_to_pid) {
+  cid_to_fid_to_pid->clear();
+  cid_to_fid_to_pid->resize(num_cid, std::map<int, int>());
 
-  for (int pid = 0; pid < static_cast<int>(pid_to_cid_fid.size()); ++pid) {
-    for (const auto& cid_fid : pid_to_cid_fid[pid]) {
-      (*cid_fid_to_pid)[cid_fid.first][cid_fid.second] = pid;
+  for (int pid = 0; pid < static_cast<int>(pid_to_feature_track.size()); ++pid) {
+    for (const auto& cid_fid : pid_to_feature_track[pid]) {
+      (*cid_to_fid_to_pid)[cid_fid.first][cid_fid.second] = pid;
     }
   }
 }

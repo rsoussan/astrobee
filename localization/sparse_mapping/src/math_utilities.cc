@@ -39,18 +39,19 @@ bool ValidProjection(const Eigen::Vector2d& centered_projected_point, const Eige
   return true;
 }
 
-void RemoveInvalidPoints(const std::vector<bool>& invalid_points, std::vector<std::map<int, int> >& pid_to_cid_fid,
-                         std::vector<Eigen::Vector3d>& pid_to_xyz) {
-  lc::RemoveElements(invalid_points, pid_to_cid_fid);
-  lc::RemoveElements(invalid_points, pid_to_xyz);
+void RemoveInvalidPoints(const std::vector<bool>& invalid_points,
+                         std::vector<std::map<int, int> >& pid_to_feature_track,
+                         std::vector<Eigen::Vector3d>& pid_to_global_t_point) {
+  lc::RemoveElements(invalid_points, pid_to_feature_track);
+  lc::RemoveElements(invalid_points, pid_to_global_t_point);
 }
 
 double ReprojectionError(const std::pair<int, int>& cid_fid, const Eigen::Matrix3d& intrinsics,
-                         const std::vector<Eigen::Affine3d>& cid_to_cam_t_global,
+                         const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
                          const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map) {
   const int cid = cid_fid.first;
   const int fid = cid_fid.second;
-  const auto& cam_T_global = cid_to_cam_t_global[cid];
+  const auto& cam_T_global = cid_to_cam_T_global[cid];
   const Eigen::Vector3d cam_t_point = cam_T_global * global_t_point;
   const Eigen::Vector2d projected_point = vc::Project(cam_t_point, intrinsics);
   const auto& keypoint = cid_to_keypoint_map[cid].col(fid);
@@ -111,40 +112,40 @@ Eigen::Quaternion<double> slerp_n(std::vector<double> const& W,
   }
 
 void TriangulateAllPoints(const bool remove_invalid_points, const double focal_length,
-                 const std::vector<Eigen::Affine3d>& cid_to_cam_t_global,
+                 const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
                  const CidToKeypointMap& cid_to_keypoints,
-                 std::vector<std::map<int, int> > * pid_to_cid_fid,
-                 std::vector<Eigen::Vector3d> * pid_to_xyz,
-                 std::vector<std::map<int, int> > * cid_fid_to_pid) {
+                 std::vector<std::map<int, int> > * pid_to_feature_track,
+                 std::vector<Eigen::Vector3d> * pid_to_global_t_point,
+                 std::vector<std::map<int, int> > * cid_to_fid_to_pid) {
   Eigen::Matrix3d intrinsics;
   intrinsics << focal_length, 0, 0,
     0, focal_length, 0,
     0, 0, 1;
 
-  std::vector<openMVG::Mat34> projection_matrices(cid_to_cam_t_global.size());
+  std::vector<openMVG::Mat34> projection_matrices(cid_to_cam_T_global.size());
   for (int cid = 0; cid < projection_matrices.size(); ++cid) {
-    openMVG::P_From_KRt(intrinsics, cid_to_cam_t_global[cid].linear(),
-                        cid_to_cam_t_global[cid].translation(), &projection_matrices[cid]);
+    openMVG::P_From_KRt(intrinsics, cid_to_cam_T_global[cid].linear(),
+                        cid_to_cam_T_global[cid].translation(), &projection_matrices[cid]);
   }
 
-  pid_to_xyz->resize(pid_to_cid_fid->size());
+  pid_to_global_t_point->resize(pid_to_feature_track->size());
   // Iterate in reverse so invalid points can be removed without affecting earlier points
-  for (int pid = pid_to_cid_fid->size() - 1; pid >= 0; --pid) {
+  for (int pid = pid_to_feature_track->size() - 1; pid >= 0; --pid) {
     openMVG::Triangulation triangulation;
-    for (const auto& cid_fid : pid_to_cid_fid->at(pid)) {
+    for (const auto& cid_fid : pid_to_feature_track->at(pid)) {
       triangulation.add(projection_matrices[cid_fid.first],  cid_to_keypoints[cid_fid.first][cid_fid.second]);
     }
     const Eigen::Vector3d solution = triangulation.compute();
     if ( remove_invalid_points && (std::isnan(solution[0]) || triangulation.minDepth() < 0) ) {
-      pid_to_xyz->erase(pid_to_xyz->begin() + pid);
-      pid_to_cid_fid->erase(pid_to_cid_fid->begin() + pid);
+      pid_to_global_t_point->erase(pid_to_global_t_point->begin() + pid);
+      pid_to_feature_track->erase(pid_to_feature_track->begin() + pid);
     } else {
-      pid_to_xyz->at(pid) = solution;
+      pid_to_global_t_point->at(pid) = solution;
     }
   }
 
-  if (remove_invalid_points && cid_fid_to_pid)
-  InitializeCidFidPidMap(cid_to_cam_t_global.size(), *pid_to_cid_fid, cid_fid_to_pid);
+  if (remove_invalid_points && cid_to_fid_to_pid)
+  InitializeCidFidPidMap(cid_to_cam_T_global.size(), *pid_to_feature_track, cid_to_fid_to_pid);
 }
 
 double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors,
@@ -197,30 +198,30 @@ double MaxAngleBetweenCameraRays(const std::map<int, int>& track, const std::vec
 }
 
 void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsParams& params,
-                                      const std::vector<Eigen::Affine3d>& cid_to_cam_t_global,
+                                      const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
                                       const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
-                                      std::vector<std::map<int, int> >* pid_to_cid_fid,
-                                      std::vector<Eigen::Vector3d>* pid_to_xyz,
-                                      std::vector<std::map<int, int> >* cid_fid_to_pid) {
+                                      std::vector<std::map<int, int> >* pid_to_feature_track,
+                                      std::vector<Eigen::Vector3d>* pid_to_global_t_point,
+                                      std::vector<std::map<int, int> >* cid_to_fid_to_pid) {
   std::vector<double> pid_reprojection_errors;
-  const int num_cams = cid_to_cam_t_global.size();
+  const int num_cams = cid_to_cam_T_global.size();
   std::vector<Eigen::Vector3d> global_t_cams;
   global_t_cams.reserve(num_cams);
   for (int cid = 0; cid < num_cams; ++cid) {
-    global_t_cams.emplace_back(cid_to_cam_t_global[cid].inverse().translation());
+    global_t_cams.emplace_back(cid_to_cam_T_global[cid].inverse().translation());
   }
 
   RemoveInvalidPointsAndDetectionsStats stats;
-  stats.num_points = pid_to_xyz->size();
-  std::vector<bool> invalid_point(pid_to_xyz->size(), false);
+  stats.num_points = pid_to_global_t_point->size();
+  std::vector<bool> invalid_point(pid_to_global_t_point->size(), false);
   const Eigen::Vector2d half_size = camera_params.GetUndistortedHalfSize();
   const Eigen::Matrix3d intrinsics = params.camera.GetIntrinsicMatrix<camera::UNDISTORTED_C>();
-  for (int pid = 0; pid < static_cast<int>(pid_to_xyz->size()); ++pid) {
+  for (int pid = 0; pid < static_cast<int>(pid_to_global_t_point->size()); ++pid) {
     bool small_angle = false, behind_cam = false, invalid_reprojection = false;
 
     // Check camera angles
-    const auto& track = pid_to_cid_fid[pid];
-    const auto& global_t_point = pid_to_xyz[pid];
+    const auto& track = pid_to_feature_track[pid];
+    const auto& global_t_point = pid_to_global_t_point[pid];
     const double max_angle_between_camera_rays
       = MaxAngleBetweenCameraRays(track, global_t_point, global_t_cams);
     if (max_angle_between_camera_rays < params.min_max_angle_between_camera_rays) {
@@ -228,10 +229,10 @@ void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsPara
       invalid_point[pid] = true;
     }
 
-    for (const auto cid_fid : (*pid_to_cid_fid)[pid]) {
+    for (const auto cid_fid : (*pid_to_feature_track)[pid]) {
       const int cid = cid_fid.first;
-      const auto& cam_T_global = cid_to_cam_t_global[cid];
-      const auto& global_t_point = (*pid_to_xyz)[pid];
+      const auto& cam_T_global = cid_to_cam_T_global[cid];
+      const auto& global_t_point = (*pid_to_global_t_point)[pid];
       const Eigen::Vector3d cam_t_point = cam_T_global*global_t_point;
       // Check if point is behind any camera
       if (cam_t_point.z() <= 0) {
@@ -241,7 +242,7 @@ void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsPara
 
       // Check projection
       const double reprojection_error =
-        ReprojectionError(cid_fid, intrinsics, cid_to_cam_t_global, cid_to_keypoint_map);
+        ReprojectionError(cid_fid, intrinsics, cid_to_cam_T_global, cid_to_keypoint_map);
       pid_reprojection_errors.emplace_back(reprojection_error);
       const bool valid_projection = ValidProjection(projected_point, half_size);
       if (!valid_projection) {
@@ -253,20 +254,20 @@ void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsPara
     stats.behind_cam     += static_cast<int>(behind_cam);
     stats.invalid_reprojection += static_cast<int>(invalid_reprojection);
   }
-  RemoveInvalidPoints(invalid_point, *pid_to_cid_fid, *pid_to_xyz);
+  RemoveInvalidPoints(invalid_point, *pid_to_feature_track, *pid_to_global_t_point);
 
-  std::vector<bool> invalid_point_detection_count(pid_to_xyz->size(), false);
+  std::vector<bool> invalid_point_detection_count(pid_to_global_t_point->size(), false);
   // Remove high reprojection error feature detections
   const double reprojection_error_threshold = ReprojectionErrorThreshold(pid_reprojection_errors, params);
   LOG(INFO) << "Filtering features with reprojection error higher than: "
             << reprojection_error_threshold << " pixels";
-  for (int pid = 0; pid < static_cast<int>(pid_to_xyz->size()); ++pid) {
-    const auto& cid_fids = (*pid_to_cid_fid)[pid];
-    const auto& global_t_point = (*pid_to_xyz)[pid];
+  for (int pid = 0; pid < static_cast<int>(pid_to_global_t_point->size()); ++pid) {
+    const auto& cid_fids = (*pid_to_feature_track)[pid];
+    const auto& global_t_point = (*pid_to_global_t_point)[pid];
     for (auto cid_fid_it = cid_fids.begin(); cid_fid_it != cid_fids.end();) {
       ++stats.num_features;
       const double reprojection_error =
-        ReprojectionError(*cid_fid_it, intrinsics, cid_to_cam_t_global, cid_to_keypoint_map);
+        ReprojectionError(*cid_fid_it, intrinsics, cid_to_cam_T_global, cid_to_keypoint_map);
       if (reprojection_error >= params.max_reprojection_error) {
         cid_fid_it = cid_fids.erase(cid_fid_it);
         ++stats.big_reproj_err;
@@ -275,16 +276,16 @@ void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsPara
       }
     }
     // Remove point if less than 2 valid feature detections remain
-    const int num_detections = (*pid_to_cid_fid)[pid].size();
+    const int num_detections = (*pid_to_feature_track)[pid].size();
     if (num_detections < 2) {
       invalid_point_detection_count[pid] = true;
     }
   }
-  RemoveInvalidPoints(invalid_point_detection_count, *pid_to_cid_fid, *pid_to_xyz);
-  if (cid_fid_to_pid)
-  InitializeCidFidPidMap(cid_to_cam_t_global.size(),
-                                        *pid_to_cid_fid,
-                                        cid_fid_to_pid);
+  RemoveInvalidPoints(invalid_point_detection_count, *pid_to_feature_track, *pid_to_global_t_point);
+  if (cid_to_fid_to_pid)
+  InitializeCidFidPidMap(cid_to_cam_T_global.size(),
+                                        *pid_to_feature_track,
+                                        cid_to_fid_to_pid);
 
   if (params.print_stats)
     stats.Print();
@@ -541,18 +542,18 @@ boost::optional<Eigen::Affine3d> EstimateRelativeAffine3D(const Eigen::Matrix2Xd
   cameras[0].setIdentity();
   cameras[1].linear() = r;
   cameras[1].translation() = t;
-  Eigen::Matrix3Xd pid_to_xyz(3, matching_keypoints_2[0].cols());
+  Eigen::Matrix3Xd pid_to_global_t_point(3, matching_keypoints_2[0].cols());
   double error;
   int num_pts_behind_camera = 0;
   for (ptrdiff_t i = 0; i < matching_keypoints_2[0].cols(); i++) {
-    pid_to_xyz.col(i) =
+    pid_to_global_t_point.col(i) =
       TriangulatePoint
       (Eigen::Vector3d(matching_keypoints_2[0](0, i), matching_keypoints_2[0](1, i),
                        camera_params.GetFocalLength()),
        Eigen::Vector3d(matching_keypoints_2[1](0, i), matching_keypoints_2[1](1, i),
                        camera_params.GetFocalLength()),
        r, t, &error);
-    Eigen::Vector3d P = pid_to_xyz.col(i);
+    Eigen::Vector3d P = pid_to_global_t_point.col(i);
     Eigen::Vector3d Q = r*P + t;
     if (P[2] <= 0 || Q[2] <= 0) {
       num_pts_behind_camera++;
@@ -563,7 +564,7 @@ boost::optional<Eigen::Affine3d> EstimateRelativeAffine3D(const Eigen::Matrix2Xd
              << " (" << round((100.0 * num_pts_behind_camera) / matching_keypoints_2[0].cols()) << "%)";
 
   BundleAdjustSmallSet(matching_keypoints_2, camera_params.GetFocalLength(), &cameras,
-                                       &pid_to_xyz, new ceres::CauchyLoss(0.5), options,
+                                       &pid_to_global_t_point, new ceres::CauchyLoss(0.5), options,
                                        &summary);
 
   if (!summary.IsSolutionUsable()) {

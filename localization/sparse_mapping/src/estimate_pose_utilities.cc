@@ -41,7 +41,7 @@ std::vector<ImageMatch> FindAndSortMatches(const std::vector<int>& matching_cids
       image_match.num_valid_matches = image_match.matches.size();
     } else {
       for (const auto& match : image_match.matches) {
-       const bool map_point_3d_exists = map.cid_fid_to_pid_[cid].count(match.trainIdx) > 0;
+       const bool map_point_3d_exists = map.cid_to_fid_to_pid_[cid].count(match.trainIdx) > 0;
         if (!map_point_3d_exists) continue;
         ++image_match.num_valid_matches;
       }
@@ -63,14 +63,14 @@ void GetMatchingObservationsAndLandmarks(const std::vector<ImageMatches>& image_
   std::set<int> seen_landmarks;
   for (const auto& image_match : image_matches) {
     for (const auto& match : image_match.matches) {
-      const bool map_point_3d_exists = map.cid_fid_to_pid_[cid].count(match.trainIdx) > 0;
+      const bool map_point_3d_exists = map.cid_to_fid_to_pid_[cid].count(match.trainIdx) > 0;
       if (!map_point_3d_exists) continue;
-      const int landmark_id = map.cid_fid_to_pid_.at(cid).at(match.trainIdx);
+      const int landmark_id = map.cid_to_fid_to_pid_.at(cid).at(match.trainIdx);
       if (seen_landmarks.count(landmark_id) > 0) continue;
       const Eigen::Vector2d observation(keypoints.col(match.queryIdx)[0],
                           keypoints.col(match.queryIdx)[1]);
       observations.emplace_back(observation);
-      landmarks.push_back(map.pid_to_xyz_[landmark_id]);
+      landmarks.push_back(map.pid_to_global_t_point_[landmark_id]);
       seen_landmarks.insert(landmark_id);
       ++num_matches;
     }

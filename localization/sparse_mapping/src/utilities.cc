@@ -101,12 +101,12 @@ void ExtractSubmap(std::vector<std::string> * keep_ptr,
 
   // Wipe things that we won't merge (or not yet)
   map.ClearImageDatabase();
-  map.pid_to_xyz_.clear();
-  map.cid_fid_to_pid_.clear();
+  map.pid_to_global_t_point_.clear();
+  map.cid_to_fid_to_pid_.clear();
   map.cid_to_cid_.clear();
   map.user_cid_to_keypoint_map_.clear();
-  map.user_pid_to_cid_fid_.clear();
-  map.user_pid_to_xyz_.clear();
+  map.user_pid_to_feature_track_.clear();
+  map.user_pid_to_global_t_point_.clear();
 
   // Sanity check. The images to keep must exist in the original map.
   std::map<std::string, int> image2cid;
@@ -164,19 +164,19 @@ void ExtractSubmap(std::vector<std::string> * keep_ptr,
     size_t new_cid = cid2cid[cid];
     map.cid_to_filename_[new_cid]             = map.cid_to_filename_[cid];
     map.cid_to_keypoint_map_[new_cid]         = map.cid_to_keypoint_map_[cid];
-    map.cid_to_cam_t_global_[new_cid]         = map.cid_to_cam_t_global_[cid];
+    map.cid_to_cam_T_global_[new_cid]         = map.cid_to_cam_T_global_[cid];
     map.cid_to_descriptor_map_[new_cid]       = map.cid_to_descriptor_map_[cid];
   }
   map.cid_to_filename_             .resize(num_cid);
   map.cid_to_keypoint_map_         .resize(num_cid);
-  map.cid_to_cam_t_global_         .resize(num_cid);
+  map.cid_to_cam_T_global_         .resize(num_cid);
   map.cid_to_descriptor_map_       .resize(num_cid);
 
-  // Create new pid_to_cid_fid_.
-  std::vector<std::map<int, int> > pid_to_cid_fid;
-  std::vector<Eigen::Vector3d> pid_to_xyz;
-  for (int pid = 0; pid < static_cast<int>(map.pid_to_cid_fid_.size()); pid++) {
-    auto const& cid_fid = map.pid_to_cid_fid_[pid];  // alias
+  // Create new pid_to_feature_track_.
+  std::vector<std::map<int, int> > pid_to_feature_track;
+  std::vector<Eigen::Vector3d> pid_to_global_t_point;
+  for (int pid = 0; pid < static_cast<int>(map.pid_to_feature_track_.size()); pid++) {
+    auto const& cid_fid = map.pid_to_feature_track_[pid];  // alias
     std::map<int, int> cid_fid2;
     for (auto it = cid_fid.begin(); it != cid_fid.end(); it++) {
       int cid = it->first;
@@ -184,18 +184,18 @@ void ExtractSubmap(std::vector<std::string> * keep_ptr,
       cid_fid2[cid2cid[cid]] = it->second;
     }
     if (cid_fid2.size() <= 1) continue;  // tracks must have size at least 2
-    pid_to_cid_fid.push_back(cid_fid2);
-    pid_to_xyz.push_back(map.pid_to_xyz_[pid]);
+    pid_to_feature_track.push_back(cid_fid2);
+    pid_to_global_t_point.push_back(map.pid_to_global_t_point_[pid]);
   }
-  map.pid_to_cid_fid_ = pid_to_cid_fid;
-  map.pid_to_xyz_ = pid_to_xyz;
+  map.pid_to_feature_track_ = pid_to_feature_track;
+  map.pid_to_global_t_point_ = pid_to_global_t_point;
 
-  // Recreate cid_fid_to_pid_ from pid_to_cid_fid_. This must happen
+  // Recreate cid_to_fid_to_pid_ from pid_to_feature_track_. This must happen
   // after the merging is complete but before using the new map.
   map.InitializeCidFidPidMap();
 
   LOG(INFO) << "Number of images in the extracted map: " << map.cid_to_filename_.size();
-  LOG(INFO) << "Number of tracks in the extracted map: " << map.pid_to_cid_fid_.size();
+  LOG(INFO) << "Number of tracks in the extracted map: " << map.pid_to_feature_track_.size();
   // map.Save(output_map + ".extracted.map");
 
   return;
@@ -305,9 +305,9 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
 
   // Iterate over the control points in the hugin file. Copy the
   // control points to the list of user keypoints, and create the
-  // corresponding user_pid_to_cid_fid_.
+  // corresponding user_pid_to_feature_track_.
   map->user_cid_to_keypoint_map_.resize(map->cid_to_filename_.size());
-  map->user_pid_to_cid_fid_.resize(num_points);
+  map->user_pid_to_feature_track_.resize(num_points);
   for (int pid = 0; pid < num_points; pid++) {
     // Left and right image indices
     int id1 = user_ip(0, pid);
@@ -339,9 +339,9 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
     N2 << M2, user_ip.block(4, pid, 2, 1);  // right image pixel x and pixel y
     M2.swap(N2);
 
-    // The corresponding user_pid_to_cid_fid_
-    map->user_pid_to_cid_fid_[pid][cid1] = map->user_cid_to_keypoint_map_[cid1].cols()-1;
-    map->user_pid_to_cid_fid_[pid][cid2] = map->user_cid_to_keypoint_map_[cid2].cols()-1;
+    // The corresponding user_pid_to_feature_track_
+    map->user_pid_to_feature_track_[pid][cid1] = map->user_cid_to_keypoint_map_[cid1].cols()-1;
+    map->user_pid_to_feature_track_[pid][cid2] = map->user_cid_to_keypoint_map_[cid2].cols()-1;
   }
 
   // Shift the keypoints. Undistort if necessary.
@@ -354,27 +354,27 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
     }
   }
 
-  // Initialize user_pid_to_xyz_
-  map->user_pid_to_xyz_.resize(user_xyz.cols());
+  // Initialize user_pid_to_global_t_point_
+  map->user_pid_to_global_t_point_.resize(user_xyz.cols());
   for (int i = 0; i < user_xyz.cols(); i++)
-    map->user_pid_to_xyz_[i] = user_xyz.col(i);
+    map->user_pid_to_global_t_point_[i] = user_xyz.col(i);
 
   // Triangulate to find the coordinates of the current points
   // in the virtual coordinate system
-  std::vector<Eigen::Vector3d> pid_to_xyz;
-  std::vector<std::map<int, int> > cid_fid_to_pid_local;
+  std::vector<Eigen::Vector3d> pid_to_global_t_point;
+  std::vector<std::map<int, int> > cid_to_fid_to_pid_local;
   const bool remove_invalid_points = false;  // there should be nothing to remove hopefully
   TriangulateAllPoints(remove_invalid_points,
                               map->camera_params_.GetFocalLength(),
-                              map->cid_to_cam_t_global_,
+                              map->cid_to_cam_T_global_,
                               map->user_cid_to_keypoint_map_,
-                              &(map->user_pid_to_cid_fid_),
-                              &pid_to_xyz,
-                              &cid_fid_to_pid_local);
+                              &(map->user_pid_to_feature_track_),
+                              &pid_to_global_t_point,
+                              &cid_to_fid_to_pid_local);
 
   double mean_err = 0;
   for (int i = 0; i < user_xyz.cols(); i++) {
-    Eigen::Vector3d a = pid_to_xyz[i];
+    Eigen::Vector3d a = pid_to_global_t_point[i];
     Eigen::Vector3d b = user_xyz.col(i);
     mean_err += (a-b).norm();
   }
@@ -389,7 +389,7 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
   }
 
   for (int i = 0; i < user_xyz.cols(); i++) {
-    Eigen::Vector3d a = pid_to_xyz[i];
+    Eigen::Vector3d a = pid_to_global_t_point[i];
     Eigen::Vector3d b = user_xyz.col(i);
     std::cout << print_vec(a) << " -- "
               << print_vec(b) << " -- "
@@ -403,17 +403,17 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
 
   // Find the transform from the computed map coordinate system
   // to the world coordinate system.
-  int np = pid_to_xyz.size();
+  int np = pid_to_global_t_point.size();
   Eigen::Matrix3Xd in(3, np);
   for (int i = 0; i < np; i++)
-    in.col(i) = pid_to_xyz[i];
+    in.col(i) = pid_to_global_t_point[i];
   Eigen::Affine3d world_transform;
   sparse_mapping::Find3DAffineTransform(in, user_xyz, &world_transform);
 
   // Transform the map to the world coordinate system
   sparse_mapping::TransformCamerasAndPoints(world_transform,
-                                            &(map->cid_to_cam_t_global_),
-                                            &(map->pid_to_xyz_));
+                                            &(map->cid_to_cam_T_global_),
+                                            &(map->pid_to_global_t_point_));
 
   mean_err = 0.0;
   for (int i = 0; i < user_xyz.cols(); i++)

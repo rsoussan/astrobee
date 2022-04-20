@@ -156,11 +156,12 @@ boost::optional<int> SparseMapMerger::BestMatch(const std::map<int, int>& pid_ma
 MatchingTracks SparseMapMerger::MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map) {
   const auto match_candidates = DatabaseMatchCandidates(map_a, map_b, params_.max_db_query_image_match_candidates);
   MatchingTracks matching_tracks;
-  merged_map.MatchImagesAndBuildTracks(match_candidates, matching_tracks.pid_to_cid_fid);
+  merged_map.MatchImagesAndBuildTracks(match_candidates, matching_tracks.pid_to_feature_track);
 
-  matching_tracks.track_labels = std::vector<TrackLabel>(matching_tracks.pid_to_cid_fid.size(), TrackLabel::kInvalid);
-  for (int i = 0; i < pid_to_cid_fid.size(); ++i) {
-    const auto& cid_fids = pid_to_cid_fid[i];
+  matching_tracks.track_labels =
+    std::vector<TrackLabel>(matching_tracks.pid_to_feature_track.size(), TrackLabel::kInvalid);
+  for (int i = 0; i < pid_to_feature_track.size(); ++i) {
+    const auto& cid_fids = pid_to_feature_track[i];
     IdentifyTrack(cid_fids, i, map_a, map_b, matching_tracks);
   }
   return matching_tracks;
@@ -239,7 +240,7 @@ void SparseMapMerger::CombineTracks(const std::vector<std::pair<int, int>>& a_b_
 }
 
 void SparseMapMerger::ExtendTracks(const MatchingTracks& matching_tracks) {
-  for (i = 0; i < matching_tracks.pid_to_cid_fid.size(); ++i) {
+  for (i = 0; i < matching_tracks.pid_to_feature_track.size(); ++i) {
     if (matching_tracks.track_labels[i] == TrackLabel::kExtend) {
       const auto& b_cid_to_fid = map_b_->CidToFid(b_pid);
       map_a_->ExtendTrack(a_pid, b_cid_to_fid);
@@ -263,9 +264,9 @@ void SparseMapMerger::AddNewTracks(const MatchingTracks& matching_tracks) {
   intrinsics << focal_length, 0, 0,
     0, focal_length, 0,
     0, 0, 1;
-  for (int i = 0; i < matching_tracks.pid_to_cid_fid.size(); ++i) {
+  for (int i = 0; i < matching_tracks.pid_to_feature_track.size(); ++i) {
     if (matching_tracks.track_label[i] == TrackLabel::KNewTrack) {
-     const auto& cid_to_fid = matching_tracks.pid_to_cid_fid[i];
+     const auto& cid_to_fid = matching_tracks.pid_to_feature_track[i];
       std::vector<Eigen::Affine3d> poses;
       Keypoints keypoints;
       for (const auto& cid_fid_pair : cid_to_fid) {

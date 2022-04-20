@@ -38,7 +38,7 @@ enum class TrackLabel {
 
 struct MatchingTracks {
   std::vector<TrackLabel> track_labels;
-  std::vector<std::map<int, int> > pid_to_cid_fid;
+  std::vector<std::map<int, int> > pid_to_feature_track;
   std::vector<std::pair<int, int>> a_b_pid_correspondences;
   std::vector<int> non_matching_b_pids;
 };

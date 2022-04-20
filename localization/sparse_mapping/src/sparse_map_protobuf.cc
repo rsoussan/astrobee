@@ -122,14 +122,14 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
 
   // if not, only feature detection step has been run... or something is wrong
   if (num_landmarks > 0) {
-    pid_to_xyz_.resize(num_landmarks);
+    pid_to_global_t_point_.resize(num_landmarks);
 
     if (!localization) {
-      pid_to_cid_fid_.resize(num_landmarks);
+      pid_to_feature_track_.resize(num_landmarks);
     } else {
-      // Create directly cid_fid_to_pid
-      cid_fid_to_pid_.clear();
-      cid_fid_to_pid_.resize(cid_to_filename_.size(), std::map<int, int>());
+      // Create directly cid_to_fid_to_pid
+      cid_to_fid_to_pid_.clear();
+      cid_to_fid_to_pid_.resize(cid_to_filename_.size(), std::map<int, int>());
     }
 
     for (int i = 0; i < num_landmarks; i++) {
@@ -138,17 +138,17 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
         LOG(FATAL) << "Failed to parse landmark.";
       }
       Eigen::Vector3d pos(l.loc().x(), l.loc().y(), l.loc().z());
-      pid_to_xyz_[i] = pos;
+      pid_to_global_t_point_[i] = pos;
       for (int j = 0; j < l.match_size(); j++) {
         sparse_mapping_protobuf::Matching m = l.match(j);
         if (!localization)
-          pid_to_cid_fid_[i][m.camera_id()] = m.feature_id();
+          pid_to_feature_track_[i][m.camera_id()] = m.feature_id();
         else
-          cid_fid_to_pid_[m.camera_id()][m.feature_id()] = i;
+          cid_to_fid_to_pid_[m.camera_id()][m.feature_id()] = i;
       }
     }
 
-    // If in localization mode, we already initialized cid_fid_to_pid_ right above.
+    // If in localization mode, we already initialized cid_to_fid_to_pid_ right above.
     if (!localization)
       InitializeCidFidPidMap();
 
@@ -214,7 +214,7 @@ void SparseMap::Save(const std::string & protobuf_file) const {
     << "Number of CIDs in filenames and descriptor map do not match";
 
   map.set_num_frames(cid_to_filename_.size());
-  map.set_num_landmarks(pid_to_xyz_.size());
+  map.set_num_landmarks(pid_to_global_t_point_.size());
 
   // TODO(rsoussan): put this back? remove this?
   if (vocab_db_.binary_db != NULL)
@@ -273,20 +273,20 @@ void SparseMap::Save(const std::string & protobuf_file) const {
     }
   }
 
-  if (pid_to_xyz_.size() != pid_to_cid_fid_.size()) {
+  if (pid_to_global_t_point_.size() != pid_to_feature_track_.size()) {
     LOG(FATAL) << "Book-keeping failure, expecting the following "
                << "arrays to have the same size:\n"
-               << "pid_to_xyz_.size() = " << pid_to_xyz_.size() << "\n"
-               << "pid_to_cid_fid_.size() = " << pid_to_cid_fid_.size();
+               << "pid_to_global_t_point_.size() = " << pid_to_global_t_point_.size() << "\n"
+               << "pid_to_feature_track_.size() = " << pid_to_feature_track_.size();
   }
 
-  for (size_t i = 0; i < pid_to_xyz_.size(); i++) {
+  for (size_t i = 0; i < pid_to_global_t_point_.size(); i++) {
     sparse_mapping_protobuf::Landmark l;
-    l.mutable_loc()->set_x(pid_to_xyz_[i].x());
-    l.mutable_loc()->set_y(pid_to_xyz_[i].y());
-    l.mutable_loc()->set_z(pid_to_xyz_[i].z());
+    l.mutable_loc()->set_x(pid_to_global_t_point_[i].x());
+    l.mutable_loc()->set_y(pid_to_global_t_point_[i].y());
+    l.mutable_loc()->set_z(pid_to_global_t_point_[i].z());
     for (std::map<int, int >::const_iterator it =
-          pid_to_cid_fid_[i].begin(); it != pid_to_cid_fid_[i].end(); it++) {
+          pid_to_feature_track_[i].begin(); it != pid_to_feature_track_[i].end(); it++) {
       sparse_mapping_protobuf::Matching* m = l.add_match();
       m->set_camera_id(it->first);
       m->set_feature_id(it->second);

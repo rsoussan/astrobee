@@ -119,7 +119,7 @@ CIDPairAffineMap SparseMap::MatchImagesAndBuildTracks() {
                               seqeuntial_match_candidates.end());
   all_match_candidates.insert(all_match_candidates.end(), database_match_candidates.begin(),
                               database_match_candidates.end());
-  const auto relative_affines = MatchImagesAndBuildTracks(all_match_candidates, pid_to_cid_fid_);
+  const auto relative_affines = MatchImagesAndBuildTracks(all_match_candidates, pid_to_feature_track_);
   InitializeCidFidPidMap();
   return relative_affines;
 }

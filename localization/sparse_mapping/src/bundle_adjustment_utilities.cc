@@ -61,8 +61,8 @@ ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
                                     const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
                                     PidPoseMap* cid_to_cam_T_global,
                                     PidFeatureTrackMap* pid_to_feature_track,
-                                    PidPointMap* pid_to_xyz,
-                                    CidFidPidMap* cid_fid_to_pid) {
+                                    PidPointMap* pid_to_global_t_point,
+                                    CidFidPidMap* cid_to_fid_to_pid) {
   std::vector<Eigen::Matrix<double, 7, 1>> camera_T_globals;
   camera_T_globals.reserve(cid_to_cam_T_global->size());
   for (int cid = 0; cid < cid_to_cam_T_global->size(); ++cid) {
@@ -77,11 +77,11 @@ ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
   oc::AddConstantParameterBlock(2, zero_principal_points.data(), problem);
   oc::AddConstantParameterBlock(1, zero_distortion.data(), problem);
   oc::AddConstantParameterBlock(2, focal_lengths.data(), problem);
-    for (int pid = 0; pid < static_cast<int>(pid_to_xyz->size()); ++pid) {
+    for (int pid = 0; pid < static_cast<int>(pid_to_global_t_point->size()); ++pid) {
       if (pid_to_feature_track[pid].size() < 2)
         LOG(FATAL) << "Found a track of size < 2.";
 
-      auto& point_3d = pid_to_xyz->at(pid);
+      auto& point_3d = pid_to_global_t_point->at(pid);
       const bool fixed_point = FixedPoint(params, pid, pid_to_feature_track);
       oc::AddParameterBlock(3, point_3d.data(), problem, fixed_point);
        for (const auto& cid_fid : pid_to_feature_track[pid]) {
@@ -118,7 +118,7 @@ ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
                  *cid_to_cam_T_global,
                  cid_to_keypoint_map,
                  pid_to_feature_track,
-                 pid_to_xyz, cid_fid_to_pid);
+                 pid_to_global_t_point, cid_to_fid_to_pid);
   }
 
   return summary;
@@ -129,7 +129,7 @@ ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
 void BundleAdjustSmallSet(std::vector<Eigen::Matrix2Xd> const& features_n,
                           double focal_length,
                           std::vector<Eigen::Affine3d> * cam_T_global_n,
-                          Eigen::Matrix3Xd * pid_to_xyz,
+                          Eigen::Matrix3Xd * pid_to_global_t_point,
                           ceres::LossFunction * loss,
                           ceres::Solver::Options const& options,
                           ceres::Solver::Summary * summary) {
@@ -137,7 +137,7 @@ void BundleAdjustSmallSet(std::vector<Eigen::Matrix2Xd> const& features_n,
   CHECK(cam_T_global_n->size() == features_n.size())
     << "Variables features_n and cam_T_global_n need to agree on the number of cameras";
   CHECK(cam_T_global_n->size() > 1) << "Bundle adjust needs at least 2 or more cameras";
-  CHECK(pid_to_xyz->cols() == features_n[0].cols())
+  CHECK(pid_to_global_t_point->cols() == features_n[0].cols())
     << "There should be an equal amount of XYZ points as there are feature observations";
   for (size_t i = 1; i < features_n.size(); i++) {
     CHECK(features_n[0].cols() == features_n[i].cols())
@@ -154,13 +154,13 @@ void BundleAdjustSmallSet(std::vector<Eigen::Matrix2Xd> const& features_n,
 
   // Build the problem
   ceres::Problem problem;
-  for (ptrdiff_t pid = 0; pid < pid_to_xyz->cols(); pid++) {
+  for (ptrdiff_t pid = 0; pid < pid_to_global_t_point->cols(); pid++) {
     for (size_t cid = 0; cid < n_cameras; cid++) {
       ceres::CostFunction* cost_function = ReprojectionError::Create(features_n[cid].col(pid));
       problem.AddResidualBlock(cost_function, loss,
                                &cam_T_global_n->at(cid).translation()[0],
                                &aa.at(cid)[0],
-                               &pid_to_xyz->col(pid)[0],
+                               &pid_to_global_t_point->col(pid)[0],
                                &focal_length);
     }
   }

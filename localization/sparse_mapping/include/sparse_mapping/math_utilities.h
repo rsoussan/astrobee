@@ -38,10 +38,11 @@ boost::optional<Eigen::Vector3d> Triangulate(const Eigen::Matrix3d& intrinsics,
 
 // Triangulates all points given camera positions.
 void TriangulateAllPoints(const bool remove_invalid_points, const double focal_length,
-                          const std::vector<Eigen::Affine3d>& cid_to_cam_t_global,
+                          const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
                           const CidToKeypointMap& cid_to_keypoints,
-                          std::vector<std::map<int, int> >* pid_to_cid_fid, std::vector<Eigen::Vector3d>* pid_to_xyz,
-                          std::vector<std::map<int, int> >* cid_fid_to_pid = nullptr);
+                          std::vector<std::map<int, int> >* pid_to_feature_track,
+                          std::vector<Eigen::Vector3d>* pid_to_xyz,
+                          std::vector<std::map<int, int> >* cid_to_fid_to_pid = nullptr);
 
 double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors,
                                   const RemoveInvalidPointsAndDetectionsParams& params);
@@ -51,17 +52,18 @@ boost::optional<double> AngleBetweenRays(const Eigen::Vector3d& a_t_p, const Eig
 // Find the maximum angle between n rays intersecting at given
 // point. Must compute the camera centers in the global coordinate
 // system before calling this function.
-double MaxAngleBetweenCameraRays(const int pid, const std::vector<std::map<int, int> >& pid_to_cid_fid,
+double MaxAngleBetweenCameraRays(const int pid, const std::vector<std::map<int, int> >& pid_to_feature_track,
                                  const std::vector<Eigen::Vector3d>& global_t_cams,
                                  const std::vector<Eigen::Vector3d>& pid_to_xyz);
 
 // Remove points that don't project at valid camera pixels,
 // points behind the camera, and matches having large reprojection error.
 void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsParams& params,
-                 const std::vector<Eigen::Affine3d >& cid_to_cam_t_global,
-                 const CidToKeypointsMap& cid_to_keypoints,
-                 std::vector<std::map<int, int> > * pid_to_cid_fid,
-                 std::vector<Eigen::Vector3d> * pid_to_xyz, std::vector<std::map<int, int> >* cid_fid_to_pid = nullptr);
+                                      const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
+                                      const CidToKeypointsMap& cid_to_keypoints,
+                                      std::vector<std::map<int, int> >* pid_to_feature_track,
+                                      std::vector<Eigen::Vector3d>* pid_to_xyz,
+                                      std::vector<std::map<int, int> >* cid_to_fid_to_pid = nullptr);
 
 void DetectFeatures(const cv::Mat& image,
                       const bool histogram_equalization,

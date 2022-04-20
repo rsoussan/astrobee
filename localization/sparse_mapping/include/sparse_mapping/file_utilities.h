@@ -41,8 +41,8 @@ namespace sparse_mapping {
   void ParseXYZ(std::string const& xyz_file, Eigen::MatrixXd * xyz);
 
 void InitializeCidFidPidMap(int num_cid,
-                           std::vector<std::map<int, int> > const& pid_to_cid_fid,
-                           std::vector<std::map<int, int> > * cid_fid_to_pid);
+                           std::vector<std::map<int, int> > const& pid_to_feature_track,
+                           std::vector<std::map<int, int> > * cid_to_fid_to_pid);
 
 cv::Mat LoadImage(const std::string& filename);
 }  // namespace sparse_mapping

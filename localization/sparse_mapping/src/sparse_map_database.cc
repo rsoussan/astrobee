@@ -30,7 +30,7 @@ void SparseMapDatabase::AddImagesAndFeatures(const SparseMapDatabase& map) {
   const int num_final_cids = num_initial_cids + map.NumCids();
   cid_to_filename_.reserve(num_final_cids);
   cid_to_keypoints_.reserve(num_final_cids);
-  cid_to_cam_t_global_.reserve(num_final_cids);
+  cid_to_cam_T_global_.reserve(num_final_cids);
   cid_to_descriptors_.reserve(num_final_cids);
   for (int cid = 0; cid < map.NumCids(); ++cid) {
     cid_to_filename_.emplace_back(map.filename(cid));
@@ -60,12 +60,12 @@ void SparseMapDatabase::InitializeCidFidPidMap() {
   }
 
 void SparseMapDatabase::Transform(const Eigen::Affine3d& new_global_T_global) {
-  for (auto& point : pid_to_xyz_) {
+  for (auto& point : pid_to_global_t_point_) {
     point = new_global_T_global * point;
   }
 
   const Eigen::Affine3d global_T_new_global = new_global_T_global.inverse();
-  for (auto& cam_T_global : cid_to_cam_t_global_) {
+  for (auto& cam_T_global : cid_to_cam_T_global_) {
     cam_T_global = cam_T_global * global_T_new_global;
   }
 }
