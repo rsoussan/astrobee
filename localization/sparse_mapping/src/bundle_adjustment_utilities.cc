@@ -42,10 +42,11 @@ bool FixedCamera(const BundleAdjustmentParams& params, const int cid) {
 }
 
 bool FixedPoint(const BundleAdjustmentParams& params, const int pid,
-                const std::vector<std::map<int, int>>& pid_to_cid_fid) {
+                const PidFeatureTrackMap& pid_to_feature_track) {
   if (params.fixed_points.count(pid) > 0) return true;
   // Points which project into cameras that are not fixed are also not fixed
-  for (const auto& cid_fid : pid_to_cid_fid[pid]) {
+  const auto& feature_track = pid_to_feature_track[pid];
+  for (const auto& cid_fid_pair : feature_track) {
     const int cid = cid_fid.first;
     if (!FixedCamera(cid)) return false;
   }
@@ -58,14 +59,14 @@ namespace oc = optimization_common;
 
 ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
                                     const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
-                                    std::vector<Eigen::Affine3d>* cid_to_cam_t_global,
-                                    std::vector<std::map<int, int>>* pid_to_cid_fid,
-                                    std::vector<Eigen::Vector3d>* pid_to_xyz,
-                                    std::vector<std::map<int, int>>* cid_fid_to_pid) {
+                                    PidPoseMap* cid_to_cam_T_global,
+                                    PidFeatureTrackMap* pid_to_feature_track,
+                                    PidPointMap* pid_to_xyz,
+                                    CidFidPidMap* cid_fid_to_pid) {
   std::vector<Eigen::Matrix<double, 7, 1>> camera_T_globals;
-  camera_T_globals.reserve(cid_to_cam_t_global->size());
-  for (int cid = 0; cid < cid_to_cam_t_global->size(); ++cid) {
-    camera_T_globals.emplace_back(oc::VectorFromAffine3d(cid_to_cam_t_global->at(cid)));
+  camera_T_globals.reserve(cid_to_cam_T_global->size());
+  for (int cid = 0; cid < cid_to_cam_T_global->size(); ++cid) {
+    camera_T_globals.emplace_back(oc::VectorFromAffine3d(cid_to_cam_T_global->at(cid)));
   }
 
   ceres::Problem problem;
@@ -77,13 +78,13 @@ ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
   oc::AddConstantParameterBlock(1, zero_distortion.data(), problem);
   oc::AddConstantParameterBlock(2, focal_lengths.data(), problem);
     for (int pid = 0; pid < static_cast<int>(pid_to_xyz->size()); ++pid) {
-      if (pid_to_cid_fid[pid].size() < 2)
+      if (pid_to_feature_track[pid].size() < 2)
         LOG(FATAL) << "Found a track of size < 2.";
 
       auto& point_3d = pid_to_xyz->at(pid);
-      const bool fixed_point = FixedPoint(params, pid, pid_to_cid_fid);
+      const bool fixed_point = FixedPoint(params, pid, pid_to_feature_track);
       oc::AddParameterBlock(3, point_3d.data(), problem, fixed_point);
-       for (const auto& cid_fid : pid_to_cid_fid[pid]) {
+       for (const auto& cid_fid : pid_to_feature_track[pid]) {
         const int cid = cid_fid.first;
         const int fid = cid_fid.second;
         const auto& image_point = cid_to_keypoint_map[cid].col(fid);
@@ -108,15 +109,15 @@ ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
   ceres::Solve(params.options, &problem, &summary);
 
   // Write the rotations back to the transform
-  for (int cid = 0; cid < cid_to_cam_t_global->size(); ++cid) {
-    cid_to_cam_t_global->at(cid) = oc::Affine3d(camera_T_globals[cid]);
+  for (int cid = 0; cid < cid_to_cam_T_global->size(); ++cid) {
+    cid_to_cam_T_global->at(cid) = oc::Affine3d(camera_T_globals[cid]);
   }
 
   if (params.remove_invalid_points_and_detections) {
     RemoveInvalidPointsAndDetections(params.remove_invalid_points_and_detections_params,
-                 *cid_to_cam_t_global,
+                 *cid_to_cam_T_global,
                  cid_to_keypoint_map,
-                 pid_to_cid_fid,
+                 pid_to_feature_track,
                  pid_to_xyz, cid_fid_to_pid);
   }
 
@@ -127,15 +128,15 @@ ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
 // TODO(rsoussan): Combine this with other bundle adjust function!!!!!
 void BundleAdjustSmallSet(std::vector<Eigen::Matrix2Xd> const& features_n,
                           double focal_length,
-                          std::vector<Eigen::Affine3d> * cam_t_global_n,
+                          std::vector<Eigen::Affine3d> * cam_T_global_n,
                           Eigen::Matrix3Xd * pid_to_xyz,
                           ceres::LossFunction * loss,
                           ceres::Solver::Options const& options,
                           ceres::Solver::Summary * summary) {
-  CHECK(cam_t_global_n) << "Variable cam_t_global_n needs to be defined";
-  CHECK(cam_t_global_n->size() == features_n.size())
-    << "Variables features_n and cam_t_global_n need to agree on the number of cameras";
-  CHECK(cam_t_global_n->size() > 1) << "Bundle adjust needs at least 2 or more cameras";
+  CHECK(cam_T_global_n) << "Variable cam_T_global_n needs to be defined";
+  CHECK(cam_T_global_n->size() == features_n.size())
+    << "Variables features_n and cam_T_global_n need to agree on the number of cameras";
+  CHECK(cam_T_global_n->size() > 1) << "Bundle adjust needs at least 2 or more cameras";
   CHECK(pid_to_xyz->cols() == features_n[0].cols())
     << "There should be an equal amount of XYZ points as there are feature observations";
   for (size_t i = 1; i < features_n.size(); i++) {
@@ -148,7 +149,7 @@ void BundleAdjustSmallSet(std::vector<Eigen::Matrix2Xd> const& features_n,
   // Allocate space for the angle axis representation of rotation
   std::vector<Eigen::Vector3d> aa(n_cameras);
   for (size_t cid = 0; cid < n_cameras; cid++) {
-    camera::RotationToRodrigues(cam_t_global_n->at(cid).linear(), &aa[cid]);
+    camera::RotationToRodrigues(cam_T_global_n->at(cid).linear(), &aa[cid]);
   }
 
   // Build the problem
@@ -157,7 +158,7 @@ void BundleAdjustSmallSet(std::vector<Eigen::Matrix2Xd> const& features_n,
     for (size_t cid = 0; cid < n_cameras; cid++) {
       ceres::CostFunction* cost_function = ReprojectionError::Create(features_n[cid].col(pid));
       problem.AddResidualBlock(cost_function, loss,
-                               &cam_t_global_n->at(cid).translation()[0],
+                               &cam_T_global_n->at(cid).translation()[0],
                                &aa.at(cid)[0],
                                &pid_to_xyz->col(pid)[0],
                                &focal_length);
@@ -172,7 +173,7 @@ void BundleAdjustSmallSet(std::vector<Eigen::Matrix2Xd> const& features_n,
   Eigen::Matrix3d r;
   for (size_t cid = 0; cid < n_cameras; cid++) {
     camera::RodriguesToRotation(aa[cid], &r);
-    cam_t_global_n->at(cid).linear() = r;
+    cam_T_global_n->at(cid).linear() = r;
   }
 }
 
