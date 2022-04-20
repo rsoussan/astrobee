@@ -20,19 +20,19 @@
 
 namespace sparse_mapping {
 void SparseMapDatabase::ResizeFeatureMaps() {
-  const int num_cids = NumCIDs();
+  const int num_cids = NumCids();
   cid_to_keypoint_map_.resize(num_cids);
   cid_to_descriptor_map_.resize(num_cids);
 }
 
 void SparseMapDatabase::AddImagesAndFeatures(const SparseMapDatabase& map) {
-  const int num_initial_cids = NumCIDs();
-  const int num_final_cids = num_initial_cids + map.NumCIDs();
+  const int num_initial_cids = NumCids();
+  const int num_final_cids = num_initial_cids + map.NumCids();
   cid_to_filename_.reserve(num_final_cids);
   cid_to_keypoint_map_.reserve(num_final_cids);
   cid_to_cam_t_global_.reserve(num_final_cids);
   cid_to_descriptor_map_.reserve(num_final_cids);
-  for (int cid = 0; cid < map.NumCIDs(); ++cid) {
+  for (int cid = 0; cid < map.NumCids(); ++cid) {
     cid_to_filename_.emplace_back(map.cid_to_filename_[cid]);
     cid_to_keypoint_map_.emplace_back(map.cid_to_keypoint_map_[cid]);
     cid_to_descriptor_map_.emplace_back(map.cid_to_descriptor_map_[cid]);
@@ -45,8 +45,8 @@ void SparseMapDatabase::AddPoses(const std::vector<Eigen::Affine3d>& cam_T_globa
   }
 }
 
-void SparseMapDatabase::InitializeCidFidToPid() {
-  sparse_mapping::InitializeCidFidToPid(NumCIDs(),
+void SparseMapDatabase::InitializeCidFidPidMap() {
+  sparse_mapping::InitializeCidFidPidMap(NumCids(),
                                         pid_to_cid_fid_,
                                         &cid_fid_to_pid_);
 }
@@ -61,7 +61,7 @@ void SparseMapDatabase::InitializeCidFidToPid() {
 
   std::vector<std::vector<cv::Mat>> SparseMapDatabase::AllFeatures() const {
       std::vector<std::vector<cv::Mat>> all_features;
-      const int num_cids = NumCIDs();
+      const int num_cids = NumCids();
       for (int cid = 0; cid < num_cids; ++cid) {
         all_features.emplace_back(Features(cid));
       }
@@ -69,7 +69,7 @@ void SparseMapDatabase::InitializeCidFidToPid() {
 
 int SparseMapDatabase::NumFeatures() const {
   int num_features = 0;
-  for (int cid = 0; cid < NumCIDs(); ++cid) {
+  for (int cid = 0; cid < NumCids(); ++cid) {
     total_features += Keypoints(cid).outerSize();
   }
   return num_features;

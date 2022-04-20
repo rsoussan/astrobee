@@ -59,16 +59,16 @@ void SparseMapMerger::MergeMaps() {
   map_b_->Transform(map_a_T_map_b);
   merged_map_->AddPoses(map_b_->cid_to_cam_T_global());
   MergeTracks(matching_tracks);
-  merged_map_->InitializeCidFidToPid();
+  merged_map_->InitializeCidFidPidMap();
   merged_map_->BuildImageDatabase();
   if (params_.bundle_adjust_result) BundleAdjust(matching_tracks);
 }
 
 std::vector<MatchCandidates> SparseMapMerger::DatabaseMatchCandidates(const SparseMap& map_a, const SparseMap& map_b,
                                                                       const int max_query_matches) const {
-  const int num_map_a_cids = map_a.NumCIDs();
+  const int num_map_a_cids = map_a.NumCids();
   std::vector<MatchCandidates> database_match_candidates;
-  for (int cid = 0; cid < map_b.NumCIDs(); ++cid) {
+  for (int cid = 0; cid < map_b.NumCids(); ++cid) {
     MatchCandidates match_candidates;
     // Offset by num_map_a_cids since map_b cid indices start at num_map_a_cids in the merged map
     match_candidates.cid = num_map_a_cids + cid;
@@ -96,7 +96,7 @@ void SparseMapMerger::IdentifyTrack(const std::map<int, int>& track, const int i
       a_pid_matches[a_pid]++;
     } else {
       // Since merged map contains a cids + b cids, any b cid should be present in map b with value -= num a cids
-      const int b_cid = cid - map_a.NumCIDs();
+      const int b_cid = cid - map_a.NumCids();
       if (map_b.ContainsPid(b_cid, fid)) b_pids.emplace_back(map_b.Pid(b_cid, fid));
     }
   }
@@ -267,12 +267,12 @@ void SparseMapMerger::AddNewTracks(const MatchingTracks& matching_tracks) {
     if (matching_tracks.track_label[i] == TrackLabel::KNewTrack) {
      const auto& cid_to_fid = matching_tracks.pid_to_cid_fid[i];
       std::vector<Eigen::Affine3d> poses;
-      std::vector<Eigen::MatrixXd> keypoints;
+      Keypoints keypoints;
       for (const auto& cid_fid_pair : cid_to_fid) {
         const int cid = cid_fid_pair.first;
         const int fid = cid_fid_pair.second;
         poses.emplace_back(merged_map_->CamTGlobal(cid));
-        keypoints.emplace_back(merged_map_->Keypoint(cid, fid));
+        keypoints.emplace_back(merged_map_->keypoint(cid, fid));
       }
       const auto global_t_point = Triangulate(intrinsics, poses, keypoints);
       merged_map_->AddTrack(global_t_b_point, cid_to_fid);
@@ -290,8 +290,8 @@ void SparseMapMerger::BundleAdjust(const std::vector<std::pair<int, int>>& a_b_p
   params_.bundle_adjustment.fix_all_cameras = false;
   params_.bundle_adjustment.optimize_camera_range = true;
   // Map b cameras in merged map start after the last map a camera
-  params_.bundle_adjustment.first_optimized_camera = map_a_->NumCIDs();
-  params_.bundle_adjustment.last_optimized_camera = merged_map_->NumCIDs() - 1;
+  params_.bundle_adjustment.first_optimized_camera = map_a_->NumCids();
+  params_.bundle_adjustment.last_optimized_camera = merged_map_->NumCids() - 1;
       break;
   case kOptimizeMergedAndUpdatedPosesAndPoints:
   params_.bundle_adjustment.fix_all_cameras = false;
@@ -323,7 +323,7 @@ void SparseMapMerger::FillUnmodifiedCamerasAndPoints(const std::vector<std::pair
     if (modified_a_pids.count(a_pid) == 0) fixed_points.emplace(a_pid);
   }
 
-  for (int a_cid = 0; a_cid < map_a_->NumCIDs(); ++a_cid) {
+  for (int a_cid = 0; a_cid < map_a_->NumCids(); ++a_cid) {
     if (modified_a_cids.count(a_cid) == 0) fixed_cameras.emplace(a_cid);
   }
 }

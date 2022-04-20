@@ -94,7 +94,7 @@ Eigen::Quaternion<double> slerp_n(std::vector<double> const& W,
 
   boost::optional<Eigen::Vector3d> Triangulate(const Eigen::Matrix3d& intrinsics,
                                                const std::vector<Eigen::Affine3d>& camera_T_worlds,
-                                               const std::vector<Eigen::Matrix2Xd>& keypoints) {
+                                               const Keypoints& keypoints) {
     std::vector<openMVG::Mat34> projection_matrices(camera_T_worlds.size());
     openMVG::Triangulation triangulation;
     for (int i = 0; i < camera_T_worlds.size(); ++i) {
@@ -112,7 +112,7 @@ Eigen::Quaternion<double> slerp_n(std::vector<double> const& W,
 
 void TriangulateAllPoints(const bool remove_invalid_points, const double focal_length,
                  const std::vector<Eigen::Affine3d>& cid_to_cam_t_global,
-                 const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
+                 const CidToKeypointMap& cid_to_keypoints,
                  std::vector<std::map<int, int> > * pid_to_cid_fid,
                  std::vector<Eigen::Vector3d> * pid_to_xyz,
                  std::vector<std::map<int, int> > * cid_fid_to_pid) {
@@ -132,7 +132,7 @@ void TriangulateAllPoints(const bool remove_invalid_points, const double focal_l
   for (int pid = pid_to_cid_fid->size() - 1; pid >= 0; --pid) {
     openMVG::Triangulation triangulation;
     for (const auto& cid_fid : pid_to_cid_fid->at(pid)) {
-      triangulation.add(projection_matrices[cid_fid.first],  cid_to_keypoint_map[cid_fid.first].col(cid_fid.second));
+      triangulation.add(projection_matrices[cid_fid.first],  cid_to_keypoints[cid_fid.first][cid_fid.second]);
     }
     const Eigen::Vector3d solution = triangulation.compute();
     if ( remove_invalid_points && (std::isnan(solution[0]) || triangulation.minDepth() < 0) ) {
@@ -144,7 +144,7 @@ void TriangulateAllPoints(const bool remove_invalid_points, const double focal_l
   }
 
   if (remove_invalid_points && cid_fid_to_pid)
-  InitializeCidFidToPid(cid_to_cam_t_global.size(), *pid_to_cid_fid, cid_fid_to_pid);
+  InitializeCidFidPidMap(cid_to_cam_t_global.size(), *pid_to_cid_fid, cid_fid_to_pid);
 }
 
 double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors,
@@ -282,7 +282,7 @@ void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsPara
   }
   RemoveInvalidPoints(invalid_point_detection_count, *pid_to_cid_fid, *pid_to_xyz);
   if (cid_fid_to_pid)
-  InitializeCidFidToPid(cid_to_cam_t_global.size(),
+  InitializeCidFidPidMap(cid_to_cam_t_global.size(),
                                         *pid_to_cid_fid,
                                         cid_fid_to_pid);
 

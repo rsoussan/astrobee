@@ -192,7 +192,7 @@ void ExtractSubmap(std::vector<std::string> * keep_ptr,
 
   // Recreate cid_fid_to_pid_ from pid_to_cid_fid_. This must happen
   // after the merging is complete but before using the new map.
-  map.InitializeCidFidToPid();
+  map.InitializeCidFidPidMap();
 
   LOG(INFO) << "Number of images in the extracted map: " << map.cid_to_filename_.size();
   LOG(INFO) << "Number of tracks in the extracted map: " << map.pid_to_cid_fid_.size();

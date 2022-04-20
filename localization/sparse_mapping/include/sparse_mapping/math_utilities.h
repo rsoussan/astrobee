@@ -34,12 +34,12 @@ namespace sparse_mapping {
 
 boost::optional<Eigen::Vector3d> Triangulate(const Eigen::Matrix3d& intrinsics,
                  const std::vector<Eigen::Affine3d>& camera_T_worlds,
-                 const std::vector<Eigen::Matrix2Xd>& keypoints);
+                 const Keypoints& keypoints);
 
 // Triangulates all points given camera positions.
 void TriangulateAllPoints(const bool remove_invalid_points, const double focal_length,
                           const std::vector<Eigen::Affine3d>& cid_to_cam_t_global,
-                          const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
+                          const CidToKeypointMap& cid_to_keypoints,
                           std::vector<std::map<int, int> >* pid_to_cid_fid, std::vector<Eigen::Vector3d>* pid_to_xyz,
                           std::vector<std::map<int, int> >* cid_fid_to_pid = nullptr);
 
@@ -59,7 +59,7 @@ double MaxAngleBetweenCameraRays(const int pid, const std::vector<std::map<int, 
 // points behind the camera, and matches having large reprojection error.
 void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsParams& params,
                  const std::vector<Eigen::Affine3d >& cid_to_cam_t_global,
-                 const std::vector<Eigen::Matrix2Xd >& cid_to_keypoint_map,
+                 const CidToKeypointsMap& cid_to_keypoints,
                  std::vector<std::map<int, int> > * pid_to_cid_fid,
                  std::vector<Eigen::Vector3d> * pid_to_xyz, std::vector<std::map<int, int> >* cid_fid_to_pid = nullptr);
 
@@ -67,7 +67,7 @@ void DetectFeatures(const cv::Mat& image,
                       const bool histogram_equalization,
                       vision_common::DynamicDetector& detector,
                       cv::Mat& descriptors,
-                      Eigen::Matrix2Xd& keypoints);
+                      Keypoints& keypoints);
 
   // Performs a robust, ransac, solving for the essential matrix
   // between interest point measurements in x1 and x2.

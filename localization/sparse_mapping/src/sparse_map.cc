@@ -122,7 +122,7 @@ CIDPairAffineMap SparseMap::MatchImagesAndBuildTracks() {
   all_match_candidates.insert(all_match_candidates.end(), database_match_candidates.begin(),
                               database_match_candidates.end());
   const auto relative_affines = MatchImagesAndBuildTracks(all_match_candidates, pid_to_cid_fid_);
-  InitializeCidFidToPid();
+  InitializeCidFidPidMap();
   return relative_affines;
 }
 
@@ -251,7 +251,7 @@ void SparseMap::PruneMap() {
   }
 
   // This is not strictly necessary as all book-keeping was already done
-  InitializeCidFidToPid();
+  InitializeCidFidPidMap();
 }
 
 // TODO(rsoussan): Only triangulate newly added points in between bundle adjustment iterations,

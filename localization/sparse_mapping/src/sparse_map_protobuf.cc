@@ -150,7 +150,7 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
 
     // If in localization mode, we already initialized cid_fid_to_pid_ right above.
     if (!localization)
-      InitializeCidFidToPid();
+      InitializeCidFidPidMap();
 
   } else {
     LOG(WARNING) << "There appear to be no landmarks in map file.";

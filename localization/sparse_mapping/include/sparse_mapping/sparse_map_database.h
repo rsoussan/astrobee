@@ -35,63 +35,54 @@
 
 namespace sparse_mapping {
 /**
- * A database of image features, 3D points for select features, camera poses in a global frame, and image files.
-  * Terminology used in this code:
-  *  CID = Camera ID. A unique ID for each camera.  A camera is created for each image.
-  *  PID = Point ID. A unique ID for each point. Can be observed by
-  *        multiple cameras.
-  *  FID = Feature ID. A unique ID for each feature observing a PID. Each CID has a number of FIDs which 
-  *  provide both image space locations (keypoints) and feature decriptors.
-  *  filename = Image filename.  Each image filename is assigned a unique CID
-  *
-  * cid_to_filename - Indexed on CID. Provides the filename for each CID.
-  * cid_to_keypoint_map - Indexed first on CID and then on each FID. Provides the feature image space location (keypoint) for the FID.
-  * cid_to_descriptor_map - Indexed on CID then on each FID. Provides the feature descriptor for the FID.
-  * cid_to_cam_t_global - Indexed on CID. Provides the affine camera_T_global transform.
-  * cid_fid_to_pid - Indexed on CID and then on each FID.  Provides the PID for each FID.
-  * pid_to_cid_fid - Indexed on PID. Provides the CID and its FID that observed the PID.
-  * pid_to_xyz - Indexed on PID. Provides the XYZ position of each PID.
- **/
+ * A database of image filenames, detected image features, 3D points for select features, feature tracks, and camera poses.
+  *  Terminology used in this code:
+  *  Cid = Camera id. A unique sequential id for each camera, where a camera (containing a pose and detected features)
+  *        is created for each image.
+  *  Pid = Point id. A unique sequential id for each 3d point created for a feature track in a global frame.
+  *  Fid = Feature id. A unique id for each detected feature in all the images.
+  *  Keypoint = The location of a feature in image space.
+  *  Descriptor = The descriptor vector for an image feature.
+  *  FeatureTrack = Detected features from different unique images that match with eachother.  **/
 class SparseMapDatabase {
  public:
+  // Cids and Pids are assumed to always start at 0 and increase by one up to num cids/pids,
+  // therefore cid and pid maps can use a vector as a container.
+  using Cid = int;
+  using Fid = int;
+  using Pid = int;
+  using Keypoint = Eigen::Vector2d;
+  using Keypoints = std::vector<Keypoints>;
+  using Descriptor = cv::Mat;
+  using Descriptors = std::vector<Descriptor>;
+  using CidKeypointsMap = std::vector<Cid, Keypoints>;
+  using CidDescriptorsMap = std::vector<Cid, Descriptors>;
+  using CidFilenameMap = std::vector<std::string>;
+  using CidPoseMap = std::vector<Eigen::Affine3d>;
+  using FeatureTrack = std::unordered_map<Cid, Fid>;
+  using PidFeatureTrackMap = std::vector<FeatureTrack>;
+  using PidPointMap = std::vector<Eigen::Vector3d>;
+  // Useful for inverse lookup of points given feature ids
+  using FidPidMap = std::unordered_map<Fid, Pid>;
+  // TODO(rsoussan): Rename this? CidFidPidMapMap?
+  using CidFidPidMap = std::vector<FidPidMap>;
+
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  int NumCIDs() const {return static_cast<int>(cid_to_filename_.size());}
-
-  const std::string& Filename(int cid) const {return cid_to_filename_[cid];}
-
   void ResizeFeatureMaps();
+
+  bool ContainsPid(const Cid cid, const int fid) const { return (cid_to_fid_to_pid[cid].count(fid) > 0);}
+
+  int NumCids() const {return static_cast<int>(cid_to_filename_.size());}
+
+  int NumPoints() const {return pid_to_global_t_point_.size();}
 
   // Assumes cid filenames, keypoints, and descriptors have already been added using AddImagesAndFeatures
   void AddPoses(const std::vector<Eigen::Affine3d>& cam_T_global_vec);
 
-  // TODO(rsoussan): these should all be lower snake case!!!!
-
-  const std::vector<Eigen::Affine3d>& cid_to_cam_T_global() const { return cid_to_cam_t_global_; }
-
-  const Eigen::Affine3d& CamTGlobal(int cid) const {return cid_to_cam_t_global_[cid];}
-
-  const Eigen::Matrix2Xd& Keypoints(int cid) const {return cid_to_keypoint_map_[cid];}
-
-  const Eigen::Matrix2Xd& Keypoint(int cid, int fid) {return Keypoints(cid).col(fid);}
-
-  const cv::Mat& Descriptor(int cid, int fid) const { return cid_to_descriptor_map_[cid].row(fid);}
-
-  const std::map<int, int>& FidToPid(int cid) const {return cid_fid_to_pid_[cid];}
-
-  int Pid(int cid, int fid) const {return cid_fid_to_pid_[cid][fid];}
-
-  bool ContainsPid(int cid, int fid) const { return (cid_fid_to_pid[cid].count(fid) > 0);}
-
-  int NumPoints() const {return pid_to_xyz_.size();}
-
-  // TODO(rsoussan): rename this to global_t_point
-  const Eigen::Vector3d& Point(int pid) const {return pid_to_xyz_[pid];}
-
-  const std::map<int, int>& CidToFid(int pid) const {return pid_to_cid_fid_[pid];}
-
-  int NumObservations() const {return std::accumulate(pid_to_cid_fid_.begin(),
-                                                                pid_to_cid_fid_.end(),
+  // TODO(rsoussan): rename to num features? how does this differ from numfeatures()?
+  int NumObservations() const {return std::accumulate(pid_to_feature_track_.begin(),
+                                                                pid_to_feature_track_.end(),
                                                                 0, [](size_t v, const std::map<int, int>& map)
                                                                 { return v + map.size(); }); }
 
@@ -100,67 +91,74 @@ class SparseMapDatabase {
 
   // TODO(rsoussan): What is the framing of T?? Update!
   void Transform(Eigen::Affine3d const& T) {
-    sparse_mapping::TransformCamerasAndPoints(T, &cid_to_cam_t_global_, &pid_to_xyz_);
+    sparse_mapping::TransformCamerasAndPoints(T, &cid_to_cam_T_global_, &pid_to_global_t_point_);
   }
 
-  void InitializeCidFidToPid();
+  void InitializeCidFidPidMap();
 
-  FeatureSet Features(const int cid) const;
+  FeatureSet Features(const Cid cid) const;
 
   FetaureSets AllFeatures() const;
 
+  // TODO(rsoussan): how does this work??
   int NumFeatures() const;
 
-  const std::string& filename(const int cid) const { return cid_to_filename_[cid]; }
+  // Use pid_to_feature_track_ instead of pid_to_global_t_point since this is filled sooner in the mapping pipeline
+  int NumPoints() const { return pid_to_feature_track_.size(); }
 
-  const cv::Mat& descriptors(const int cid) const { return cid_to_descriptor_map_[cid]; }
+  int NumFeatures(const Cid cid) const { return cid_to_keypoints_[cid].size(); }
 
-  const Eigen::Matrix2Xd& keypoints(const int cid) const { return cid_to_keypoint_map_[cid]; }
+  void AddTrack(const Eigen::Vector3d& global_t_point, const FeatureTrack& feature_track);
 
-  const std::map<int, int>& feature_track(const int pid) const { return pid_to_cid_fid_[pid]; }
+  void ExtendTrack(const Pid pid, const FeatureTrack& feature_track);
 
-  // Use pid_to_cid_fid_ instead of pid_to_xyz since this is filled sooner in the mapping pipeline
-  int NumPoints() const { return pid_to_cid_fid_.size(); }
+  void MergeTrack(const Pid pid, const Eigen::Vector3d& global_t_point, const FeatureTrack& feature_track);
 
-  int NumFeatures(const int cid) const { return cid_to_keypoint_map_[cid].cols(); }
+  // Accessors
+  const std::string& filename(const Cid cid) const {return cid_to_filename_[cid];}
 
-  const Eigen::Affine3d& cam_T_global(const int cid) const { return cid_to_cam_t_global_[cid]; }
+  const CidPoseMap& cid_to_cam_T_global() const { return cid_to_cam_T_global_; }
 
-  void AddTrack(const Eigen::Vector3d& global_t_point, const std::map<int, int>& cid_to_fid);
+  const Eigen::Affine3d& cam_T_global(const Cid cid) const {return cid_to_cam_T_global_[cid];}
 
-  void ExtendTrack(const int pid, const std::map<int, int>& cid_to_fid);
+  const Keypoints& keypoints(const Cid cid) const {return cid_to_keypoints_[cid];}
 
-  void MergeTrack(const int pid, const Eigen::Vector3d& global_t_point, const std::map<int, int>& cid_to_fid);
+  const Keypoint& keypoint(const Cid cid, const int fid) {return keypoints(cid)[fid];}
+
+  const Descriptors& descriptors(const Cid cid) const { return cid_to_descriptors_[cid];}
+
+  const Descriptor& descriptor(const Cid cid, const int fid) const { return desciptors(cid)[fid];}
+
+  const FidPidMap& fid_to_pid(const Cid cid) const {return cid_to_fid_to_pid_[cid];}
+
+  Pid pid(const Cid cid, const int fid) const {return cid_to_fid_to_pid_[cid][fid];}
+
+  const Eigen::Vector3d& global_t_point(const Pid pid) const {return pid_to_global_t_point_[pid];}
+
+  const FeatureTrack& feature_track(const Pid pid) const { return pid_to_feature_track_[pid]; }
+
+  const Eigen::Affine3d& cam_T_global(const Cid cid) const { return cid_to_cam_T_global_[cid]; }
+
 
  protected:
-  cv::Mat& descriptors(const int cid) { return cid_to_descriptor_map_[cid]; }
+  Keypoints& keypoints(const Cid cid) {return cid_to_keypoints_[cid];}
 
-  Eigen::Matrix2Xd& keypoints(const int cid) { return cid_to_keypoint_map_[cid]; }
+  Descriptors& descriptors(const Cid cid) { return cid_to_descriptors_[cid];}
 
-  Eigen::Affine3d& cam_T_global(const int cid) { return cid_to_cam_t_global_[cid]; }
+  Eigen::Affine3d& cam_T_global(const Cid cid) { return cid_to_cam_T_global_[cid]; }
 
-  std::map<int, int>& feature_track(const int pid) { return pid_to_cid_fid_[pid]; }
+  FeatureTrack& feature_track(const Pid pid) { return pid_to_feature_track_[pid]; }
 
-  Eigen::Vector3d& global_t_point(int pid) {return pid_to_xyz_[pid];}
+  Eigen::Vector3d& global_t_point(const Pid pid) {return pid_to_global_t_point_[pid];}
 
-  // TODO(rsoussan): These should be private
-  // TODO(rsoussan): Make maps unodered?
-  // stored in map file
-  std::vector<std::string> cid_to_filename_;
-  // TODO(bcoltin) replace Eigen2Xd everywhere with one keypoint class
-  std::vector<Eigen::Matrix2Xd > cid_to_keypoint_map_;
-  std::vector<cv::Mat> cid_to_descriptor_map_;
-  std::vector<Eigen::Affine3d > cid_to_cam_t_global_;
-  std::vector<std::map<int, int> > cid_fid_to_pid_;
-  std::vector<Eigen::Vector3d> pid_to_xyz_;
-  std::vector<std::map<int, int> > pid_to_cid_fid_;
-
-  // If datastructure is available, match only pairs of cids
-  // that are present in it (this info can come from example from
-  // a map that was built previously with the same images but
-  // a different descriptor.
-  // TODO(rsoussan): Make new file containing this! store elsewhere!
-  std::map< int, std::set<int> > cid_to_cid_;  // TODO(oalexan1): Need not be a member, remove
+ private:
+  CidFilenameMap cid_to_filename_;
+  CidKeypointsMap cid_to_keypoints_;
+  CidDescriptorsMap cid_to_descriptors_;
+  CidPoseMap cid_to_cam_T_global_;
+  CidPointMap pid_to_global_t_point_;
+  PidFeatureTrackMap pid_to_feature_track_;
+  CidFidPidMap cid_to_fid_to_pid_;
 
   // Optional user defined 3D points and image observations.
   // Enables manually registering the sparse map with control points

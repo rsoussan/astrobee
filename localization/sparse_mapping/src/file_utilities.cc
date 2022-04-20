@@ -134,7 +134,7 @@ void ParseXYZ(std::string const& xyz_file,
 
 // From pid_to_cid_fid, create cid_fid_to_pid for lookup.
 // TODO(rsoussan): Move this to sparse_map_database!!
-void InitializeCidFidToPid(int num_cid,
+void InitializeCidFidPidMap(int num_cid,
                            std::vector<std::map<int, int> > const& pid_to_cid_fid,
                            std::vector<std::map<int, int> > * cid_fid_to_pid) {
   cid_fid_to_pid->clear();

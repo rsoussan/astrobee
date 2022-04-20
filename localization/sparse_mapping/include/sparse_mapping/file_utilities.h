@@ -40,7 +40,7 @@ namespace sparse_mapping {
   // Parse a file having on each line xyz coordinates
   void ParseXYZ(std::string const& xyz_file, Eigen::MatrixXd * xyz);
 
-void InitializeCidFidToPid(int num_cid,
+void InitializeCidFidPidMap(int num_cid,
                            std::vector<std::map<int, int> > const& pid_to_cid_fid,
                            std::vector<std::map<int, int> > * cid_fid_to_pid);
 

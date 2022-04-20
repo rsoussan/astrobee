@@ -82,7 +82,7 @@ SparseMap::SparseMap(const std::string& filename,
     reorderMap(old_cid_to_new_cid);
 
   // Initialize this convenient mapping
-  InitializeCidFidToPid();
+  InitializeCidFidPidMap();
 }
 
 // Reorder the images in the map and the rest of the data accordingly
@@ -156,7 +156,7 @@ void SparseMap::reorderMap(std::map<int, int> const& old_cid_to_new_cid) {
   pid_to_cid_fid_.swap(new_pid_to_cid_fid);
 
   // Recreate cid_fid_to_pid_ from pid_to_cid_fid_.
-  InitializeCidFidToPid();
+  InitializeCidFidPidMap();
 }
 
 // Writes the NVM control network format.
