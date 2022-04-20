@@ -20,18 +20,12 @@
 #define SPARSE_MAPPING_SPARSE_MAP_DATABASE_H_
 
 #include <ff_common/eigen_vectors.h>
-#include <sparse_mapping/sparse_mapping.h>
+#include <sparse_mapping/datatypes.h>
 
 #include <Eigen/Geometry>
-#include <opencv2/core/core.hpp>
 
-#include <map>
-// #include <numeric>
-#include <set>
 #include <string>
 #include <vector>
-// #include <utility>
-// #include <limits>
 
 namespace sparse_mapping {
 /**
@@ -46,27 +40,6 @@ namespace sparse_mapping {
   *  FeatureTrack = Detected features from different unique images that match with eachother.  **/
 class SparseMapDatabase {
  public:
-  // Cids and Pids are assumed to always start at 0 and increase by one up to num cids/pids,
-  // therefore cid and pid maps can use a vector as a container.
-  using Cid = int;
-  using Fid = int;
-  using Pid = int;
-  using Keypoint = Eigen::Vector2d;
-  using Keypoints = std::vector<Keypoints>;
-  using Descriptor = cv::Mat;
-  using Descriptors = std::vector<Descriptor>;
-  using CidKeypointsMap = std::vector<Cid, Keypoints>;
-  using CidDescriptorsMap = std::vector<Cid, Descriptors>;
-  using CidFilenameMap = std::vector<std::string>;
-  using CidPoseMap = std::vector<Eigen::Affine3d>;
-  using FeatureTrack = std::unordered_map<Cid, Fid>;
-  using PidFeatureTrackMap = std::vector<FeatureTrack>;
-  using PidPointMap = std::vector<Eigen::Vector3d>;
-  // Useful for inverse lookup of points given feature ids
-  using FidPidMap = std::unordered_map<Fid, Pid>;
-  // TODO(rsoussan): Rename this? CidFidPidMapMap?
-  using CidFidPidMap = std::vector<FidPidMap>;
-
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   void ResizeFeatureMaps();
@@ -80,28 +53,27 @@ class SparseMapDatabase {
   // Assumes cid filenames, keypoints, and descriptors have already been added using AddImagesAndFeatures
   void AddPoses(const std::vector<Eigen::Affine3d>& cam_T_global_vec);
 
-  // TODO(rsoussan): rename to num features? how does this differ from numfeatures()?
-  int NumObservations() const {return std::accumulate(pid_to_feature_track_.begin(),
+  // Counts features that have been included in existing points
+  int NumUsedFeatures() const {return std::accumulate(pid_to_feature_track_.begin(),
                                                                 pid_to_feature_track_.end(),
-                                                                0, [](size_t v, const std::map<int, int>& map)
-                                                                { return v + map.size(); }); }
+                                                                0, [](size_t size, const FeatureTrack& feature_track)
+                                                                { return size + feature_track.size(); }); }
 
   // TODO(rsoussan): rename this??
   void AddImagesAndFeatures(const SparseMapDatabase& map);
 
-  // TODO(rsoussan): What is the framing of T?? Update!
-  void Transform(Eigen::Affine3d const& T) {
-    sparse_mapping::TransformCamerasAndPoints(T, &cid_to_cam_T_global_, &pid_to_global_t_point_);
-  }
+  void Transform(const Eigen::Affine3d& new_global_T_global);
 
   void InitializeCidFidPidMap();
 
-  FeatureSet Features(const Cid cid) const;
+  std::vector<Descriptors> AllDescriptors() const;
 
-  FetaureSets AllFeatures() const;
+  int NumFeatures() const {return std::accumulate(cid_to_keypoints_.begin(),
+                                                                cid_to_keypoints_.end(),
+                                                                0, [](size_t size, const Keypoints& keypoints)
+                                                                { return size + keypoints.size(); }); }
 
-  // TODO(rsoussan): how does this work??
-  int NumFeatures() const;
+
 
   // Use pid_to_feature_track_ instead of pid_to_global_t_point since this is filled sooner in the mapping pipeline
   int NumPoints() const { return pid_to_feature_track_.size(); }
@@ -110,7 +82,7 @@ class SparseMapDatabase {
 
   void AddTrack(const Eigen::Vector3d& global_t_point, const FeatureTrack& feature_track);
 
-  void ExtendTrack(const Pid pid, const FeatureTrack& feature_track);
+  void ExtendTrack(const Pid pid, const FeatureTrack& feature_track_to_add);
 
   void MergeTrack(const Pid pid, const Eigen::Vector3d& global_t_point, const FeatureTrack& feature_track);
 

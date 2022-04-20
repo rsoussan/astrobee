@@ -348,11 +348,12 @@ void IterativelyBundleAdjust(const BundleAdjustmentParams& params, const int num
     const auto summary = BundleAdjust(params, cid_to_keypoint_map_,
                     &cid_to_cam_t_global_,
                     &pid_to_cid_fid_, &pid_to_xyz_, &cid_fid_to_pid_);
+    const int num_used_observations = NumUsedFeatures();
     LOG(INFO) << summary.FullReport() << "\n";
     LOG(INFO) << "Starting average reprojection error: "
-              << summary.initial_cost / NumObservations();
+              << summary.initial_cost / num_used_features();
     LOG(INFO) << "Final average reprojection error:    "
-              << summary.final_cost / NumObservations();
+              << summary.final_cost / num_used_features();
   }
 }
 
