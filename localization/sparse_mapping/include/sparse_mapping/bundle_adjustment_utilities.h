@@ -20,6 +20,8 @@
 #define SPARSE_MAPPING_BUNDLE_ADJUSTMENT_UTILITIES_H_
 
 #include <ff_common/eigen_vectors.h>
+#include <sparse_mapping/datatypes.h>
+
 #include <Eigen/Geometry>
 #include <ceres/ceres.h>
 
@@ -35,11 +37,12 @@ namespace sparse_mapping {
  * All poses and point values should be set to initial guesses and are modified to improved guesses when the function returns.
  **/
   ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
-                                      const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
-                                      std::vector<Eigen::Affine3d>* cid_to_cam_T_global,
-                                      std::vector<std::map<int, int> >* pid_to_feature_track,
-                                      std::vector<Eigen::Vector3d>* pid_to_xyz,
-                                      std::vector<std::map<int, int> >* cid_to_fid_to_pid = nullptr);
+                                    const std::vector<Eigen::Matrix2Xd>& cid_to_keypoint_map,
+                                    PidPoseMap* cid_to_cam_T_global,
+                                    PidFeatureTrackMap* pid_to_feature_track,
+                                    PidPointMap* pid_to_global_t_point,
+                                    CidFidPidMap* cid_to_fid_to_pid = nullptr);
+
   /**
    * Perform bundle adjustment.
    *
