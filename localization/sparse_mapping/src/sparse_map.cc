@@ -195,7 +195,8 @@ void MatchImages(const int cid_a, const int cid_b, CIDPairAffineMap& relative_af
 }
 
 // delete all the features that do not match to a landmark but are still around!
-void SparseMap::PruneMap(void) {
+void SparseMap::PruneMap() {
+  // Remove unused features
   for (unsigned int cid = 0; cid < cid_fid_to_pid_.size(); cid++) {
     std::vector<int> deleted_features;
     for (int fid = 0; fid < cid_to_descriptor_map_[cid].rows; fid++) {
@@ -253,13 +254,8 @@ void SparseMap::PruneMap(void) {
   InitializeCidFidToPid();
 }
 
-// TODO(oalexan1): This very naive code can use serious performance
-// improvements.  Each time we add a new camera we triangulate all
-// points. We bundle-adjust the last several cameras, but while seeing
-// (and keeping fixed) all the earlier cameras. It is sufficient to
-// both triangulate and see during bundle adjustment only the several
-// most similar cameras. Fixing these would need careful testing for
-// both map quality and run-time before and after the fix.
+// TODO(rsoussan): Only triangulate newly added points in between bundle adjustment iterations,
+// only bundle adjust cameras and points that have been modified (ala isam2)
 void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affines) {
   std::vector<Eigen::Affine3d > incremental_cid_to_cam_t_global;
   // Initialize first pose at identity
