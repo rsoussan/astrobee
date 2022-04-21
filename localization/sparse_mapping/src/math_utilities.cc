@@ -82,43 +82,6 @@ Eigen::Quaternion<double> slerp_n(std::vector<double> const& W,
     return world_t_point;
   }
 
-void TriangulateAllPoints(const bool remove_invalid_points, const double focal_length,
-                 const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
-                 const CidToKeypointMap& cid_to_keypoints,
-                 std::vector<std::map<int, int> > * pid_to_feature_track,
-                 std::vector<Eigen::Vector3d> * pid_to_global_t_point,
-                 std::vector<std::map<int, int> > * cid_to_fid_to_pid) {
-  Eigen::Matrix3d intrinsics;
-  intrinsics << focal_length, 0, 0,
-    0, focal_length, 0,
-    0, 0, 1;
-
-  std::vector<openMVG::Mat34> projection_matrices(cid_to_cam_T_global.size());
-  for (int cid = 0; cid < projection_matrices.size(); ++cid) {
-    openMVG::P_From_KRt(intrinsics, cid_to_cam_T_global[cid].linear(),
-                        cid_to_cam_T_global[cid].translation(), &projection_matrices[cid]);
-  }
-
-  pid_to_global_t_point->resize(pid_to_feature_track->size());
-  // Iterate in reverse so invalid points can be removed without affecting earlier points
-  for (int pid = pid_to_feature_track->size() - 1; pid >= 0; --pid) {
-    openMVG::Triangulation triangulation;
-    for (const auto& cid_fid : pid_to_feature_track->at(pid)) {
-      triangulation.add(projection_matrices[cid_fid.first],  cid_to_keypoints[cid_fid.first][cid_fid.second]);
-    }
-    const Eigen::Vector3d solution = triangulation.compute();
-    if ( remove_invalid_points && (std::isnan(solution[0]) || triangulation.minDepth() < 0) ) {
-      pid_to_global_t_point->erase(pid_to_global_t_point->begin() + pid);
-      pid_to_feature_track->erase(pid_to_feature_track->begin() + pid);
-    } else {
-      pid_to_global_t_point->at(pid) = solution;
-    }
-  }
-
-  if (remove_invalid_points && cid_to_fid_to_pid)
-  InitializeCidFidPidMap(cid_to_cam_T_global.size(), *pid_to_feature_track, cid_to_fid_to_pid);
-}
-
 boost::optional<double> AngleBetweenRays(const Eigen::Vector3d& a_t_p, const Eigen::Vector3d& b_t_p) {
       const double a_t_p_norm = a_t_p.norm();
       const double b_t_p_norm = b_t_p.norm();

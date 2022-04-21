@@ -26,6 +26,7 @@
 #include <Eigen/Geometry>
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace sparse_mapping {
@@ -50,8 +51,6 @@ class SparseMapDatabase {
   bool ContainsPid(const Cid cid, const int fid) const { return (cid_to_fid_to_pid[cid].count(fid) > 0);}
 
   int NumCids() const {return static_cast<int>(cid_to_filename_.size());}
-
-  int NumPoints() const {return pid_to_global_t_point_.size();}
 
   // Assumes cid filenames, keypoints, and descriptors have already been added using AddImagesAndFeatures
   void AddPoses(const std::vector<Eigen::Affine3d>& cam_T_global_vec);
@@ -97,6 +96,11 @@ void RemovePoints(const std::vector<bool>& indices_to_remove) {
   localization_common::RemoveElements(indices_to_remove, pid_to_global_t_point_);
 }
 
+  void RemovePoint(const Pid pid) {
+      pid_to_global_t_point_.erase(pid_to_global_t_point_.begin() + pid);
+      pid_to_feature_track_.erase(pid_to_feature_track_.begin() + pid);
+  }
+
   // Accessors
   const std::string& filename(const Cid cid) const {return cid_to_filename_[cid];}
 
@@ -107,6 +111,8 @@ void RemovePoints(const std::vector<bool>& indices_to_remove) {
   const Keypoints& keypoints(const Cid cid) const {return cid_to_keypoints_[cid];}
 
   const Keypoint& keypoint(const Cid cid, const int fid) {return keypoints(cid)[fid];}
+
+  const Keypoint& keypoint(const std::pair<Cid, Fid>& cid_fid) { return keypoint(cid_fid.first, cid_fid.second); }
 
   const Descriptors& descriptors(const Cid cid) const { return cid_to_descriptors_[cid];}
 
@@ -137,15 +143,16 @@ void RemovePoints(const std::vector<bool>& indices_to_remove) {
 
   PidPoseMap& cid_to_cam_T_global() { return cid_to_cam_T_global_; }
 
-  CidPointMap& pid_to_global_t_point() { return pid_to_global_t_point(); }
+  PidPointMap& pid_to_global_t_point() { return pid_to_global_t_point(); }
 
   PidFeatureTrackMap& pid_to_feature_track() { return pid_to_feature_track_; }
 
+ private:
   CidFilenameMap cid_to_filename_;
   CidKeypointsMap cid_to_keypoints_;
   CidDescriptorsMap cid_to_descriptors_;
   CidPoseMap cid_to_cam_T_global_;
-  CidPointMap pid_to_global_t_point_;
+  PidPointMap pid_to_global_t_point_;
   PidFeatureTrackMap pid_to_feature_track_;
   CidFidPidMap cid_to_fid_to_pid_;
 

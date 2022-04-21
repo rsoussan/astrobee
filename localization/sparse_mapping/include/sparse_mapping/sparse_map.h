@@ -135,7 +135,7 @@ void MatchImages(const int cid_a, const int cid_b, sparse_mapping::CIDPairAffine
 
 int OldestCidToOptimize(const int latest_cid) const;
 
-void TriangulateAllPoints(const bool remove_invalid_points = true);
+void TriangulateAllPoints(const bool remove_invalid_points = true, const bool initialize_cid_fid_pid_map = true);
 
 // Remove points that don't project at valid camera pixels,
 // points behind the camera, and matches having large reprojection error.

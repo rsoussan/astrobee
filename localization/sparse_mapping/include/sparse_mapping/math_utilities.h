@@ -34,14 +34,6 @@ boost::optional<Eigen::Vector3d> Triangulate(const Eigen::Matrix3d& intrinsics,
                  const std::vector<Eigen::Affine3d>& camera_T_worlds,
                  const Keypoints& keypoints);
 
-// Triangulates all points given camera positions.
-void TriangulateAllPoints(const bool remove_invalid_points, const double focal_length,
-                          const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
-                          const CidToKeypointMap& cid_to_keypoints,
-                          std::vector<std::map<int, int> >* pid_to_feature_track,
-                          std::vector<Eigen::Vector3d>* pid_to_xyz,
-                          std::vector<std::map<int, int> >* cid_to_fid_to_pid = nullptr);
-
 boost::optional<double> AngleBetweenRays(const Eigen::Vector3d& a_t_p, const Eigen::Vector3d& b_t_p);
 
 // Find the maximum angle between n rays intersecting at given

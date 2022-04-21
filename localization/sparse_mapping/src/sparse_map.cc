@@ -23,6 +23,17 @@
 #include <sparse_mapping/sparse_map.h>
 #include <sparse_mapping/utilities.h>
 
+#pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic push
+#include <openMVG/multiview/conditioning.hpp>
+#include <openMVG/multiview/projection.hpp>
+#include <openMVG/multiview/triangulation.hpp>
+#include <openMVG/multiview/solver_essential_kernel.hpp>
+#include <openMVG/robust_estimation/robust_estimator_ACRansac.hpp>
+#include <openMVG/robust_estimation/robust_estimator_ACRansacKernelAdaptator.hpp>
+#pragma GCC diagnostic pop
+
 #include <Eigen/Geometry>
 
 namespace {
@@ -316,12 +327,11 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
 
     // Initialize points for incremental tracks
     PidPointMap incremental_pid_to_global_t_point;
-    TriangulateAllPoints(true,
-                                params_.camera.GetFocalLength(),
-                                incremental_cid_to_cam_T_global,
+    TriangulateAllPoints(true, false);
+                                /*incremental_cid_to_cam_T_global,
                                 cid_to_keypoints_,
                                 &incremental_pid_to_feature_track,
-                                &incremental_pid_to_global_t_point);
+                                &incremental_pid_to_global_t_point);*/
 
     const int oldest_cid_to_optimize = OldestCidToOptimize(latest_cid);
     // TODO(rsoussan): Add fcn to set range for params?
@@ -340,14 +350,35 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
   TriangulateAllPoints();
 }
 
-void SparseMap::TriangulateAllPoints(const bool remove_invalid_points) {
-  TriangulateAllPoints(remove_invalid_points,
-                              params_.camera.GetFocalLength(),
-                              cid_to_cam_T_global_,
-                              cid_to_keypoints_,
-                              &pid_to_feature_track_,
-                              &pid_to_global_t_point_,
-                              &cid_to_fid_to_pid_);
+void SparseMap::TriangulateAllPoints(const bool remove_invalid_points, const bool initialize_cid_fid_pid_map) {
+  const double focal_length = params().camera.GetFocalLength();
+  Eigen::Matrix3d intrinsics;
+  intrinsics << focal_length, 0, 0,
+    0, focal_length, 0,
+    0, 0, 1;
+
+  std::vector<openMVG::Mat34> projection_matrices(NumCids());
+  for (int cid = 0; cid < NumCids(); ++cid) {
+    openMVG::P_From_KRt(intrinsics, cam_T_global(cid).linear(),
+                        cam_T_global(cid).translation(), &projection_matrices[cid]);
+  }
+
+  pid_to_global_t_point().resize(NumPoints());
+  // Iterate in reverse so invalid feature tracks can be removed without affecting the order of earlier feature tracks
+  for (int pid = NumPoints() - 1; pid >= 0; --pid) {
+    openMVG::Triangulation triangulation;
+    for (const auto& cid_fid : feature_track(pid)) {
+      triangulation.add(projection_matrices[cid_fid.first],  keypoint(cid_fid));
+    }
+    const Eigen::Vector3d solution = triangulation.compute();
+    if ( remove_invalid_points && (std::isnan(solution[0]) || triangulation.minDepth() < 0) ) {
+      RemovePoint(pid);
+    } else {
+      global_t_point(pid) = solution;
+    }
+  }
+
+  if (remove_invalid_points && initialize_cid_fid_pid_map) InitializeCidFidPidMap();
 }
 
 int SparseMap::OldestCidToOptimize(const int latest_cid) const {
