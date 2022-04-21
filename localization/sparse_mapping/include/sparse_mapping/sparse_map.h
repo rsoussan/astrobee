@@ -21,6 +21,7 @@
 
 #include <ff_common/eigen_vectors.h>
 #include <sparse_mapping/image_database.h>
+#include <sparse_mapping/remove_invalid_points_and_detections_params.h>
 #include <sparse_mapping/sparse_map_database.h>
 #include <sparse_mapping/sparse_map_params.h>
 #include <sparse_mapping/sparse_mapping.h>
@@ -100,6 +101,14 @@ class SparseMap : public SparseMapDatabase {
 
   void IterativelyBundleAdjust(const BundleAdjustmentParams& params, const int num_iterations);
 
+  // Assumes poses are initialized
+  ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
+                                    const std::vector<Eigen::Matrix2Xd>& cid_to_keypoints,
+                                    PidPoseMap* cid_to_cam_T_global,
+                                    PidFeatureTrackMap* pid_to_feature_track,
+                                    PidPointMap* pid_to_global_t_point,
+                                    CidFidPidMap* cid_to_fid_to_pid = nullptr);
+
   // delete feature descriptors with no matching landmark
   void PruneMap();
 
@@ -127,6 +136,12 @@ void MatchImages(const int cid_a, const int cid_b, sparse_mapping::CIDPairAffine
 int OldestCidToOptimize(const int latest_cid) const;
 
 void TriangulateAllPoints(const bool remove_invalid_points = true);
+
+// Remove points that don't project at valid camera pixels,
+// points behind the camera, and matches having large reprojection error.
+void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsParams& params);
+
+double ReprojectionError(const std::pair<int, int>& cid_fid, const Eigen::Matrix3d& intrinsics);
 
 template <class TDescriptor, class F>
 void BuildTemplatedImageDatabase();

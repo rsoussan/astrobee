@@ -20,6 +20,7 @@
 #define SPARSE_MAPPING_SPARSE_MAP_DATABASE_H_
 
 #include <ff_common/eigen_vectors.h>
+#include <localization_common/utilities.h>
 #include <sparse_mapping/datatypes.h>
 
 #include <Eigen/Geometry>
@@ -82,11 +83,20 @@ class SparseMapDatabase {
 
   int NumFeatures(const Cid cid) const { return cid_to_keypoints_[cid].size(); }
 
+  int FeatureTrackLength(const Pid pid) const { return feature_track(pid).size(); }
+
   void AddTrack(const Eigen::Vector3d& global_t_point, const FeatureTrack& feature_track);
 
   void ExtendTrack(const Pid pid, const FeatureTrack& feature_track_to_add);
 
   void MergeTrack(const Pid pid, const Eigen::Vector3d& global_t_point, const FeatureTrack& feature_track);
+
+void RemovePoints(const std::vector<bool>& indices_to_remove) {
+  localization_common::RemoveElements(indices_to_remove, pid_to_feature_track_);
+  localization_common::RemoveElements(indices_to_remove, pid_to_global_t_point_);
+}
+
+
 
   // Accessors
   const std::string& filename(const Cid cid) const {return cid_to_filename_[cid];}
@@ -113,6 +123,7 @@ class SparseMapDatabase {
 
   const Eigen::Affine3d& cam_T_global(const Cid cid) const { return cid_to_cam_T_global_[cid]; }
 
+  const PidPoseMap& cid_to_cam_T_global() const { return cid_to_cam_T_global_; }
 
  protected:
   Keypoints& keypoints(const Cid cid) {return cid_to_keypoints_[cid];}
@@ -124,6 +135,12 @@ class SparseMapDatabase {
   FeatureTrack& feature_track(const Pid pid) { return pid_to_feature_track_[pid]; }
 
   Eigen::Vector3d& global_t_point(const Pid pid) {return pid_to_global_t_point_[pid];}
+
+  PidPoseMap& cid_to_cam_T_global() { return cid_to_cam_T_global_; }
+
+  CidPointMap& pid_to_global_t_point() { return pid_to_global_t_point(); }
+
+  PidFeatureTrackMap& pid_to_feature_track() { return pid_to_feature_track_; }
 
   CidFilenameMap cid_to_filename_;
   CidKeypointsMap cid_to_keypoints_;

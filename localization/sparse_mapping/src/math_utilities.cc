@@ -18,7 +18,6 @@
 
 #include <localization_common/utilities.h>
 #include <sparse_mapping/math_utilities.h>
-#include <sparse_mapping/remove_invalid_points_and_detections_stats.h>
 
 #pragma GCC diagnostic ignored "-Wunused-function"
 #pragma GCC diagnostic ignored "-Wsign-compare"
@@ -30,34 +29,6 @@
 #include <openMVG/robust_estimation/robust_estimator_ACRansac.hpp>
 #include <openMVG/robust_estimation/robust_estimator_ACRansacKernelAdaptator.hpp>
 #pragma GCC diagnostic pop
-
-namespace {
-bool ValidProjection(const Eigen::Vector2d& centered_projected_point, const Eigen::Vector2d& image_half_size) {
-  if (centered_projected_point.x() < -1.0 * half_size.x() || centered_projected_point.x() >= half_size.x() ||
-      centered_projected_point.y() < -1.0 * half_size.y() || centered_projected_point.y() >= half_size.y())
-    return false;
-  return true;
-}
-
-void RemoveInvalidPoints(const std::vector<bool>& invalid_points,
-                         std::vector<std::map<int, int> >& pid_to_feature_track,
-                         std::vector<Eigen::Vector3d>& pid_to_global_t_point) {
-  lc::RemoveElements(invalid_points, pid_to_feature_track);
-  lc::RemoveElements(invalid_points, pid_to_global_t_point);
-}
-
-double ReprojectionError(const std::pair<int, int>& cid_fid, const Eigen::Matrix3d& intrinsics,
-                         const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
-                         const std::vector<Eigen::Matrix2Xd>& cid_to_keypoints) {
-  const int cid = cid_fid.first;
-  const int fid = cid_fid.second;
-  const auto& cam_T_global = cid_to_cam_T_global[cid];
-  const Eigen::Vector3d cam_t_point = cam_T_global * global_t_point;
-  const Eigen::Vector2d projected_point = vc::Project(cam_t_point, intrinsics);
-  const auto& keypoint = cid_to_keypoints[cid].col(fid);
-  return (keypoint - projected_point).norm();
-}
-}  // namespace
 
 namespace sparse_mapping {
 // Compute the n-weight slerp, analogous to the linear combination
@@ -148,21 +119,6 @@ void TriangulateAllPoints(const bool remove_invalid_points, const double focal_l
   InitializeCidFidPidMap(cid_to_cam_T_global.size(), *pid_to_feature_track, cid_to_fid_to_pid);
 }
 
-double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors,
-                                  const RemoveInvalidPointsAndDetectionsParams& params) {
-  const int num_errors = reprojection_errors.size();
-  if (num_errors == 0) return 0;
-
-  std::vector<double> sorted_reprojection_errors = reprojection_errors;
-  std::sort(sorted_reprojection_errors.begin(), sorted_reprojection_errors.end());
-
-  if (num_errors <= 2)
-    return params.reprojection_error_threshold_scale_factor * sorted_reprojection_errors[num_errors - 1];
-  const double scaled_median_reprojection_error =
-    params.reprojection_error_threshold_scale_factor * sorted_reprojection_errors[num_errors / 2];
-  return std::max(scaled_median_reprojection_error, params.max_reprojection_error);
-}
-
 boost::optional<double> AngleBetweenRays(const Eigen::Vector3d& a_t_p, const Eigen::Vector3d& b_t_p) {
       const double a_t_p_norm = a_t_p.norm();
       const double b_t_p_norm = b_t_p.norm();
@@ -177,15 +133,16 @@ boost::optional<double> AngleBetweenRays(const Eigen::Vector3d& a_t_p, const Eig
       return (180.0/M_PI)*std::acos(cos_angle);
 }
 
-double MaxAngleBetweenCameraRays(const std::map<int, int>& track, const std::vector<Eigen::Vector3d>& global_t_point,
+
+double MaxAngleBetweenCameraRays(const std::map<int, int>& feature_track, const Eigen::Vector3d& global_t_point,
                                  const std::vector<Eigen::Vector3d>& global_t_cams) {
   double max_angle = 0;
   int cid = 0;
-  for (auto cid_fid_it1 = track.begin();
-       cid_fid_it1 != track.end(); ++cid_fid_it1) {
+  for (auto cid_fid_it1 = feature_track.begin();
+       cid_fid_it1 != feature_track.end(); ++cid_fid_it1) {
     const int cid1 = cid_fid_it1->first;
     for (auto cid_fid_it2 = cid_fid_it1+1;
-         cid_fid_it2 != track.end(); ++cid_fid_it2) {
+         cid_fid_it2 != feature_track.end(); ++cid_fid_it2) {
       const int cid2 = cid_fid_it2->first;
       const Eigen::Vector3d cam1_t_point = global_t_cams[cid1] - global_t_point;
       const Eigen::Vector3d cam2_t_point = global_t_cams[cid2] - global_t_point;
@@ -195,100 +152,6 @@ double MaxAngleBetweenCameraRays(const std::map<int, int>& track, const std::vec
     }
   }
   return max_angle;
-}
-
-void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsParams& params,
-                                      const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
-                                      const std::vector<Eigen::Matrix2Xd>& cid_to_keypoints,
-                                      std::vector<std::map<int, int> >* pid_to_feature_track,
-                                      std::vector<Eigen::Vector3d>* pid_to_global_t_point,
-                                      std::vector<std::map<int, int> >* cid_to_fid_to_pid) {
-  std::vector<double> pid_reprojection_errors;
-  const int num_cams = cid_to_cam_T_global.size();
-  std::vector<Eigen::Vector3d> global_t_cams;
-  global_t_cams.reserve(num_cams);
-  for (int cid = 0; cid < num_cams; ++cid) {
-    global_t_cams.emplace_back(cid_to_cam_T_global[cid].inverse().translation());
-  }
-
-  RemoveInvalidPointsAndDetectionsStats stats;
-  stats.num_points = pid_to_global_t_point->size();
-  std::vector<bool> invalid_point(pid_to_global_t_point->size(), false);
-  const Eigen::Vector2d half_size = camera_params.GetUndistortedHalfSize();
-  const Eigen::Matrix3d intrinsics = params.camera.GetIntrinsicMatrix<camera::UNDISTORTED_C>();
-  for (int pid = 0; pid < static_cast<int>(pid_to_global_t_point->size()); ++pid) {
-    bool small_angle = false, behind_cam = false, invalid_reprojection = false;
-
-    // Check camera angles
-    const auto& track = pid_to_feature_track[pid];
-    const auto& global_t_point = pid_to_global_t_point[pid];
-    const double max_angle_between_camera_rays
-      = MaxAngleBetweenCameraRays(track, global_t_point, global_t_cams);
-    if (max_angle_between_camera_rays < params.min_max_angle_between_camera_rays) {
-      small_angle = true;
-      invalid_point[pid] = true;
-    }
-
-    for (const auto cid_fid : (*pid_to_feature_track)[pid]) {
-      const int cid = cid_fid.first;
-      const auto& cam_T_global = cid_to_cam_T_global[cid];
-      const auto& global_t_point = (*pid_to_global_t_point)[pid];
-      const Eigen::Vector3d cam_t_point = cam_T_global*global_t_point;
-      // Check if point is behind any camera
-      if (cam_t_point.z() <= 0) {
-        behind_cam = true;
-        invalid_point[pid] = true;
-      }
-
-      // Check projection
-      const double reprojection_error =
-        ReprojectionError(cid_fid, intrinsics, cid_to_cam_T_global, cid_to_keypoints);
-      pid_reprojection_errors.emplace_back(reprojection_error);
-      const bool valid_projection = ValidProjection(projected_point, half_size);
-      if (!valid_projection) {
-        invalid_reprojection = true;
-        invalid_point[pid] = true;
-      }
-    }
-    stats.small_angle    += static_cast<int>(small_angle);
-    stats.behind_cam     += static_cast<int>(behind_cam);
-    stats.invalid_reprojection += static_cast<int>(invalid_reprojection);
-  }
-  RemoveInvalidPoints(invalid_point, *pid_to_feature_track, *pid_to_global_t_point);
-
-  std::vector<bool> invalid_point_detection_count(pid_to_global_t_point->size(), false);
-  // Remove high reprojection error feature detections
-  const double reprojection_error_threshold = ReprojectionErrorThreshold(pid_reprojection_errors, params);
-  LOG(INFO) << "Filtering features with reprojection error higher than: "
-            << reprojection_error_threshold << " pixels";
-  for (int pid = 0; pid < static_cast<int>(pid_to_global_t_point->size()); ++pid) {
-    const auto& cid_fids = (*pid_to_feature_track)[pid];
-    const auto& global_t_point = (*pid_to_global_t_point)[pid];
-    for (auto cid_fid_it = cid_fids.begin(); cid_fid_it != cid_fids.end();) {
-      ++stats.num_features;
-      const double reprojection_error =
-        ReprojectionError(*cid_fid_it, intrinsics, cid_to_cam_T_global, cid_to_keypoints);
-      if (reprojection_error >= params.max_reprojection_error) {
-        cid_fid_it = cid_fids.erase(cid_fid_it);
-        ++stats.big_reproj_err;
-      } else {
-        ++cid_fid_it;
-      }
-    }
-    // Remove point if less than 2 valid feature detections remain
-    const int num_detections = (*pid_to_feature_track)[pid].size();
-    if (num_detections < 2) {
-      invalid_point_detection_count[pid] = true;
-    }
-  }
-  RemoveInvalidPoints(invalid_point_detection_count, *pid_to_feature_track, *pid_to_global_t_point);
-  if (cid_to_fid_to_pid)
-  InitializeCidFidPidMap(cid_to_cam_T_global.size(),
-                                        *pid_to_feature_track,
-                                        cid_to_fid_to_pid);
-
-  if (params.print_stats)
-    stats.Print();
 }
 
 void DetectFeatures(const cv::Mat& image, const bool histogram_equalization,
@@ -676,5 +539,58 @@ void Find3DAffineTransform(Eigen::Matrix3Xd const & in,
   // The final transform
   result->linear() = scale * R;
   result->translation() = scale*(out_ctr - R*in_ctr);
+}
+
+// This is a very specialized function
+// TODO(rsoussan): Clean this up? Use for ransac affine3d?
+void BundleAdjustSmallSet(std::vector<Eigen::Matrix2Xd> const& features_n,
+                          double focal_length,
+                          std::vector<Eigen::Affine3d> * cam_T_global_n,
+                          Eigen::Matrix3Xd * pid_to_global_t_point,
+                          ceres::LossFunction * loss,
+                          ceres::Solver::Options const& options,
+                          ceres::Solver::Summary * summary) {
+  CHECK(cam_T_global_n) << "Variable cam_T_global_n needs to be defined";
+  CHECK(cam_T_global_n->size() == features_n.size())
+    << "Variables features_n and cam_T_global_n need to agree on the number of cameras";
+  CHECK(cam_T_global_n->size() > 1) << "Bundle adjust needs at least 2 or more cameras";
+  CHECK(pid_to_global_t_point->cols() == features_n[0].cols())
+    << "There should be an equal amount of XYZ points as there are feature observations";
+  for (size_t i = 1; i < features_n.size(); i++) {
+    CHECK(features_n[0].cols() == features_n[i].cols())
+      << "The same amount of features should be seen in all cameras";
+  }
+
+  const size_t n_cameras = features_n.size();
+
+  // Allocate space for the angle axis representation of rotation
+  std::vector<Eigen::Vector3d> aa(n_cameras);
+  for (size_t cid = 0; cid < n_cameras; cid++) {
+    camera::RotationToRodrigues(cam_T_global_n->at(cid).linear(), &aa[cid]);
+  }
+
+  // Build the problem
+  ceres::Problem problem;
+  for (ptrdiff_t pid = 0; pid < pid_to_global_t_point->cols(); pid++) {
+    for (size_t cid = 0; cid < n_cameras; cid++) {
+      ceres::CostFunction* cost_function = ReprojectionError::Create(features_n[cid].col(pid));
+      problem.AddResidualBlock(cost_function, loss,
+                               &cam_T_global_n->at(cid).translation()[0],
+                               &aa.at(cid)[0],
+                               &pid_to_global_t_point->col(pid)[0],
+                               &focal_length);
+    }
+  }
+  problem.SetParameterBlockConstant(&focal_length);
+
+  // Solve the problem
+  ceres::Solve(options, &problem, summary);
+
+  // Write the rotations back to the transform
+  Eigen::Matrix3d r;
+  for (size_t cid = 0; cid < n_cameras; cid++) {
+    camera::RodriguesToRotation(aa[cid], &r);
+    cam_T_global_n->at(cid).linear() = r;
+  }
 }
 }  // namespace sparse_mapping

@@ -19,8 +19,6 @@
 #ifndef SPARSE_MAPPING_MATH_UTILITIES_H_
 #define SPARSE_MAPPING_MATH_UTILITIES_H_
 
-#include <sparse_mapping/remove_invalid_points_and_detections_params.h>
-
 #include <Eigen/Geometry>
 
 #include <map>
@@ -44,26 +42,12 @@ void TriangulateAllPoints(const bool remove_invalid_points, const double focal_l
                           std::vector<Eigen::Vector3d>* pid_to_xyz,
                           std::vector<std::map<int, int> >* cid_to_fid_to_pid = nullptr);
 
-double ReprojectionErrorThreshold(const std::vector<double>& reprojection_errors,
-                                  const RemoveInvalidPointsAndDetectionsParams& params);
-
 boost::optional<double> AngleBetweenRays(const Eigen::Vector3d& a_t_p, const Eigen::Vector3d& b_t_p);
 
 // Find the maximum angle between n rays intersecting at given
-// point. Must compute the camera centers in the global coordinate
-// system before calling this function.
-double MaxAngleBetweenCameraRays(const int pid, const std::vector<std::map<int, int> >& pid_to_feature_track,
-                                 const std::vector<Eigen::Vector3d>& global_t_cams,
-                                 const std::vector<Eigen::Vector3d>& pid_to_xyz);
-
-// Remove points that don't project at valid camera pixels,
-// points behind the camera, and matches having large reprojection error.
-void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsParams& params,
-                                      const std::vector<Eigen::Affine3d>& cid_to_cam_T_global,
-                                      const CidToKeypointsMap& cid_to_keypoints,
-                                      std::vector<std::map<int, int> >* pid_to_feature_track,
-                                      std::vector<Eigen::Vector3d>* pid_to_xyz,
-                                      std::vector<std::map<int, int> >* cid_to_fid_to_pid = nullptr);
+// point.
+double MaxAngleBetweenCameraRays(const FeatureTrack& feature_track, const Eigen::Vector3d& global_t_point,
+                                 const std::vector<Eigen::Vector3d>& global_t_cams);
 
 void DetectFeatures(const cv::Mat& image,
                       const bool histogram_equalization,
@@ -106,6 +90,19 @@ bool EstimateRTFromE(Eigen::Matrix3d const& k1, Eigen::Matrix3d const& k2, Eigen
 void Find3DAffineTransform(Eigen::Matrix3Xd const& in,
                            Eigen::Matrix3Xd const& out,
                            Eigen::Affine3d* result);
+
+  /**
+   * Perform bundle adjustment.
+   *
+   * This variant assumes that all cameras see that same points. This is
+   * meant to be used to do 2 or 3 camera refinements however it can do
+   * N cameras just fine.
+   *
+   **/
+  void BundleAdjustSmallSet(std::vector<Eigen::Matrix2Xd> const& features_n, double focal_length,
+                            std::vector<Eigen::Affine3d>* cam_t_global_n, Eigen::Matrix3Xd* pid_to_xyz,
+                            ceres::LossFunction* loss, ceres::Solver::Options const& options,
+                            ceres::Solver::Summary* summary);
 }  // namespace sparse_mapping
 
 #endif  // SPARSE_MAPPING_MATH_UTILITIES_H_

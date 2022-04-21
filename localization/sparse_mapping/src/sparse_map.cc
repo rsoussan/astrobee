@@ -18,13 +18,43 @@
 
 #include <ff_common/thread.h>
 #include <ff_common/utils.h>
+#include <sparse_mapping/bundle_adjustment_utilities.h>
+#include <sparse_mapping/remove_invalid_points_and_detections_stats.h>
 #include <sparse_mapping/sparse_map.h>
 #include <sparse_mapping/utilities.h>
 
 #include <Eigen/Geometry>
 
+namespace {
+bool FixedCamera(const BundleAdjustmentParams& params, const Cid cid) {
+  if (params.fix_all_cameras || params.fixed_cameras.count(cid) > 0) return true;
+  const bool in_optimize_range =
+    params.optimize_camera_range && (cid >= params.first_optimized_camera && cid <= params.last_optimized_camera);
+  if (!in_optimize_range) return true;
+  return false;
+}
+
+bool FixedPoint(const BundleAdjustmentParams& params, const Pid pid, const FeatureTrack& feature_track) {
+  if (params.fixed_points.count(pid) > 0) return true;
+  // Points which project into cameras that are not fixed are also not fixed
+  for (const auto& cid_fid_pair : feature_track) {
+    const int cid = cid_fid.first;
+    if (!FixedCamera(cid)) return false;
+  }
+  return true;
+}
+
+bool ValidProjection(const Eigen::Vector2d& centered_projected_point, const Eigen::Vector2d& image_half_size) {
+  if (centered_projected_point.x() < -1.0 * half_size.x() || centered_projected_point.x() >= half_size.x() ||
+      centered_projected_point.y() < -1.0 * half_size.y() || centered_projected_point.y() >= half_size.y())
+    return false;
+  return true;
+}
+}  // namespace
+
 namespace sparse_mapping {
-using fc = ff_common;
+namespace fc = ff_common;
+namespace oc = optimization_common;
 
 SparseMap::SparseMap(const CidFilenameMap& cid_to_filename, const SparseMapParams& params)
     : params_(params), cid_to_filename_(cid_to_filename) {
@@ -310,7 +340,7 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
   TriangulateAllPoints();
 }
 
-void TriangulateAllPoints(const bool remove_invalid_points) {
+void SparseMap::TriangulateAllPoints(const bool remove_invalid_points) {
   TriangulateAllPoints(remove_invalid_points,
                               params_.camera.GetFocalLength(),
                               cid_to_cam_T_global_,
@@ -320,7 +350,7 @@ void TriangulateAllPoints(const bool remove_invalid_points) {
                               &cid_to_fid_to_pid_);
 }
 
-int OldestCidToOptimize(const int latest_cid) const {
+int SparseMap::OldestCidToOptimize(const int latest_cid) const {
     // If cid+1 is divisible by 2^k, do at least 2^k cameras, ending
     // with camera cid.  E.g., if current camera index is 23 = 3*8-1, do at
     // least 8 cameras, so cameras 16, ..., 23. This way, we will try
@@ -340,12 +370,10 @@ int OldestCidToOptimize(const int latest_cid) const {
     return oldest_cid_to_optimize;
 }
 
-void IterativelyBundleAdjust(const BundleAdjustmentParams& params, const int num_iterations) {
+void SparseMap::IterativelyBundleAdjust(const BundleAdjustmentParams& params, const int num_iterations) {
   for (int i = 0; i < num_iterations; ++i) {
     LOG(INFO) << "Beginning bundle adjustment, pass: " << i << ".\n";
-    const auto summary = BundleAdjust(params, cid_to_keypoints_,
-                    &cid_to_cam_T_global_,
-                    &pid_to_feature_track_, &pid_to_global_t_point_, &cid_to_fid_to_pid_);
+    const auto summary = BundleAdjust(params);
     const int num_used_observations = NumUsedFeatures();
     LOG(INFO) << summary.FullReport() << "\n";
     LOG(INFO) << "Starting average reprojection error: "
@@ -355,7 +383,161 @@ void IterativelyBundleAdjust(const BundleAdjustmentParams& params, const int num
   }
 }
 
-void ClearImageDatabase() {
+ceres::Solver::Summary SparseMap::BundleAdjust(const BundleAdjustmentParams& params) {
+  std::vector<Eigen::Matrix<double, 7, 1>> cam_T_global_data_vec;
+  cam_T_global_data_vec.reserve(NumCids());
+  for (const auto& cam_T_global : cid_to_cam_T_global()) {
+    cam_T_global_data_vec.emplace_back(oc::VectorFromAffine3d(cam_T_global));
+  }
+
+  ceres::Problem problem;
+  // Centered, undistored camera
+  const Eigen::Vector2d zero_principal_points(Eigen::Vector2d::Zero());
+  const Eigen::VectorXd zero_distortion(1);
+  const Eigen::Vector2d focal_lengths = params().camera.GetFocalVector();
+  oc::AddConstantParameterBlock(2, zero_principal_points.data(), problem);
+  oc::AddConstantParameterBlock(1, zero_distortion.data(), problem);
+  oc::AddConstantParameterBlock(2, focal_lengths.data(), problem);
+
+// TODO(rsoussan): add option to use control points or not!!
+    for (int pid = 0; pid < NumPoints(); ++pid) {
+      if (FeatureTrackLength(pid) < 2)
+        LOG(FATAL) << "Found a track of size < 2.";
+
+      auto& global_t_point = global_t_point(pid);
+      const auto& feature_track = feature_track(pid);
+      const bool fixed_point = FixedPoint(params, pid, feature_track);
+      oc::AddParameterBlock(3, global_t_point.data(), problem, fixed_point);
+       for (const auto& cid_fid_pair : feature_track) {
+        const int cid = cid_fid_pair.first;
+        const int fid = cid_fid_pair.second;
+        const auto& image_point = keypoint(cid, fid);
+        auto& cam_T_global_data = cam_T_global_data_vec[cid];
+
+      const bool fixed_camera = FixedCamera(params, cid);
+      oc::AddAffine3ParameterBlock(cam_T_global_data.data(), problem, fixed_camera);
+      if (!params.optimize_scale) {
+        // TODO(rsoussan): Optimize for scale??? test!! switch to subset manifold?? Can you add two local
+        // parameterizations to one param block??
+        ceres::SubsetParameterization* constant_scale_parameterization = new ceres::SubsetParameterization(7, {6});
+        problem.SetParameterization(cam_T_global_data.data(), constant_scale_parameterization);
+      }
+
+      oc::ReprojectionError<vc::IdentityDistorter, oc::AffineFunctor>::AddCostFunction(
+        image_point, global_t_point, cam_T_global_data, const_cast<Eigen::Vector2d&>(focal_lengths),
+        const_cast<Eigen::Vector2d&>(zero_principal_points), const_cast<Eigen::VectorXd&>(zero_distortion), problem,
+        params.LossFunction());
+      }
+    }
+  ceres::Solver::Summary summary;
+  ceres::Solve(params.options, &problem, &summary);
+
+  for (int cid = 0; cid < NumCids(); ++cid) {
+    cam_T_global(cid) = oc::Affine3d(cam_T_global_data_vec[cid]);
+  }
+
+  if (params.remove_invalid_points_and_detections) {
+    RemoveInvalidPointsAndDetections(params.remove_invalid_points_and_detections_params);
+  }
+
+  return summary;
+}
+
+void SparseMap::RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsParams& params) {
+  std::vector<double> pid_reprojection_errors;
+  std::vector<Eigen::Vector3d> global_t_cams;
+  global_t_cams.reserve(NumCids());
+  for (const auto& cam_T_global : cid_to_cam_T_global()) {
+    global_t_cams.emplace_back(cam_T_global.inverse().translation());
+  }
+
+  RemoveInvalidPointsAndDetectionsStats stats;
+  stats.num_points = NumPoints();
+  std::vector<bool> invalid_point(NumPoints(), false);
+  const Eigen::Vector2d half_size = params().camera.GetUndistortedHalfSize();
+  const Eigen::Matrix3d intrinsics = params().camera.GetIntrinsicMatrix<camera::UNDISTORTED_C>();
+  for (int pid = 0; pid < NumPoints(); ++pid) {
+    bool small_angle = false, behind_cam = false, invalid_reprojection = false;
+
+    // Check camera angles
+    const auto& feature_track = feature_track(pid);
+    const auto& global_t_point = global_t_point(pid);
+    const double max_angle_between_camera_rays
+      = MaxAngleBetweenCameraRays(feature_track, global_t_point, global_t_cams);
+    if (max_angle_between_camera_rays < params.min_max_angle_between_camera_rays) {
+      small_angle = true;
+      invalid_point[pid] = true;
+    }
+
+    for (const auto cid_fid : feature_track) {
+      const int cid = cid_fid.first;
+      const auto& cam_T_global = cam_T_global(cid);
+      const Eigen::Vector3d cam_t_point = cam_T_global*global_t_point;
+      // Check if point is behind any camera
+      if (cam_t_point.z() <= 0) {
+        behind_cam = true;
+        invalid_point[pid] = true;
+      }
+
+      // Check projection
+      const double reprojection_error =
+        ReprojectionError(cid_fid, intrinsics);
+      pid_reprojection_errors.emplace_back(reprojection_error);
+      const bool valid_projection = ValidProjection(projected_point, half_size);
+      if (!valid_projection) {
+        invalid_reprojection = true;
+        invalid_point[pid] = true;
+      }
+    }
+    stats.small_angle    += static_cast<int>(small_angle);
+    stats.behind_cam     += static_cast<int>(behind_cam);
+    stats.invalid_reprojection += static_cast<int>(invalid_reprojection);
+  }
+  RemovePoints(invalid_point);
+
+  std::vector<bool> invalid_point_detection_count(NumPoints(), false);
+  // Remove high reprojection error feature detections
+  const double reprojection_error_threshold = ReprojectionErrorThreshold(pid_reprojection_errors, params);
+  LOG(INFO) << "Filtering features with reprojection error higher than: "
+            << reprojection_error_threshold << " pixels";
+  for (int pid = 0; pid < NumPoints(); ++pid) {
+    auto& feauture_track = feature_track(pid);
+    const auto& global_t_point = global_t_point(pid);
+    for (auto cid_fid_it = feature_track.begin(); cid_fid_it != feature_track.end();) {
+      ++stats.num_features;
+      const double reprojection_error =
+        ReprojectionError(*cid_fid_it, intrinsics);
+      if (reprojection_error >= params.max_reprojection_error) {
+        cid_fid_it = feature_track.erase(cid_fid_it);
+        ++stats.big_reproj_err;
+      } else {
+        ++cid_fid_it;
+      }
+    }
+    // Remove point if less than 2 valid feature detections remain
+    const int num_detections = FeatureTrackLength(pid);
+    if (num_detections < 2) {
+      invalid_point_detection_count[pid] = true;
+    }
+  }
+  RemovePoints(invalid_point_detection_count);
+  InitializeCidFidPidMap();
+
+  if (params.print_stats)
+    stats.Print();
+}
+
+double SparseMap::ReprojectionError(const std::pair<int, int>& cid_fid, const Eigen::Matrix3d& intrinsics) {
+  const int cid = cid_fid.first;
+  const int fid = cid_fid.second;
+  const auto& cam_T_global = cam_T_global(cid);
+  const Eigen::Vector3d cam_t_point = cam_T_global * global_t_point;
+  const Eigen::Vector2d projected_point = vc::Project(cam_t_point, intrinsics);
+  const auto& keypoint = keypoint(cid, fid);
+  return (keypoint - projected_point).norm();
+}
+
+void SparseMap::ClearImageDatabase() {
   image_database_.reset();
 }
 
