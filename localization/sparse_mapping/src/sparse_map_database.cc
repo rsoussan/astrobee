@@ -25,6 +25,10 @@ void SparseMapDatabase::ResizeFeatureMaps() {
   cid_to_descriptors_.resize(num_cids);
 }
 
+void SparseMapDatabase::SetPoses(const CidPoseMap& cid_to_cam_T_global) {
+  cid_to_cam_T_global_ = cid_to_cam_T_global;
+}
+
 void SparseMapDatabase::AddImagesAndFeatures(const SparseMapDatabase& map) {
   const int num_initial_cids = NumCids();
   const int num_final_cids = num_initial_cids + map.NumCids();

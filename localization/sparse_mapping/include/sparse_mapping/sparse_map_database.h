@@ -44,6 +44,8 @@ class SparseMapDatabase {
 
   void ResizeFeatureMaps();
 
+  void SetPoses(const CidPoseMap& cid_to_cam_T_global);
+
   bool ContainsPid(const Cid cid, const int fid) const { return (cid_to_fid_to_pid[cid].count(fid) > 0);}
 
   int NumCids() const {return static_cast<int>(cid_to_filename_.size());}

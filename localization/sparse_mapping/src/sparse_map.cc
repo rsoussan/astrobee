@@ -305,7 +305,7 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
                  incremental_pid_to_feature_track, &incremental_pid_to_global_t_point);
   }
 
-  cid_to_cam_T_global_ = incremental_cid_t_cam_T_global;
+  SetPoses(incremental_cid_t_cam_T_global);
   // Triangulate one last time after completion of iterative bundle adjustment
   TriangulateAllPoints();
 }
