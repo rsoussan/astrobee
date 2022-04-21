@@ -24,13 +24,6 @@
 #include <vector>
 
 namespace sparse_mapping {
-  // TODO(rsoussan): Remove this and essential file functions?? Not used anymore?
-  // The name of the matches file
-  std::string MatchesFile(std::string const& map_file);
-
-  // The name of the essential file
-  std::string EssentialFile(std::string const& map_file);
-
   // Extract control points and the images they correspond to from
   // a hugin project file
   void ParseHuginControlPoints(std::string const& hugin_file,
@@ -39,10 +32,6 @@ namespace sparse_mapping {
 
   // Parse a file having on each line xyz coordinates
   void ParseXYZ(std::string const& xyz_file, Eigen::MatrixXd * xyz);
-
-void InitializeCidFidPidMap(int num_cid,
-                           std::vector<std::map<int, int> > const& pid_to_feature_track,
-                           std::vector<std::map<int, int> > * cid_to_fid_to_pid);
 
 cv::Mat LoadImage(const std::string& filename);
 }  // namespace sparse_mapping

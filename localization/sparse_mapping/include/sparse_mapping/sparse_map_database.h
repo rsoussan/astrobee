@@ -67,6 +67,7 @@ class SparseMapDatabase {
 
   void Transform(const Eigen::Affine3d& new_global_T_global);
 
+  // From pid_to_feature_track_, create cid_to_fid_to_pid for lookup.
   void InitializeCidFidPidMap();
 
   std::vector<Descriptors> AllDescriptors() const;
@@ -95,8 +96,6 @@ void RemovePoints(const std::vector<bool>& indices_to_remove) {
   localization_common::RemoveElements(indices_to_remove, pid_to_feature_track_);
   localization_common::RemoveElements(indices_to_remove, pid_to_global_t_point_);
 }
-
-
 
   // Accessors
   const std::string& filename(const Cid cid) const {return cid_to_filename_[cid];}

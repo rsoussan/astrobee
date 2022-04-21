@@ -25,14 +25,6 @@ namespace {
 }
 
 namespace sparse_mapping {
-std::string MatchesFile(std::string const& map_file) {
-  return map_file + ".matches.txt";
-}
-
-std::string EssentialFile(std::string const& map_file) {
-  return map_file + ".essential.csv";
-}
-
 // Extract control points and the images they correspond 2 from
 // a hugin project file
 void ParseHuginControlPoints(std::string const& hugin_file,
@@ -129,21 +121,6 @@ void ParseXYZ(std::string const& xyz_file,
     num_points++;
     (*xyz).conservativeResize(Eigen::NoChange_t(), num_points);
     (*xyz).col(num_points-1) << x, y, z;
-  }
-}
-
-// From pid_to_feature_track, create cid_to_fid_to_pid for lookup.
-// TODO(rsoussan): Move this to sparse_map_database!!
-void InitializeCidFidPidMap(int num_cid,
-                           std::vector<std::map<int, int> > const& pid_to_feature_track,
-                           std::vector<std::map<int, int> > * cid_to_fid_to_pid) {
-  cid_to_fid_to_pid->clear();
-  cid_to_fid_to_pid->resize(num_cid, std::map<int, int>());
-
-  for (int pid = 0; pid < static_cast<int>(pid_to_feature_track.size()); ++pid) {
-    for (const auto& cid_fid : pid_to_feature_track[pid]) {
-      (*cid_to_fid_to_pid)[cid_fid.first][cid_fid.second] = pid;
-    }
   }
 }
 

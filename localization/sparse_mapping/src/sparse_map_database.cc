@@ -49,12 +49,6 @@ void SparseMapDatabase::AddPoses(const std::vector<Eigen::Affine3d>& cam_T_globa
   }
 }
 
-void SparseMapDatabase::InitializeCidFidPidMap() {
-  InitializeCidFidPidMap(NumCids(),
-                                        pid_to_feature_track_,
-                                        &cid_to_fid_to_pid_);
-}
-
   std::vector<Descriptors> SparseMapDatabase::AllDescriptors() const {
       std::vector<Descriptors> all_descriptors;
       const int num_cids = NumCids();
@@ -95,5 +89,16 @@ void SparseMapDatabase::MergeTrack(const int pid, const Eigen::Vector3d& global_
   // TODO(rsoussan): Allow for user defined weight?
   const double weight = feature_track.size()/(static_cast<double>(total_size));
   current_global_t_point = (1.0 - weight)*current_global_t_point + weight*global_t_point;
+}
+
+void SparseMapDatabase::InitializeCidFidPidMap() {
+  cid_to_fid_to_pid_->clear();
+  cid_to_fid_to_pid_->resize(NumCids(), std::map<int, int>());
+
+  for (int pid = 0; pid < NumPoints(); ++pid) {
+    for (const auto& cid_fid : feature_track(pid)) {
+      cid_to_fid_to_pid_[cid_fid.first][cid_fid.second] = pid;
+    }
+  }
 }
 }  // namespace sparse_mapping
