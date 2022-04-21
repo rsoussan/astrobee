@@ -24,17 +24,6 @@
 #include <vector>
 
 namespace sparse_mapping {
-  bool IsBinaryDescriptor(std::string const& descriptor);
-
-  // Logic for implementing if two histogram equalization flags are compatible
-  void HistogramEqualizationCheck(int histogram_equalization1, int histogram_equalization2);
-
-  // Utility to return the type of entries in a given matrix
-  std::string CvMatTypeStr(cv::Mat const& Mat);
-
-  void ListToListMap(std::vector<std::string> const& big_list, std::vector<std::string> const& small_list,
-                     std::map<int, int>* map);
-
   // TODO(rsoussan): Make this to a sparse map function
   /**
      Take a map. Form a map with only a subset of the images.
