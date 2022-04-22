@@ -146,60 +146,10 @@ void ExtractSubmap(std::vector<std::string> * keep_ptr,
 double RegistrationOrVerification(std::vector<std::string> const& data_files,
                                 bool verification,
                                 sparse_mapping::SparseMap * map) {
-  // Get the interest points in the images, and their positions in
-  // the world coordinate system, as supplied by a user.
-  // Parse and concatenate that information from multiple files.
   std::vector<std::string> images;
   Eigen::MatrixXd user_ip;
   Eigen::Matrix3Xd user_xyz;
-  // TODO(rsoussan): Make function for this! move to file utils!!
-  for (size_t file_id = 0; file_id < data_files.size(); file_id++) {
-    std::string file = data_files[file_id];
-    std::string ext = ff_common::file_extension(file);
-    std::vector<std::string> curr_images;
-    Eigen::MatrixXd curr_ip, curr_xyz;
-
-    if (ext == "pto") {
-      sparse_mapping::ParseHuginControlPoints(file, &curr_images, &curr_ip);
-
-      int orig_num_img = images.size();
-
-      // Append to the larger sets
-      for (size_t it = 0; it < curr_images.size(); it++)
-        images.push_back(curr_images[it]);
-
-      // Append to the larger set
-      int orig_num_ip = user_ip.cols();
-      Eigen::MatrixXd merged_ip(curr_ip.rows(),
-                                user_ip.cols() + curr_ip.cols());
-      if (user_ip.cols() > 0)
-        merged_ip << user_ip, curr_ip;
-      else
-        merged_ip << curr_ip;
-      user_ip = merged_ip;
-      for (int pid = orig_num_ip; pid < user_ip.cols(); pid++) {
-        user_ip(0, pid) += orig_num_img;  // update the index of the left image
-        user_ip(1, pid) += orig_num_img;  // update the index of the right image
-      }
-    } else if (ext == "txt") {
-      sparse_mapping::ParseXYZ(file, &curr_xyz);
-
-      // Append to the larger set
-      Eigen::Matrix3Xd merged_xyz(curr_xyz.rows(),
-                                 user_xyz.cols() + curr_xyz.cols());
-      if (user_xyz.cols() > 0)
-        merged_xyz << user_xyz, curr_xyz;
-      else
-        merged_xyz << curr_xyz;
-      user_xyz = merged_xyz;
-    }
-  }
-
-  int num_points = user_ip.cols();
-  if (num_points != user_xyz.cols())
-    LOG(FATAL) << "Could not parse an equal number of control "
-               << "points and xyz coordinates. Their numbers are "
-               << num_points << " vs " << user_xyz.cols() << ".\n";
+  LoadControlPoints(data_files, images, user_ip, user_xyz);
 
   std::map<std::string, int> filename_to_cid;
   for (size_t cid = 0; cid < map->cid_to_filename_.size(); cid++)

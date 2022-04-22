@@ -30,10 +30,9 @@ namespace sparse_mapping {
                                std::vector<std::string> * images,
                                Eigen::MatrixXd * points);
 
-  // Parse a file having on each line xyz coordinates
-  void ParseXYZ(std::string const& xyz_file, Eigen::MatrixXd * xyz);
+  std::vector<Eigen::Vector3d> LoadPoints(const std::string& points_file);
 
-cv::Mat LoadImage(const std::string& filename);
+  cv::Mat LoadImage(const std::string& filename);
 }  // namespace sparse_mapping
 
 #endif  // SPARSE_MAPPING_FILE_UTILITIES_H_
