@@ -25,46 +25,40 @@ namespace {
 }
 
 namespace sparse_mapping {
-// Extract control points and the images they correspond 2 from
-// a hugin project file
-void ParseHuginControlPoints(std::string const& hugin_file,
-                                             std::vector<std::string> * images,
-                                             Eigen::MatrixXd * points) {
-  // Initialize the outputs
-  (*images).clear();
-  *points = Eigen::MatrixXd(6, 1);
-
-  std::ifstream hf(hugin_file.c_str());
-  if (!hf.good())
+std::vector<ControlPoints> LoadHuginControlPoints(const std::string& hugin_file) {
+  const std::ifstream filestream(hugin_file.c_str());
+  if (!filestream.good())
     LOG(FATAL) << "ParseHuginControlPoints(): Could not open hugin file: " << hugin_file;
 
   int num_points = 0;
   std::string line;
-  while (getline(hf, line)) {
-    // Parse for images
+  std::vector<ControlPoints> control_points;
+  std::vector<std::string> image_names;
+  while (getline(filestream, line)) {
+    // Load image names
     if (line.find("i ") == 0) {
-      size_t it = line.find("n\"");
-      if (it == std::string::npos)
+      const int i = line.find("n\"");
+      if (i == std::string::npos)
         LOG(FATAL) << "ParseHuginControlPoints(): Invalid line: " << line;
-      it += 2;
-      std::string image;
-      while (it < line.size() && line[it] != '"') {
-        image += line[it];
-        it++;
+      i += 2;
+      std::string image_name;
+      while (i < line.size() && line[i] != '"') {
+        image_name += line[i];
+        ++i;
       }
-      (*images).push_back(image);
+      image_names.emplace_back(image_name);
     }
 
-    // Parse control points
+    // Load control points
     if (line.find("c ") == 0) {
       // First wipe all letters
-      std::string orig_line = line;
-      char * ptr = const_cast<char*>(line.c_str());
-      for (size_t i = 0; i < line.size(); i++) {
+      const std::string orig_line = line;
+      char * const pruned_line = const_cast<char*>(line.c_str());
+      for (int i = 0; i < static_cast<int>(line.size()); ++i) {
         // Wipe some extra chars
-        if ( (ptr[i] >= 'a' && ptr[i] <= 'z') ||
-             (ptr[i] >= 'A' && ptr[i] <= 'Z') )
-          ptr[i] = ' ';
+        if ( (pruned_line[i] >= 'a' && pruned_line[i] <= 'z') ||
+             (pruned_line[i] >= 'A' && pruned_line[i] <= 'Z') )
+          pruned_line[i] = ' ';
       }
 
       // Out of a line like:
@@ -73,21 +67,21 @@ void ParseHuginControlPoints(std::string const& hugin_file,
       // as a column.
       // The stand for left image index, right image index,
       // left image x, left image y, right image x, right image y.
-      double a, b, c, d, e, f;
-      if (sscanf(ptr, "%lf %lf %lf %lf %lf %lf", &a, &b, &c, &d, &e, &f) != 6)
+      ControlPoint control_point;
+      if (sscanf(pruned_line, "%d %d %lf %lf %lf %lf", &control_point.cid_left, &control_point.cid_right,
+                 &control_point.keypoint_left.x(), &control_point.keypoint_left.y(), &control_point.keypoint_right.x(),
+                 &control_point.keypoint_right.y()) != 6)
         LOG(FATAL) << "ParseHuginControlPoints(): Could not scan line: " << line;
 
       // The left and right images must be different
-      if (a == b)
+      if (control_point.cid_left == control_point.cid_right)
         LOG(FATAL) << "The left and right images must be distinct. "
                    << "Offending line in " << hugin_file << " is:\n"
                    << orig_line << "\n";
-
-      num_points++;
-      (*points).conservativeResize(Eigen::NoChange_t(), num_points);
-      (*points).col(num_points-1) << a, b, c, d, e, f;
     }
   }
+
+  return control_points;
 }
 
 std::vector<Eigen::Vector3d> LoadPoints(const std::string& points_file) {
@@ -108,7 +102,7 @@ std::vector<Eigen::Vector3d> LoadPoints(const std::string& points_file) {
       continue;
 
     // Replace commas with spaces
-    char * ptr = const_cast<char*>(line.c_str());
+    char * const ptr = const_cast<char*>(line.c_str());
     for (int c = 0; c < static_cast<int>(line.size()); ++c)
       if (ptr[c] == ',') ptr[c] = ' ';
     double x, y, z;

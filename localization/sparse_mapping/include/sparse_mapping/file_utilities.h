@@ -24,11 +24,17 @@
 #include <vector>
 
 namespace sparse_mapping {
-  // Extract control points and the images they correspond to from
-  // a hugin project file
-  void ParseHuginControlPoints(std::string const& hugin_file,
-                               std::vector<std::string> * images,
-                               Eigen::MatrixXd * points);
+  struct ControlPoints {
+    int cid_left;
+    int cid_right;
+    std::string image_left;
+    std::string image_right;
+    Eigen::Vector2d keypoint_left;
+    Eigen::Vector2d keypoint_right;
+    Eigen::Vector3d global_t_point;
+  };
+
+  std::vector<ControlPoints> LoadHuginControlPoints(const std::string& hugin_file);
 
   std::vector<Eigen::Vector3d> LoadPoints(const std::string& points_file);
 
