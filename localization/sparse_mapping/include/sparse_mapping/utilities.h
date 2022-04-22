@@ -19,19 +19,10 @@
 #ifndef SPARSE_MAPPING_UTILITIES_H_
 #define SPARSE_MAPPING_UTILITIES_H_
 
-#include <map>
 #include <string>
 #include <vector>
 
 namespace sparse_mapping {
-  // TODO(rsoussan): Make this to a sparse map function
-  /**
-     Take a map. Form a map with only a subset of the images.
-     Bundle adjustment will happen later.
-  */
-  void ExtractSubmap(std::vector<std::string> * keep_ptr,
-                     sparse_mapping::SparseMap * map_ptr);
-
   // TODO(rsoussan): Make this to a sparse map function
   /**
    * Register the map to the world coordinate system or verify

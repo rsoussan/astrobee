@@ -17,130 +17,7 @@
  */
 
 #include <sparse_mapping/utilities.h>
-namespace {
-std::string print_vec(double a) {
-  char st[256];
-  snprintf(st, sizeof(st), "%7.4f", a);
-  return std::string(st);
-}
-std::string print_vec(Eigen::Vector3d a) {
-  char st[256];
-  snprintf(st, sizeof(st), "%7.4f %7.4f %7.4f", a[0], a[1], a[2]);
-  return std::string(st);
-}
-}  // namespace
-
 namespace sparse_mapping {
-// Take a map. Form a map with only a subset of the images.
-// Bundle adjustment will happen later.
-void ExtractSubmap(std::vector<std::string> * keep_ptr,
-                   sparse_mapping::SparseMap * map_ptr) {
-  // Create aliases to not use pointers all the time.
-  sparse_mapping::SparseMap & map = *map_ptr;
-  std::vector<std::string> & keep = *keep_ptr;
-
-  // Wipe things that we won't merge (or not yet)
-  map.ClearImageDatabase();
-  map.pid_to_global_t_point_.clear();
-  map.cid_to_fid_to_pid_.clear();
-  map.cid_to_cid_.clear();
-  map.user_cid_to_keypoints_.clear();
-  map.user_pid_to_feature_track_.clear();
-  map.user_pid_to_global_t_point_.clear();
-
-  // Sanity check. The images to keep must exist in the original map.
-  std::map<std::string, int> image2cid;
-  for (size_t cid = 0; cid < map.cid_to_filename_.size(); cid++)
-    image2cid[map.cid_to_filename_[cid]] = cid;
-  for (size_t cid = 0; cid < keep.size(); cid++) {
-    if (image2cid.find(keep[cid]) == image2cid.end())
-      LOG(WARNING) << "Could not find in the input map the image: " << keep[cid];
-  }
-
-  // To extract the submap-in place, it is simpler to reorder the images
-  // to extract to be in the same order as in the map
-  {
-    std::set<std::string> keep_set;
-    for (size_t cid = 0; cid < keep.size(); cid++)
-      keep_set.insert(keep[cid]);
-    std::vector<std::string> keep2;
-    for (size_t cid = 0; cid < map.cid_to_filename_.size(); cid++) {
-      if (keep_set.find(map.cid_to_filename_[cid]) != keep_set.end()) {
-        keep2.push_back(map.cid_to_filename_[cid]);
-      }
-    }
-    keep = keep2;
-  }
-
-  // Map each image we keep to its index
-  std::map<std::string, int> keep2cid;
-  for (size_t cid = 0; cid < keep.size(); cid++)
-    keep2cid[keep[cid]] = cid;
-
-  // The map from the old cid to the new cid
-  std::map<int, int> cid2cid;
-  for (size_t cid = 0; cid < map.cid_to_filename_.size(); cid++) {
-    auto it = keep2cid.find(map.cid_to_filename_[cid]);
-    if (it == keep2cid.end()) continue;  // current image is not in the final submap
-    cid2cid[cid] = it->second;
-  }
-
-  // Sanity checks. All the kept images must be represented in cid2cid,
-  // and the values in cid2cid must be consecutive.
-  if (cid2cid.size() != keep.size() || cid2cid.empty())
-    LOG(FATAL) << "Cannot extract a submap. Check your inputs.";
-  for (auto it = cid2cid.begin(); it != cid2cid.end(); it++) {
-    auto it2 = it; it2++;
-    if (it2 == cid2cid.end()) continue;
-    if (it->second + 1 != it2->second || cid2cid.begin()->second != 0 )
-      LOG(FATAL) << "Cannot extract a submap. Check if the images "
-                 << "you want to keep are in the same order as in the original map.";
-  }
-
-  // Over-write the data in-place. Should be safe with the checks done above.
-  int num_cid = keep.size();
-  for (size_t cid = 0; cid < map.cid_to_filename_.size(); cid++) {
-    if (cid2cid.find(cid) == cid2cid.end()) continue;
-    size_t new_cid = cid2cid[cid];
-    map.cid_to_filename_[new_cid]             = map.cid_to_filename_[cid];
-    map.cid_to_keypoints_[new_cid]         = map.cid_to_keypoints_[cid];
-    map.cid_to_cam_T_global_[new_cid]         = map.cid_to_cam_T_global_[cid];
-    map.cid_to_descriptors_[new_cid]       = map.cid_to_descriptors_[cid];
-  }
-  map.cid_to_filename_             .resize(num_cid);
-  map.cid_to_keypoints_         .resize(num_cid);
-  map.cid_to_cam_T_global_         .resize(num_cid);
-  map.cid_to_descriptors_       .resize(num_cid);
-
-  // Create new pid_to_feature_track_.
-  std::vector<std::map<int, int> > pid_to_feature_track;
-  std::vector<Eigen::Vector3d> pid_to_global_t_point;
-  for (int pid = 0; pid < static_cast<int>(map.pid_to_feature_track_.size()); pid++) {
-    auto const& cid_fid = map.pid_to_feature_track_[pid];  // alias
-    std::map<int, int> cid_fid2;
-    for (auto it = cid_fid.begin(); it != cid_fid.end(); it++) {
-      int cid = it->first;
-      if (cid2cid.find(cid) == cid2cid.end()) continue;  // not an image we want to keep
-      cid_fid2[cid2cid[cid]] = it->second;
-    }
-    if (cid_fid2.size() <= 1) continue;  // tracks must have size at least 2
-    pid_to_feature_track.push_back(cid_fid2);
-    pid_to_global_t_point.push_back(map.pid_to_global_t_point_[pid]);
-  }
-  map.pid_to_feature_track_ = pid_to_feature_track;
-  map.pid_to_global_t_point_ = pid_to_global_t_point;
-
-  // Recreate cid_to_fid_to_pid_ from pid_to_feature_track_. This must happen
-  // after the merging is complete but before using the new map.
-  map.InitializeCidFidPidMap();
-
-  LOG(INFO) << "Number of images in the extracted map: " << map.cid_to_filename_.size();
-  LOG(INFO) << "Number of tracks in the extracted map: " << map.pid_to_feature_track_.size();
-  // map.Save(output_map + ".extracted.map");
-
-  return;
-}
-
 // Register a map to world coordinates from user-supplied data, or simply
 // verify how well the map performs with this data.
 double RegistrationOrVerification(std::vector<std::string> const& data_files,
@@ -151,6 +28,7 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
   Eigen::Matrix3Xd user_xyz;
   LoadControlPoints(data_files, images, user_ip, user_xyz);
 
+  // TODO(rsoussan): Make this a database function?? make unordered!
   std::map<std::string, int> filename_to_cid;
   for (size_t cid = 0; cid < map->cid_to_filename_.size(); cid++)
     filename_to_cid[map->cid_to_filename_[cid]] = cid;
@@ -194,6 +72,7 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
     user_ip(1, pid) = cid2cid[id2];
   }
 
+  // TODO(rsoussan): Add function to do this in database?? (undistort first in sparse map call)
   // Iterate over the control points in the hugin file. Copy the
   // control points to the list of user keypoints, and create the
   // corresponding user_pid_to_feature_track_.
@@ -282,10 +161,10 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
   for (int i = 0; i < user_xyz.cols(); i++) {
     Eigen::Vector3d a = pid_to_global_t_point[i];
     Eigen::Vector3d b = user_xyz.col(i);
-    std::cout << print_vec(a) << " -- "
-              << print_vec(b) << " -- "
-              << print_vec(a-b) << " -- "
-              << print_vec((a - b).norm())
+    std::cout << a.matrix() << " -- "
+              << b.matrix() << " -- "
+              << (a-b).matrix() << " -- "
+              << (a - b).norm()
               << std::endl;
   }
 
@@ -330,10 +209,10 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
     int id1 = user_ip(0, i);
     int id2 = user_ip(1, i);
 
-    std::cout << print_vec(a) << " -- "
-              << print_vec(b) << " -- "
-              << print_vec(a - b) << " -- "
-              << print_vec((a - b).norm()) << " -- "
+    std::cout << a.matrix() << " -- "
+              << b.matrix() << " -- "
+              << (a - b).matrix() << " -- "
+              << (a - b).norm() << " -- "
               << images[id1] << ' '
               << images[id2] << std::endl;
   }
