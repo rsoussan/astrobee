@@ -27,18 +27,18 @@ namespace sparse_mapping {
   struct ControlPoint {
     int cid_left;
     int cid_right;
-    std::string image_left;
-    std::string image_right;
     Eigen::Vector2d keypoint_left;
     Eigen::Vector2d keypoint_right;
     Eigen::Vector3d global_t_point;
   };
 
-  std::vector<ControlPoint> LoadHuginControlPoints(const std::string& hugin_file);
+  void LoadHuginControlPoints(const std::string& hugin_file, std::vector<ControlPoint>& control_points,
+                              std::vector<std::string>& image_names);
 
-  std::vector<Eigen::Vector3d> LoadPoints(const std::string& points_file);
+  void LoadPoints(const std::string& points_file, std::vector<Eigen::Vector3d>& points);
 
-  std::vector<ControlPoint> LoadControlPoints(const std::vector<std::string>& files);
+  void LoadControlPoints(const std::vector<std::string>& files, std::vector<ControlPoint>& control_points,
+                         std::vector < std::string & image_names);
 
   cv::Mat LoadImage(const std::string& filename);
 }  // namespace sparse_mapping

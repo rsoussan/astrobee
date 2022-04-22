@@ -20,13 +20,10 @@
 namespace sparse_mapping {
 // Register a map to world coordinates from user-supplied data, or simply
 // verify how well the map performs with this data.
-double RegistrationOrVerification(std::vector<std::string> const& data_files,
+double RegistrationOrVerification(const std::vector<std::string>& files,
                                 bool verification,
                                 sparse_mapping::SparseMap * map) {
-  std::vector<std::string> images;
-  Eigen::MatrixXd user_ip;
-  Eigen::Matrix3Xd user_xyz;
-  LoadControlPoints(data_files, images, user_ip, user_xyz);
+  const auto control_points = LoadControlPoints(data_files);
 
   // TODO(rsoussan): Make this a database function?? make unordered!
   std::map<std::string, int> filename_to_cid;

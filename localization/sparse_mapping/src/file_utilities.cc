@@ -18,22 +18,19 @@
 
 #include <sparse_mapping/file_utilities.h>
 namespace {
-  // A little helper function
   bool is_blank(std::string const& line) {
     return (line.find_first_not_of(" \t\n\v\f\r") == std::string::npos);
   }
 }
 
 namespace sparse_mapping {
-std::vector<ControlPoint> LoadHuginControlPoints(const std::string& hugin_file) {
+void LoadHuginControlPoints(const std::string& hugin_file, std::vector<ControlPoint>& control_points,
+                            std::vector<std::string>& image_names) {
   const std::ifstream filestream(hugin_file.c_str());
   if (!filestream.good())
     LOG(FATAL) << "ParseHuginControlPoints(): Could not open hugin file: " << hugin_file;
 
-  int num_points = 0;
   std::string line;
-  std::vector<ControlPoint> control_points;
-  std::vector<std::string> image_names;
   while (getline(filestream, line)) {
     // Load image names
     if (line.find("i ") == 0) {
@@ -52,7 +49,7 @@ std::vector<ControlPoint> LoadHuginControlPoints(const std::string& hugin_file) 
     // Load control points
     if (line.find("c ") == 0) {
       // First wipe all letters
-      const std::string orig_line = line;
+      const std::string original_line = line;
       char * const pruned_line = const_cast<char*>(line.c_str());
       for (int i = 0; i < static_cast<int>(line.size()); ++i) {
         // Wipe some extra chars
@@ -77,21 +74,18 @@ std::vector<ControlPoint> LoadHuginControlPoints(const std::string& hugin_file) 
       if (control_point.cid_left == control_point.cid_right)
         LOG(FATAL) << "The left and right images must be distinct. "
                    << "Offending line in " << hugin_file << " is:\n"
-                   << orig_line << "\n";
+                   << original_line << "\n";
     }
   }
 
   return control_points;
 }
 
-std::vector<Eigen::Vector3d> LoadPoints(const std::string& points_file) {
-  std::vector<Eigen::Vector3d> points;
-
+void LoadPoints(const std::string& points_file, std::vector<Eigen::Vector3d>& points) {
   const std::ifstream filestream(points_file.c_str());
   if (!filestream.good())
     LOG(FATAL) << "LoadPoints(): Could not open hugin file: " << points_file;
 
-  int num_points = 0;
   std::string line;
   while (getline(filestream, line)) {
     // Ignore lines starting with comments and empty lines
@@ -110,27 +104,17 @@ std::vector<Eigen::Vector3d> LoadPoints(const std::string& points_file) {
       LOG(FATAL) << "LoadPoints(): Could not scan line: '" << line << "'\n";
     points.emplace_back(Eigen::Vector3d(x, y, z));
   }
-  return points;
 }
 
-cv::Mat LoadImage(const std::string& filename) {
-  const cv::Mat image = cv::imread(filename, cv::IMREAD_GRAYSCALE);
-  if (image.rows == 0 || image.cols == 0)
-    LOG(FATAL) << "Found empty image in file: " << filename;
-  return image;
-}
-
-std::vector<ControlPoint> LoadControlPoints(const std::vector<std::string>& files) {
-  std::vector<ControlPoint> control_points;
+void LoadControlPoints(const std::vector<std::string>& files, std::vector<ControlPoint>& control_points,
+                       std::vector < std::string & image_names) {
   std::vector<Eigen::Vector3d> global_t_points;
   for (const auto& file : files) {
     const std::string ext = ff_common::file_extension(file);
     if (ext == "pto") {
-      const auto hugin_control_points = LoadHuginControlPoints(file);
-      control_points.insert(control_points.begin(), hugin_control_points.begin(), hugin_control_points.end());
+      LoadHuginControlPoints(file, control_points, image_names);
     } else if (ext == "txt") {
-      const auto points = LoadPoints(file);
-      global_t_points.insert(global_t_points.begin(), points.begin(), points.end());
+      LoadPoints(file, global_t_points);
     }
   }
 
@@ -142,7 +126,12 @@ std::vector<ControlPoint> LoadControlPoints(const std::vector<std::string>& file
   for (int i = 0; i < static_cast<int>(control_points.size()); ++i) {
     control_points[i].global_t_point = global_t_points[i];
   }
+}
 
-  return control_points;
+cv::Mat LoadImage(const std::string& filename) {
+  const cv::Mat image = cv::imread(filename, cv::IMREAD_GRAYSCALE);
+  if (image.rows == 0 || image.cols == 0)
+    LOG(FATAL) << "Found empty image in file: " << filename;
+  return image;
 }
 }  // namespace sparse_mapping
