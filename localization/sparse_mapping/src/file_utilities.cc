@@ -25,14 +25,14 @@ namespace {
 }
 
 namespace sparse_mapping {
-std::vector<ControlPoints> LoadHuginControlPoints(const std::string& hugin_file) {
+std::vector<ControlPoint> LoadHuginControlPoints(const std::string& hugin_file) {
   const std::ifstream filestream(hugin_file.c_str());
   if (!filestream.good())
     LOG(FATAL) << "ParseHuginControlPoints(): Could not open hugin file: " << hugin_file;
 
   int num_points = 0;
   std::string line;
-  std::vector<ControlPoints> control_points;
+  std::vector<ControlPoint> control_points;
   std::vector<std::string> image_names;
   while (getline(filestream, line)) {
     // Load image names
@@ -120,45 +120,29 @@ cv::Mat LoadImage(const std::string& filename) {
   return image;
 }
 
-void LoadControlPoints(const std::vector<std::string>& files, std::vector<std::string>& image_filenames,
-                       std::vector<Eigen::Matrix>& user_ip, user_xyz) {
+std::vector<ControlPoint> LoadControlPoints(const std::vector<std::string>& files) {
+  std::vector<ControlPoint> control_points;
+  std::vector<Eigen::Vector3d> global_t_points;
   for (const auto& file : files) {
     const std::string ext = ff_common::file_extension(file);
-    std::vector<std::string> curr_images;
-    std::vector<Eigen::Vector3d> global_t_points;
-    Eigen::MatrixXd curr_ip;
-
     if (ext == "pto") {
-      ParseHuginControlPoints(file, &curr_images, &curr_ip);
-      const int orig_num_img = images.size();
-
-      // Append to the larger sets
-      for (int i = 0; i < curr_images.size(); ++i)
-        images.push_back(curr_images[i]);
-
-      // Append to the larger set
-      int orig_num_ip = user_ip.cols();
-      Eigen::MatrixXd merged_ip(curr_ip.rows(),
-                                user_ip.cols() + curr_ip.cols());
-      if (user_ip.cols() > 0)
-        merged_ip << user_ip, curr_ip;
-      else
-        merged_ip << curr_ip;
-      user_ip = merged_ip;
-      for (int pid = orig_num_ip; pid < user_ip.cols(); ++pid) {
-        user_ip(0, pid) += orig_num_img;  // update the index of the left image
-        user_ip(1, pid) += orig_num_img;  // update the index of the right image
-      }
+      const auto hugin_control_points = LoadHuginControlPoints(file);
+      control_points.insert(control_points.begin(), hugin_control_points.begin(), hugin_control_points.end());
     } else if (ext == "txt") {
       const auto points = LoadPoints(file);
       global_t_points.insert(global_t_points.begin(), points.begin(), points.end());
     }
   }
 
-  const int num_points = user_ip.cols();
-  if (num_points != user_xyz.cols())
+  if (control_points.size() != global_t_points.size())
     LOG(FATAL) << "Could not parse an equal number of control "
                << "points and xyz coordinates. Their numbers are "
-               << num_points << " vs " << user_xyz.cols() << ".\n";
+               << control_points.size() << " vs " << global_t_points.size() << ".\n";
+
+  for (int i = 0; i < static_cast<int>(control_points.size()); ++i) {
+    control_points[i].global_t_point = global_t_points[i];
+  }
+
+  return control_points;
 }
 }  // namespace sparse_mapping
