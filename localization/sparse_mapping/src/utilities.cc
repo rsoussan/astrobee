@@ -16,57 +16,23 @@
  * under the License.
  */
 
+#include <sparse_mapping/file_utilities.h>
 #include <sparse_mapping/utilities.h>
+
 namespace sparse_mapping {
-// Register a map to world coordinates from user-supplied data, or simply
-// verify how well the map performs with this data.
-double RegistrationOrVerification(const std::vector<std::string>& files,
-                                bool verification,
-                                sparse_mapping::SparseMap * map) {
-  const auto control_points = LoadControlPoints(data_files);
+double RegistrationOrVerification(const std::vector<std::string>& files) {
+  std::vector<ControlPoint> control_points;
+  std::vector<std::string> image_names;
+  LoadControlPoints(files, control_points, image_names);
 
-  // TODO(rsoussan): Make this a database function?? make unordered!
-  std::map<std::string, int> filename_to_cid;
-  for (size_t cid = 0; cid < map->cid_to_filename_.size(); cid++)
-    filename_to_cid[map->cid_to_filename_[cid]] = cid;
-
-  // Wipe images that are missing from the map
-  std::map<int, int> cid2cid;
-  int good_cid = 0;
-  for (size_t cid = 0; cid < images.size(); cid++) {
-    std::string image = images[cid];
-    if (filename_to_cid.find(image) == filename_to_cid.end()) {
-      LOG(WARNING) << "Will ignore image missing from map: " << image;
+  // Remove control points which contain images not contained in the map
+  for (auto control_point = control_points.begin(); control_point != control_points.end(); ++control_point) {
+    if (!ContainsImage(image_names[control_point->cid_left]) || !ContainsImage(image_names[control_point->cid_right])) {
+      control_point = control_points.erase(control_point);
       continue;
+    } else {
+      ++control_point;
     }
-    cid2cid[cid] = good_cid;
-    images[good_cid] = images[cid];
-    good_cid++;
-  }
-  images.resize(good_cid);
-
-  // Remove points corresponding to images missing from map
-  int good_pid = 0;
-  for (int pid = 0; pid < num_points; pid++) {
-    int id1 = user_ip(0, pid);
-    int id2 = user_ip(1, pid);
-    if (cid2cid.find(id1) == cid2cid.end() || cid2cid.find(id2) == cid2cid.end()) {
-      continue;
-    }
-    user_ip.col(good_pid) = user_ip.col(pid);
-    user_xyz.col(good_pid) = user_xyz.col(pid);
-    good_pid++;
-  }
-  user_ip.conservativeResize(Eigen::NoChange_t(), good_pid);
-  user_xyz.conservativeResize(Eigen::NoChange_t(), good_pid);
-  num_points = good_pid;
-  for (int pid = 0; pid < num_points; pid++) {
-    int id1 = user_ip(0, pid);
-    int id2 = user_ip(1, pid);
-    if (cid2cid.find(id1) == cid2cid.end() || cid2cid.find(id2) == cid2cid.end())
-      LOG(FATAL) << "Book-keeping failure in registration.";
-    user_ip(0, pid) = cid2cid[id1];
-    user_ip(1, pid) = cid2cid[id2];
   }
 
   // TODO(rsoussan): Add function to do this in database?? (undistort first in sparse map call)
