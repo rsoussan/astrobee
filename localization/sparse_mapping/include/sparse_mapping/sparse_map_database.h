@@ -105,6 +105,10 @@ void RemovePoints(const std::vector<bool>& indices_to_remove) {
       pid_to_feature_track_.erase(pid_to_feature_track_.begin() + pid);
   }
 
+void AddControlPoints(const std::vector<std::string>& image_names, std::vector<ControlPoint>& control_points);
+
+void AddControlPoint(const ControlPoint& control_point, const Pid pid);
+
   // Accessors
   const std::string& filename(const Cid cid) const {return cid_to_filename_[cid];}
 
@@ -134,12 +138,12 @@ void RemovePoints(const std::vector<bool>& indices_to_remove) {
 
   const PidPoseMap& cid_to_cam_T_global() const { return cid_to_cam_T_global_; }
 
+  const CidFilenameMap& cid_to_filename() const {return cid_to_filename_; }
+
  protected:
   const PidPointMap& pid_to_global_t_point() const { return pid_to_global_t_point_; }
 
   const PidFeatureTrackMap& pid_to_feature_track() const { return pid_to_feature_track_; }
-
-  const CidFilenameMap& cid_to_filename() const {return cid_to_filename_; }
 
   const CidKeypointsMap& cid_to_keypoints() const { return cid_to_keypoints_; }
 

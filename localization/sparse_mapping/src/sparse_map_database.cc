@@ -106,4 +106,45 @@ void SparseMapDatabase::InitializeCidFidPidMap() {
     }
   }
 }
+
+void SparseMapDatabase::AddControlPoints(const std::vector<std::string>& image_names,
+                                         std::vector<ControlPoint>& control_points) {
+  std::unordered_map<std::string, Cid> filename_to_cid;
+  for (const auto& cid_filename_pair : cid_to_filename()) {
+    filename_to_cid.emplace(cid_filename_pair.second, cid_filename_pair.first);
+  }
+
+  // Remove control points which contain images not contained in the map
+  for (auto control_point = control_points.begin(); control_point != control_points.end(); ++control_point) {
+    if (filename_to_cid.count(image_names[control_point->cid_left]) == 0 ||
+        filename_to_cid.count(image_names[control_point->cid_right]) == 0) {
+      control_point = control_points.erase(control_point);
+      continue;
+    } else {
+      // Remap cids using map cids
+      control_point->cid_left = filename_to_cid[image_names[control_point->cid_left]];
+      control_point->cid_right = filename_to_cid[image_names[control_point->cid_right]];
+      ++control_point;
+    }
+  }
+
+  control_point_cid_to_keypoints_.resize(NumCids());
+  const int num_control_points = control_points.size();
+  control_point_pid_to_feature_track_.resize(num_control_points);
+  control_point_pid_to_global_t_point_.resize(num_control_points);
+  for (int pid = 0; pid < num_control_points; ++pid) {
+    AddControlPoint(control_points[pid], pid);
+  }
+}
+
+void SparseMapDatabase::AddControlPoint(const ControlPoint& control_point, const Pid pid) {
+  control_point_cid_to_keypoints_[control_point.cid_left].emplace_back(control_point.keypoint_left);
+  control_point_cid_to_keypoints_[control_point.cid_right].emplace_back(control_point.keypoint_right);
+  // Use latest fid
+  const Fid left_fid = control_point_cid_to_keypoints_[control_point.cid_left].size() - 1;
+  const Fid right_fid = control_point_cid_to_keypoints_[control_point.cid_right].size() - 1;
+  control_point_pid_to_feature_track_[pid][control_point.cid_left] = left_fid;
+  control_point_pid_to_feature_track_[pid][control_point.cid_right] = right_fid;
+  control_point_pid_to_global_t_point_[pid] = control_point.global_t_point;
+}
 }  // namespace sparse_mapping
