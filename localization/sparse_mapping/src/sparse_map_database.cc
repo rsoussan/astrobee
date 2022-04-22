@@ -45,9 +45,14 @@ void SparseMapDatabase::AddImagesAndFeatures(const SparseMapDatabase& map) {
 
 void SparseMapDatabase::AddPoses(const std::vector<Eigen::Affine3d>& cam_T_global_vec) {
   for (const auto& cam_T_global : cam_T_global_vec) {
-    cid_to_cam_T_global_.emplace_back(cam_T_global);
+    AddPose(cam_T_global);
   }
 }
+
+void SparseMapDatabase::AddPose(const Eigen::Affine3d& cam_T_global) {
+    cid_to_cam_T_global_.emplace_back(cam_T_global);
+}
+
 
   std::vector<Descriptors> SparseMapDatabase::AllDescriptors() const {
       std::vector<Descriptors> all_descriptors;

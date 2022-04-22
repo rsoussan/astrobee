@@ -78,6 +78,13 @@ SparseMap::SparseMap(const CidPoseMap& cid_to_cam_T_global,
   ResizeFeatureMaps();
 }
 
+SparseMap::SparseMap(const CidFilenameMap& cid_to_filename, const CidKeypointsMap& cid_to_keypoints,
+                     const CidDescriptorsMap& cid_to_descriptor, const SparseMapParams& params)
+    : cid_to_filename_(cid_to_filename),
+      cid_to_keypoints_(cid_to_keypoints),
+      cid_to_descriptors_(cid_to_descriptors),
+      params_(params) {}
+
 void SparseMap::BuildMap() {
   LogInfo("Detecting image features...");
   DetectImageFeatures();
@@ -296,42 +303,41 @@ void SparseMap::PruneMap() {
 // TODO(rsoussan): Only triangulate newly added points in between bundle adjustment iterations,
 // only bundle adjust cameras and points that have been modified (ala isam2)
 void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affines) {
-  CidPoseMap incremental_cid_to_cam_T_global;
+  // Initialize with same filename, keypoints, descriptors, and params as full map
+  SparseMap incremental_map(cid_to_filename(), cid_to_keypoints(), cid_to_descriptors(), params());
   // Initialize first pose at identity
-  incremental_cid_to_cam_T_global.emplace_back(Eigen::Affine3d::Identity());
+  const Eigen::Affine3d first_cam_T_global = Eigen::Affine3d::Identity();
+  incremental_map.AddPose(first_cam_T_global);
   // Start with second camera, update all cameras before and including this, move to next camera and repeat
-  for (int latest_cid = 1; latest_cid < NumCameras(); ++latest_cid) {
+  for (int latest_cid = 1; latest_cid < NumCids(); ++latest_cid) {
     const int previous_cid = latest_cid -1;
     const std::pair<int, int> latest_to_previous_cid_pair(previous_cid, latest_cid);
-    const Eigen::Affine3d latest_cid_T_previous_cid = relative_affines.count(latest_to_previous_cid_pair) > 0
+    const Eigen::Affine3d latest_cam_T_previous_cam = relative_affines.count(latest_to_previous_cid_pair) > 0
                                                         ? relative_affines(latest_to_previous_cid_pair)
                                                         : Eigen::Affine3d::Identity();
-    const auto& previous_cid_T_global = incremental_cid_to_cam_T_global[previous_cid];
-      incremental_cid_to_cam_T_global.emplace_back(latest_cid_T_previous_cid*previous_cid_T_global);
+    const auto& previous_cam_T_global = incremental_map.cam_T_global(previous_cid);
+    const Eigen::Affine3d latest_cam_T_global = latest_cam_T_previous_cam*previous_cam_T_global;
+    incremental_map.AddPose(latest_cam_T_global);
 
       // Build tracks up to latest cid
       PidFeatureTrackMap incremental_pid_to_feature_track;
       for (int pid = 0; pid < NumPoints(); ++pid) {
         const auto& feature_track = feature_track(pid);
-        std::map<int, int> incremental_track;
-        for (const auto& cid_to_fid : feature_track) {
-          const int cid = cid_to_fid.first;
-          const int fid = cid_to_fid.second;
+        FeatureTrack incremental_track;
+        for (const auto& cid_fid : feature_track) {
+          const int cid = cid_fid.first;
+          const int fid = cid_fid.second;
           if (cid <= latest_cid) incremental_track[cid] = fid;
         }
 
         // Only add long enough tracks
         if ((latest_cid == 1 && track.size() > 1) || track.size() > params_.min_feature_track_length)
-          incremental_pid_to_feature_track.push_back(incremental_track);
+          incremental_map.AddFeatureTrack(incremental_track);
     }
 
     // Initialize points for incremental tracks
-    PidPointMap incremental_pid_to_global_t_point;
-    TriangulateAllPoints(true, false);
-                                /*incremental_cid_to_cam_T_global,
-                                cid_to_keypoints_,
-                                &incremental_pid_to_feature_track,
-                                &incremental_pid_to_global_t_point);*/
+    // TODO(rsoussan): Do we really want to remove invalid points here?
+    incremental_map.TriangulateAllPoints(true, false);
 
     const int oldest_cid_to_optimize = OldestCidToOptimize(latest_cid);
     // TODO(rsoussan): Add fcn to set range for params?
@@ -341,12 +347,12 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
         << latest_cid-oldest_cid_to_optimize+1 << ")";
 
     // TODO(rsoussan): Add warning if ba failed?
-    BundleAdjust(params.incremental_bundle_adjustment, cid_to_keypoints_, &incremental_cid_to_cam_T_global,
-                 incremental_pid_to_feature_track, &incremental_pid_to_global_t_point);
+    incremental_map.BundleAdjust(params.incremental_bundle_adjustment);
   }
 
-  SetPoses(incremental_cid_t_cam_T_global);
-  // Triangulate one last time after completion of iterative bundle adjustment
+  SetPoses(incremental_map.cid_to_cam_T_global());
+  // Initialize map points using bundle adjusted camera poses
+  // TODO(rsoussan): Is this better than using bundle adjusted points from incremental map? test both?
   TriangulateAllPoints();
 }
 
@@ -357,8 +363,8 @@ void SparseMap::TriangulateAllPoints(const bool remove_invalid_points, const boo
     0, focal_length, 0,
     0, 0, 1;
 
-  std::vector<openMVG::Mat34> projection_matrices(NumCids());
-  for (int cid = 0; cid < NumCids(); ++cid) {
+  std::vector<openMVG::Mat34> projection_matrices(NumPoses());
+  for (int cid = 0; cid < NumPoses(); ++cid) {
     openMVG::P_From_KRt(intrinsics, cam_T_global(cid).linear(),
                         cam_T_global(cid).translation(), &projection_matrices[cid]);
   }
@@ -416,7 +422,7 @@ void SparseMap::IterativelyBundleAdjust(const BundleAdjustmentParams& params, co
 
 ceres::Solver::Summary SparseMap::BundleAdjust(const BundleAdjustmentParams& params) {
   std::vector<Eigen::Matrix<double, 7, 1>> cam_T_global_data_vec;
-  cam_T_global_data_vec.reserve(NumCids());
+  cam_T_global_data_vec.reserve(NumPoses());
   for (const auto& cam_T_global : cid_to_cam_T_global()) {
     cam_T_global_data_vec.emplace_back(oc::VectorFromAffine3d(cam_T_global));
   }
@@ -430,20 +436,45 @@ ceres::Solver::Summary SparseMap::BundleAdjust(const BundleAdjustmentParams& par
   oc::AddConstantParameterBlock(1, zero_distortion.data(), problem);
   oc::AddConstantParameterBlock(2, focal_lengths.data(), problem);
 
-// TODO(rsoussan): add option to use control points or not!!
-    for (int pid = 0; pid < NumPoints(); ++pid) {
-      if (FeatureTrackLength(pid) < 2)
-        LOG(FATAL) << "Found a track of size < 2.";
+  // Add detected points without fixing point locations
+  AddCostsToBundleAdjustmentProblem(params, zero_principal_points, zero_distortion, focal_lengths, cid_to_keypoints(),
+                                    pid_to_feature_track(), pid_to_global_t_point(), params().loss_function, problem);
+  // Add fixed points with no loss function and fix point locations
+  AddCostsToBundleAdjustmentProblem(params, zero_principal_points, zero_distortion, focal_lengths,
+                                    fixed_cid_to_keypoints(), fixed_pid_to_feature_track(),
+                                    fixed_pid_to_global_t_point(), nullptr, problem, true);
 
-      auto& global_t_point = global_t_point(pid);
-      const auto& feature_track = feature_track(pid);
-      const bool fixed_point = FixedPoint(params, pid, feature_track);
-      oc::AddParameterBlock(3, global_t_point.data(), problem, fixed_point);
-       for (const auto& cid_fid_pair : feature_track) {
-        const int cid = cid_fid_pair.first;
-        const int fid = cid_fid_pair.second;
-        const auto& image_point = keypoint(cid, fid);
-        auto& cam_T_global_data = cam_T_global_data_vec[cid];
+  ceres::Solver::Summary summary;
+  ceres::Solve(params.options, &problem, &summary);
+
+  for (int cid = 0; cid < NumPoses(); ++cid) {
+    cam_T_global(cid) = oc::Affine3d(cam_T_global_data_vec[cid]);
+  }
+
+  if (params.remove_invalid_points_and_detections) {
+    RemoveInvalidPointsAndDetections(params.remove_invalid_points_and_detections_params);
+  }
+
+  return summary;
+}
+
+void SparseMap::AddCostsToBundleAdjustmentProblem(
+  const BundleAdjustmentParams& params, const Eigen::Vector2d& zero_principal_points,
+  const Eigen::VectorXd& zero_distortion, const Eigen::Vector2d& focal_lengths, const CidKeypointsMap& cid_to_keypoints,
+  const PidFeatureTrackMap& pid_to_feature_track, PidPointMap& pid_to_global_t_point,
+  ceres::LossFunction* loss_function, ceres::Problem& problem, const bool fix_all_points) const {
+  for (int pid = 0; pid < static_cast<int>(pid_to_global_t_point.size()); ++pid) {
+    const auto& feature_track = pid_to_feature_track[pid];
+    if (feature_track.size() < 2) LOG(FATAL) << "Found a track of size < 2.";
+
+    auto& global_t_point = pid_to_global_t_point[pid];
+    const bool fixed_point = fix_all_points || FixedPoint(params, pid, feature_track);
+    oc::AddParameterBlock(3, global_t_point.data(), problem, fixed_point);
+    for (const auto& cid_fid_pair : feature_track) {
+      const int cid = cid_fid_pair.first;
+      const int fid = cid_fid_pair.second;
+      const auto& image_point = cid_to_keypoints[cid][fid];
+      auto& cam_T_global_data = cam_T_global_data_vec[cid];
 
       const bool fixed_camera = FixedCamera(params, cid);
       oc::AddAffine3ParameterBlock(cam_T_global_data.data(), problem, fixed_camera);
@@ -457,27 +488,15 @@ ceres::Solver::Summary SparseMap::BundleAdjust(const BundleAdjustmentParams& par
       oc::ReprojectionError<vc::IdentityDistorter, oc::AffineFunctor>::AddCostFunction(
         image_point, global_t_point, cam_T_global_data, const_cast<Eigen::Vector2d&>(focal_lengths),
         const_cast<Eigen::Vector2d&>(zero_principal_points), const_cast<Eigen::VectorXd&>(zero_distortion), problem,
-        params.LossFunction());
+        loss_function);
       }
     }
-  ceres::Solver::Summary summary;
-  ceres::Solve(params.options, &problem, &summary);
-
-  for (int cid = 0; cid < NumCids(); ++cid) {
-    cam_T_global(cid) = oc::Affine3d(cam_T_global_data_vec[cid]);
-  }
-
-  if (params.remove_invalid_points_and_detections) {
-    RemoveInvalidPointsAndDetections(params.remove_invalid_points_and_detections_params);
-  }
-
-  return summary;
 }
 
 void SparseMap::RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsParams& params) {
   std::vector<double> pid_reprojection_errors;
   std::vector<Eigen::Vector3d> global_t_cams;
-  global_t_cams.reserve(NumCids());
+  global_t_cams.reserve(NumPoses());
   for (const auto& cam_T_global : cid_to_cam_T_global()) {
     global_t_cams.emplace_back(cam_T_global.inverse().translation());
   }

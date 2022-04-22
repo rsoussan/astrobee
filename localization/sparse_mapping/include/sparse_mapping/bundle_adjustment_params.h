@@ -41,6 +41,7 @@ struct BundleAdjustementParams {
   // l1, l2, cauchy, or huber
   // l2 is equivalent to no loss since ceres is a least squares solver
   std::string loss_function = "cauchy";
+  ceres::LossFunction* loss_function;
   double loss_threshold = 2.0;
   ceres::Solver::Options solver_options = DefaultSolverOptions();
   bool remove_invalid_points_and_detections = false;
@@ -59,9 +60,9 @@ inline ceres::LossFunction* BundleAdjustmentParams::LossFunction() {
   else if (loss_function == "l2")
     return nullptr;
   else if (loss_function == "cauchy")
-    return ceres::CauchyLoss(loss_threshold);
+    return new ceres::CauchyLoss(loss_threshold);
   else if (loss_function == "huber")
-    return ceres::HuberLoss(loss_threshold);
+    return new ceres::HuberLoss(loss_threshold);
   else
     LOG(FATAL) << "Invalid loss function provided: " << loss_function;
 }

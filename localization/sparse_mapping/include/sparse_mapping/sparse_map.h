@@ -63,7 +63,7 @@ class SparseMap : public SparseMapDatabase {
   /**
    * Creates a sparse map containing only a list of image files and camera poses.
   **/
-  // TODO(rsoussan): How to use this in practice?
+  // TODO(rsoussan): How to use this in practice? remove this?
   SparseMap(const CidPoseMap& cid_to_cam_T_global,
             const CidFilenameMap& cid_to_filename,
             const SparseMapParams& params);
@@ -136,6 +136,14 @@ void MatchImages(const int cid_a, const int cid_b, sparse_mapping::CIDPairAffine
 int OldestCidToOptimize(const int latest_cid) const;
 
 void TriangulateAllPoints(const bool remove_invalid_points = true, const bool initialize_cid_fid_pid_map = true);
+
+void AddCostsToBundleAdjustmentProblem(const BundleAdjustmentParams& params,
+                                       const Eigen::Vector2d& zero_principal_points,
+                                       const Eigen::VectorXd& zero_distortion, const Eigen::Vector2d& focal_lengths,
+                                       const CidKeypointsMap& cid_to_keypoints,
+                                       const PidFeatureTrackMap& pid_to_feature_track,
+                                       PidPointMap& pid_to_global_t_point, ceres::LossFunction* loss_function,
+                                       ceres::Problem& problem, const bool fix_all_points = false) const;
 
 // Remove points that don't project at valid camera pixels,
 // points behind the camera, and matches having large reprojection error.

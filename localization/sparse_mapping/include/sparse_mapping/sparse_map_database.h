@@ -43,7 +43,6 @@ namespace sparse_mapping {
 class SparseMapDatabase {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
   void ResizeFeatureMaps();
 
   void SetPoses(const CidPoseMap& cid_to_cam_T_global);
@@ -52,8 +51,13 @@ class SparseMapDatabase {
 
   int NumCids() const {return static_cast<int>(cid_to_filename_.size());}
 
+  int NumPoses() const {return static_cast<int>(cid_to_cam_T_global_.size());}
+
   // Assumes cid filenames, keypoints, and descriptors have already been added using AddImagesAndFeatures
   void AddPoses(const std::vector<Eigen::Affine3d>& cam_T_global_vec);
+
+  // Assumes cid filenames, keypoints, and descriptors have already been added using AddImagesAndFeatures
+  void AddPose(const Eigen::Affine3d > &cam_T_global);
 
   // Counts features that have been included in existing points
   int NumUsedFeatures() const {return std::accumulate(pid_to_feature_track_.begin(),
@@ -131,6 +135,16 @@ void RemovePoints(const std::vector<bool>& indices_to_remove) {
   const PidPoseMap& cid_to_cam_T_global() const { return cid_to_cam_T_global_; }
 
  protected:
+  const PidPointMap& pid_to_global_t_point() const { return pid_to_global_t_point(); }
+
+  const PidFeatureTrackMap& pid_to_feature_track() const { return pid_to_feature_track_; }
+
+  const CidFilenameMap& cid_to_filename() const {return cid_to_filename_; }
+
+  const CidKeypointsMap& cid_to_keypoints() const { return cid_to_keypoints_; }
+
+  const CidDescriptorsMap& cid_to_descriptors() const  { return cid_to_descriptors_; }
+
   Keypoints& keypoints(const Cid cid) {return cid_to_keypoints_[cid];}
 
   Descriptors& descriptors(const Cid cid) { return cid_to_descriptors_[cid];}
