@@ -135,7 +135,7 @@ void RemovePoints(const std::vector<bool>& indices_to_remove) {
   const PidPoseMap& cid_to_cam_T_global() const { return cid_to_cam_T_global_; }
 
  protected:
-  const PidPointMap& pid_to_global_t_point() const { return pid_to_global_t_point(); }
+  const PidPointMap& pid_to_global_t_point() const { return pid_to_global_t_point_; }
 
   const PidFeatureTrackMap& pid_to_feature_track() const { return pid_to_feature_track_; }
 
@@ -144,6 +144,10 @@ void RemovePoints(const std::vector<bool>& indices_to_remove) {
   const CidKeypointsMap& cid_to_keypoints() const { return cid_to_keypoints_; }
 
   const CidDescriptorsMap& cid_to_descriptors() const  { return cid_to_descriptors_; }
+
+  const CidKeypointsMap& fixed_cid_to_keypoints() const { return fixed_cid_to_keypoints_; }
+
+  const PidFeatureTrackMap& fixed_pid_to_feature_track() const { return fixed_pid_to_feature_track_; }
 
   Keypoints& keypoints(const Cid cid) {return cid_to_keypoints_[cid];}
 
@@ -157,9 +161,11 @@ void RemovePoints(const std::vector<bool>& indices_to_remove) {
 
   PidPoseMap& cid_to_cam_T_global() { return cid_to_cam_T_global_; }
 
-  PidPointMap& pid_to_global_t_point() { return pid_to_global_t_point(); }
+  PidPointMap& pid_to_global_t_point() { return pid_to_global_t_point_; }
 
   PidFeatureTrackMap& pid_to_feature_track() { return pid_to_feature_track_; }
+
+  PidPointMap& fixed_pid_to_global_t_point() { return fixed_pid_to_global_t_point_; }
 
  private:
   CidFilenameMap cid_to_filename_;
@@ -170,13 +176,11 @@ void RemovePoints(const std::vector<bool>& indices_to_remove) {
   PidFeatureTrackMap pid_to_feature_track_;
   CidFidPidMap cid_to_fid_to_pid_;
 
-  /*// Optional user defined 3D points and image observations.
-  // Enables manually registering the sparse map with control points
-  // from a 3D model
-  // TODO(rsoussan): Remove these??
-  std::vector<Eigen::Matrix2Xd> user_cid_to_keypoints_;
-  std::vector<std::map<int, int> > user_pid_to_feature_track_;
-  std::vector<Eigen::Vector3d> user_pid_to_xyz_;*/
+  // Fix point sets that shouldn't be optimized, allows for manual registration
+  // of map points using known point locations.
+  CidKeypointsMap fixed_cid_to_keypoints_;
+  PidFeatureTrackMap fixed_pid_to_feature_track_;
+  PidPointMap fixed_pid_to_global_t_point_;
 };
 }  // namespace sparse_mapping
 
