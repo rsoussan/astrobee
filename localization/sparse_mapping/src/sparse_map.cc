@@ -436,13 +436,13 @@ ceres::Solver::Summary SparseMap::BundleAdjust(const BundleAdjustmentParams& par
   oc::AddConstantParameterBlock(1, zero_distortion.data(), problem);
   oc::AddConstantParameterBlock(2, focal_lengths.data(), problem);
 
-  // Add detected points without fixing point locations
+  // Add detected points without fixing point positions
   AddCostsToBundleAdjustmentProblem(params, zero_principal_points, zero_distortion, focal_lengths, cid_to_keypoints(),
                                     pid_to_feature_track(), pid_to_global_t_point(), params().loss_function, problem);
-  // Add fixed points with no loss function and fix point locations
+  // Add control points with no loss function and fixed point positions
   AddCostsToBundleAdjustmentProblem(params, zero_principal_points, zero_distortion, focal_lengths,
-                                    fixed_cid_to_keypoints(), fixed_pid_to_feature_track(),
-                                    fixed_pid_to_global_t_point(), nullptr, problem, true);
+                                    control_point_cid_to_keypoints(), control_point_pid_to_feature_track(),
+                                    control_point_pid_to_global_t_point(), nullptr, problem, true);
 
   ceres::Solver::Summary summary;
   ceres::Solve(params.options, &problem, &summary);

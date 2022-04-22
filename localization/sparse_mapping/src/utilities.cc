@@ -152,6 +152,7 @@ double RegistrationOrVerification(std::vector<std::string> const& data_files,
   std::vector<std::string> images;
   Eigen::MatrixXd user_ip;
   Eigen::Matrix3Xd user_xyz;
+  // TODO(rsoussan): Make function for this! move to file utils!!
   for (size_t file_id = 0; file_id < data_files.size(); file_id++) {
     std::string file = data_files[file_id];
     std::string ext = ff_common::file_extension(file);

@@ -145,9 +145,9 @@ void RemovePoints(const std::vector<bool>& indices_to_remove) {
 
   const CidDescriptorsMap& cid_to_descriptors() const  { return cid_to_descriptors_; }
 
-  const CidKeypointsMap& fixed_cid_to_keypoints() const { return fixed_cid_to_keypoints_; }
+  const CidKeypointsMap& control_point_cid_to_keypoints() const { return control_point_cid_to_keypoints_; }
 
-  const PidFeatureTrackMap& fixed_pid_to_feature_track() const { return fixed_pid_to_feature_track_; }
+  const PidFeatureTrackMap& control_point_pid_to_feature_track() const { return control_point_pid_to_feature_track_; }
 
   Keypoints& keypoints(const Cid cid) {return cid_to_keypoints_[cid];}
 
@@ -165,7 +165,7 @@ void RemovePoints(const std::vector<bool>& indices_to_remove) {
 
   PidFeatureTrackMap& pid_to_feature_track() { return pid_to_feature_track_; }
 
-  PidPointMap& fixed_pid_to_global_t_point() { return fixed_pid_to_global_t_point_; }
+  PidPointMap& control_point_pid_to_global_t_point() { return control_point_pid_to_global_t_point_; }
 
  private:
   CidFilenameMap cid_to_filename_;
@@ -176,11 +176,12 @@ void RemovePoints(const std::vector<bool>& indices_to_remove) {
   PidFeatureTrackMap pid_to_feature_track_;
   CidFidPidMap cid_to_fid_to_pid_;
 
-  // Fix point sets that shouldn't be optimized, allows for manual registration
-  // of map points using known point locations.
-  CidKeypointsMap fixed_cid_to_keypoints_;
-  PidFeatureTrackMap fixed_pid_to_feature_track_;
-  PidPointMap fixed_pid_to_global_t_point_;
+  // Control points define set coordinates in the global frame and their
+  // image space detections. These are fixed during optimization and allow
+  // for registration against a known environment.
+  CidKeypointsMap control_point_cid_to_keypoints_;
+  PidFeatureTrackMap control_point_pid_to_feature_track_;
+  PidPointMap control_point_pid_to_global_t_point_;
 };
 }  // namespace sparse_mapping
 
