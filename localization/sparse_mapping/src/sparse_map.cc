@@ -356,7 +356,10 @@ void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affin
   TriangulateAllPoints();
 }
 
-void SparseMap::TriangulateAllPoints(const bool remove_invalid_points, const bool initialize_cid_fid_pid_map) {
+void SparseMap::TriangulateAllPoints(const bool remove_invalid_points, const bool initialize_cid_fid_pid_map,
+                                     const CidKeypointsMap& cid_to_keypoints,
+                                     const PidFeatureTrackMap& pid_to_feature_track,
+                                     PidPointMap& pid_to_global_t_point) {
   const double focal_length = params().camera.GetFocalLength();
   Eigen::Matrix3d intrinsics;
   intrinsics << focal_length, 0, 0,
@@ -369,18 +372,20 @@ void SparseMap::TriangulateAllPoints(const bool remove_invalid_points, const boo
                         cam_T_global(cid).translation(), &projection_matrices[cid]);
   }
 
-  pid_to_global_t_point().resize(NumPoints());
+  const int num_points = pid_to_feature_track.size();
+  pid_to_global_t_point.resize(num_points);
   // Iterate in reverse so invalid feature tracks can be removed without affecting the order of earlier feature tracks
-  for (int pid = NumPoints() - 1; pid >= 0; --pid) {
+  for (int pid = num_points - 1; pid >= 0; --pid) {
     openMVG::Triangulation triangulation;
-    for (const auto& cid_fid : feature_track(pid)) {
-      triangulation.add(projection_matrices[cid_fid.first],  keypoint(cid_fid));
+    for (const auto& cid_fid : pid_to_feature_track[pid]) {
+      triangulation.add(projection_matrices[cid_fid.first],  cid_to_keypoints[cid_fid.first][cid_fid.second]);
     }
     const Eigen::Vector3d solution = triangulation.compute();
     if ( remove_invalid_points && (std::isnan(solution[0]) || triangulation.minDepth() < 0) ) {
-      RemovePoint(pid);
+      pid_to_global_t_point.erase(pid_to_global_t_point.begin() + pid);
+      pid_to_feature_track.erase(pid_to_feature_track.begin() + pid);
     } else {
-      global_t_point(pid) = solution;
+      pid_to_global_t_point[pid] = solution;
     }
   }
 

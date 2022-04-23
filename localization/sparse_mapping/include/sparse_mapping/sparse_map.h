@@ -137,7 +137,10 @@ void MatchImages(const int cid_a, const int cid_b, sparse_mapping::CIDPairAffine
 
 int OldestCidToOptimize(const int latest_cid) const;
 
-void TriangulateAllPoints(const bool remove_invalid_points = true, const bool initialize_cid_fid_pid_map = true);
+void TriangulateAllPoints(const bool remove_invalid_points = true, const bool initialize_cid_fid_pid_map = true,
+                          const CidKeypointsMap& cid_to_keypoints = cid_to_keypoints(),
+                          const PidFeatureTrackMap& pid_to_feature_track = pid_to_feature_track(),
+                          PidPointMap& pid_to_global_t_point = pid_to_global_t_point());
 
 void AddCostsToBundleAdjustmentProblem(const BundleAdjustmentParams& params,
                                        const Eigen::Vector2d& zero_principal_points,
