@@ -587,6 +587,17 @@ double SparseMap::ReprojectionError(const std::pair<int, int>& cid_fid, const Ei
   return (keypoint - projected_point).norm();
 }
 
+void SparseMap::UndistortAndAddControlPoints(std::vector<ControlPoint>& control_points) {
+  // Undistort keypoints since map expects image detections in undistorted frame
+  for (auto& control_point : control_points) {
+    params().camera.Convert<camera::DISTORTED, camera::UNDISTORTED_C>(control_point.keypoint_left,
+                                                                      &(control_point.keypoint_left));
+    params().camera.Convert<camera::DISTORTED, camera::UNDISTORTED_C>(control_point.keypoint_right,
+                                                                      &(control_point.keypoint_right));
+  }
+  AddControlPoints(control_points);
+}
+
 void SparseMap::ClearImageDatabase() {
   image_database_.reset();
 }

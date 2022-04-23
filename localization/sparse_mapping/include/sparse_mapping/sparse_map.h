@@ -109,6 +109,8 @@ class SparseMap : public SparseMapDatabase {
                                     PidPointMap* pid_to_global_t_point,
                                     CidFidPidMap* cid_to_fid_to_pid = nullptr);
 
+  void UndistortAndAddControlPoints(std::vector<ControlPoint>& control_points);
+
   // delete feature descriptors with no matching landmark
   void PruneMap();
 
