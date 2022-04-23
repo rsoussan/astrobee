@@ -603,6 +603,61 @@ void SparseMap::UndistortAndAddControlPoints(std::vector<ControlPoint>& control_
   AddControlPoints(control_points);
 }
 
+std::vector<Eigen::Vector3d> SparseMap::TriangulatedControlPoints() const {
+  std::vector<Eigen::Vector3d> triangulated_pid_to_global_t_point;
+  TriangulateAllPoints(false, false, control_point_cid_to_keypoints(), control_point_pid_to_feature_track(),
+                       triangulated_pid_to_global_t_point);
+
+  return triangulated_pid_to_global_t_point;
+}
+
+void SparseMap::PrintControlPointErrors(const std::vector<Eigen::Vector3d>& triangulated_pid_to_global_t_point) const {
+  double mean_error = 0;
+  const int num_points = control_point_pid_to_global_t_point().size();
+  std::cout << "Triangulated xyz -- Control Point xyz -- error diff -- error norm (meters)" << std::endl;
+  for (int i = 0; i < num_points; ++i) {
+    const auto& triangulated_global_t_point = triangulated_pid_to_global_t_point[i];
+    const auto& control_point_global_t_point = control_point_pid_to_global_t_point()[i];
+    mean_error += (triangulated_global_t_point - control_point_global_t_point).norm();
+    std::cout << triangulated_global_t_point.matrix() << " -- "
+              << control_point_global_t_point.matrix() << " -- "
+              << (triangulated_global_t_point-control_point_global_t_point).matrix() << " -- "
+              << (triangulated_global_t_point - control_point_global_t_point).norm()
+              << std::endl;
+  }
+  mean_error /= num_points;
+  std::cout << "Mean absolute error for control points: " << mean_error << " meters" << std::endl;
+}
+
+void SparseMap::RegisterUsingControlPoints() {
+  const auto triangulated_global_t_points = TriangulatedControlPoints();
+  std::cout << "Control Point errors before registration: " << std::endl;
+  PrintControlPointErrors(triangulated_global_t_points);
+  Eigen::Affine3d registered_global_T_global;
+  Find3DAffineTransform(triangulated_global_t_points, control_point_pid_to_global_t_point(),
+                        &registered_global_T_global);
+  Transform(registered_global_T_global);
+
+  std::vector<Eigen::Vector3d> triangulated_registered_global_t_points;
+  const int num_points = triangulated_global_t_points.size();
+  double mean_error = 0.0;
+  for (int i = 0; i < num_points; ++i) {
+    triangulated_registered_global_t_points.emplace_back(registered_global_T_global * triangulated_global_t_points[i]);
+    mean_error += (triangulated_registered_global_t_points.back() - control_point_pid_to_global_t_point[i]).norm();
+  }
+  mean_error /= num_points;
+
+  const double scale = std::pow(registered_global_T_global.linear().determinant(), 1.0 / 3.0);
+  std::cout << "Transform to world coordinates." << std::endl;
+  std::cout << "Rotation:\n" << world_transform.linear() / scale << std::endl;
+  std::cout << "Scale:\n" << scale << std::endl;
+  std::cout << "Translation:\n" << world_transform.translation().transpose()
+            << std::endl;
+
+  std::cout << "Control Point errors after registration: " << std::endl;
+  PrintControlPointErrors(triangulated_registered_global_t_points);
+}
+
 void SparseMap::ClearImageDatabase() {
   image_database_.reset();
 }

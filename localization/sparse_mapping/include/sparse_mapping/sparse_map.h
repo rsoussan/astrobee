@@ -111,6 +111,8 @@ class SparseMap : public SparseMapDatabase {
 
   void UndistortAndAddControlPoints(std::vector<ControlPoint>& control_points);
 
+  void RegisterUsingControlPoints();
+
   // delete feature descriptors with no matching landmark
   void PruneMap();
 
@@ -155,6 +157,10 @@ void AddCostsToBundleAdjustmentProblem(const BundleAdjustmentParams& params,
 void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsParams& params);
 
 double ReprojectionError(const std::pair<int, int>& cid_fid, const Eigen::Matrix3d& intrinsics);
+
+std::vector<Eigen::Vector3d> TriangulatedControlPoints() const;
+
+void PrintControlPointErrors(const std::vector<Eigen::Vector3d>& triangulated_pid_to_global_t_point) const;
 
 template <class TDescriptor, class F>
 void BuildTemplatedImageDatabase();
