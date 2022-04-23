@@ -21,12 +21,6 @@
 
 namespace sparse_mapping {
 double RegistrationOrVerification(const std::vector<std::string>& files) {
-  std::vector<ControlPoint> control_points;
-  std::vector<std::string> image_names;
-  LoadControlPoints(files, control_points, image_names);
-  // TODO(rsoussan): undistort control points first!!
-  AddControlPoints(control_points);
-
   // Triangulate to find the coordinates of the current points
   // in the virtual coordinate system
   std::vector<Eigen::Vector3d> pid_to_global_t_point;
