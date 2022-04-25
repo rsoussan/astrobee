@@ -31,6 +31,13 @@
 #pragma GCC diagnostic pop
 
 namespace sparse_mapping {
+Eigen::Matrix2Xd MatrixFromVector(const std::vector<Eigen::Vector2d>& vector) {
+  // TODO(rsoussan): Better way to do this?
+  Eigen::Matrix2Xd matrix(2, vector.size());
+  for (int i = 0; i < static_cast<int>(vector.size()); ++i) {
+    matrix.col(i) = vector[i];
+  }
+}
 // Compute the n-weight slerp, analogous to the linear combination
 // W[0]*Q[0] + ... + W[n-1]*Q[n-1]. This is experimental.
 // We assume the sum of weights is 1.
@@ -130,30 +137,38 @@ void DetectFeatures(const cv::Mat& image, const bool histogram_equalization, vis
   }
 }
 
-bool RobustEssential(Eigen::Matrix3d const& k1, Eigen::Matrix3d const& k2, Eigen::Matrix2Xd const& x1,
-                     Eigen::Matrix2Xd const& x2, Eigen::Matrix3d* e, std::vector<size_t>* vec_inliers,
-                     std::pair<size_t, size_t> const& size1, std::pair<size_t, size_t> const& size2, double* error_max,
-                     double precision) {
-  CHECK(e) << "Missing e argument";
-  CHECK(vec_inliers) << "Missing vec inliers argument";
-
-  typedef openMVG::essential::kernel::FivePointKernel SolverType;
-  typedef openMVG::robust::ACKernelAdaptorEssential<SolverType, openMVG::fundamental::kernel::EpipolarDistanceError,
-                                                    Eigen::Matrix3d>
-    KernelType;
-
-  KernelType kernel(x1, size1.first, size1.second, x2, size2.first, size2.second, k1, k2);
-
-  std::pair<double, double> ransac_output =
-    openMVG::robust::ACRANSAC(kernel, *vec_inliers, 4096 /* iterations */, e, precision, false);
-  *error_max = ransac_output.first;
-
-  return vec_inliers->size() > 1.5 * SolverType::MINIMUM_SAMPLES;
+bool EstimateEssentialMatrix(const Eigen::Matrix3d& intrinsics_1, const Eigen::Matrix3d& intrinsics_2,
+                             const std::vector<Eigen::Vector2d>& keypoints_1,
+                             const std::vector<Eigen::Vector2d>& keypoints_2,
+                             const std::pair<size_t, size_t>& image_size_1,
+                             const std::pair<size_t, size_t>& image_size_2, const double precision,
+                             Eigen::Matrix3d& essential_matrix, std::vector<size_t>& inliers, double& max_error) {
+  const auto keypoints_1_matrix = MatrixFromVector(keypoints_1);
+  const auto keypoints_2_matrix = MatrixFromVector(keypoints_2);
+  return EstimateEssentialMatrix(intrinsics_1, intrinsics_2, keypoints_1_matrix, keypoints_2_matrix, image_size_1,
+                                 image_size_2, precision, essential_matrix, inliers, max_error);
 }
 
-bool EstimateRTFromE(Eigen::Matrix3d const& k1, Eigen::Matrix3d const& k2, Eigen::Matrix2Xd const& x1,
-                     Eigen::Matrix2Xd const& x2, Eigen::Matrix3d const& e, std::vector<size_t> const& vec_inliers,
-                     Eigen::Matrix3d* r, Eigen::Vector3d* t) {
+bool EstimateEssentialMatrix(const Eigen::Matrix3d& intrinsics_1, const Eigen::Matrix3d& intrinsics_2,
+                             const Eigen::Matrix2Xd& keypoints_1, const Eigen::Matrix2Xd& keypoints_2,
+                             const std::pair<size_t, size_t>& image_size_1,
+                             const std::pair<size_t, size_t>& image_size_2, const double precision,
+                             Eigen::Matrix3d& essential_matrix, std::vector<size_t>& inliers, double& max_error) {
+  using SolverType = openMVG::essential::kernel::FivePointKernel;
+  using KernelType =
+    openMVG::robust::ACKernelAdaptorEssential<SolverType, openMVG::fundamental::kernel::EpipolarDistanceError,
+                                              Eigen::Matrix3d>;
+  KernelType kernel(keypoints_1, image_size_1.first, image_size_1.second, keypoints_2, image_size_2.first,
+                    image_size_2.second, intrinsics_1, intrinsics_2);
+  const auto ransac_output =
+    openMVG::robust::ACRANSAC(kernel, inliers, 4096 /* iterations */, essential_matrix, precision, false);
+  max_error = ransac_output.first;
+  return inliers.size() > 1.5 * SolverType::MINIMUM_SAMPLES;
+}
+
+bool EstimateRTFromE(Eigen::Matrix3d const& intrinsics_1, Eigen::Matrix3d const& intrinsics_2,
+                     Eigen::Matrix2Xd const& x1, Eigen::Matrix2Xd const& x2, Eigen::Matrix3d const& e,
+                     std::vector<size_t> const& vec_inliers, Eigen::Matrix3d* r, Eigen::Vector3d* t) {
   // Accumulator to find the best solution
   std::vector<size_t> f(4, 0);
 
@@ -171,12 +186,12 @@ bool EstimateRTFromE(Eigen::Matrix3d const& k1, Eigen::Matrix3d const& k2, Eigen
   openMVG::Mat34 P1, P2;
   Eigen::Matrix3d r1 = Eigen::Matrix3d::Identity();
   Eigen::Vector3d t1 = Eigen::Vector3d::Zero();
-  openMVG::P_From_KRt(k1, r1, t1, &P1);
+  openMVG::P_From_KRt(intrinsics_1, r1, t1, &P1);
 
   for (size_t i = 0; i < 4; ++i) {
     const Eigen::Matrix3d& r2 = possible_r[i];
     const Eigen::Vector3d& t2 = possible_t[i];
-    openMVG::P_From_KRt(k2, r2, t2, &P2);
+    openMVG::P_From_KRt(intrinsics_2, r2, t2, &P2);
     Eigen::Vector3d X;
 
     for (size_t k = 0; k < vec_inliers.size(); ++k) {
@@ -288,10 +303,11 @@ boost::optional<Eigen::Affine3d> EstimateRelativeAffine3D(
 
   Eigen::Matrix3d essential_matrix;
   std::vector<size_t> vec_inliers;
-  double error_max = std::numeric_limits<double>::max();
+  double max_error = std::numeric_limits<double>::max();
   double max_expected_error = 2.5;
-  if (!RobustEssential(intrinsics, intrinsics, matching_keypoints_a, matching_keypoints_b, &essential_matrix,
-                       &vec_inliers, image_size, image_size, &error_max, max_expected_error)) {
+  // TODO(rsoussan): Update this!
+  if (!EstimateEssentialMatrix(intrinsics, intrinsics, matching_keypoints_a, matching_keypoints_b, &essential_matrix,
+                               &vec_inliers, image_size, image_size, &max_error, max_expected_error)) {
     LOG(DEBUG) << "Estimation of essential matrix failed!\n";
     return boost::none;
   }

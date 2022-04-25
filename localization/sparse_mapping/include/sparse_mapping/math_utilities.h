@@ -44,11 +44,19 @@ void DetectFeatures(const cv::Mat& image, const bool histogram_equalization, vis
                     Descriptors& descriptors, Keypoints& keypoints);
 
 // Performs a robust, ransac, solving for the essential matrix
-// between interest point measurements in x1 and x2.
-bool RobustEssential(Eigen::Matrix3d const& k1, Eigen::Matrix3d const& k2, Eigen::Matrix2Xd const& x1,
-                     Eigen::Matrix2Xd const& x2, Eigen::Matrix3d* e, std::vector<size_t>* vec_inliers,
-                     std::pair<size_t, size_t> const& size1, std::pair<size_t, size_t> const& size2, double* error_max,
-                     double precision);
+// between interest point measurements in keypoints_1 and keypoints_2.
+bool EstimateEssentialMatrix(const Eigen::Matrix3d& intrinsics_1, const Eigen::Matrix3d& intrinsics_2,
+                             const std::vector<Eigen::Vector2d>& keypoints_1,
+                             const std::vector<Eigen::Vector2d>& keypoints_2,
+                             const std::pair<size_t, size_t>& image_size_1,
+                             const std::pair<size_t, size_t>& image_size_2, const double precision,
+                             Eigen::Matrix3d& essential_matrix, std::vector<size_t>& inliers, double& max_error);
+
+bool EstimateEssentialMatrix(const Eigen::Matrix3d& intrinsics_1, const Eigen::Matrix3d& intrinsics_2,
+                             const Eigen::Matrix2Xd& keypoints_1, const Eigen::Matrix2Xd& keypoints_2,
+                             const std::pair<size_t, size_t>& image_size_1,
+                             const std::pair<size_t, size_t>& image_size_2, const double precision,
+                             Eigen::Matrix3d& essential_matrix, std::vector<size_t>& inliers, double& max_error);
 
 // Solves for the RT (Rotation and Translation) from the essential
 // matrix and x1 and x2. There are 4 possible, and this returns the
