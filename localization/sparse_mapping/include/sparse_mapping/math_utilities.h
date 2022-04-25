@@ -57,7 +57,7 @@ bool EstimateEssentialMatrix(const Eigen::Matrix3d& intrinsics_1, const Eigen::M
                              const double precision, Eigen::Matrix3d& essential_matrix, std::vector<int>& inliers,
                              double& max_error);
 
-boost::optional<Eigen::Isometry3d> EstimatePoseFromEssentialMatrix(
+boost::optional<Eigen::Isometry3d> EstimateNormalizedPoseFromEssentialMatrix(
   const Eigen::Matrix3d& intrinsics_1, const Eigen::Matrix3d& intrinsics_2, const Keypoints& keypoints_1,
   const Keypoints& keypoints_2, const Eigen::Matrix3d& essential_matrix, const std::vector<int>& inliers);
 

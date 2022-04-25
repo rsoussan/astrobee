@@ -165,7 +165,7 @@ bool EstimateEssentialMatrix(const Eigen::Matrix3d& intrinsics_1, const Eigen::M
   return inliers.size() > 1.5 * SolverType::MINIMUM_SAMPLES;
 }
 
-boost::optional<Eigen::Isometry3d> EstimatePoseFromEssentialMatrix(
+boost::optional<Eigen::Isometry3d> EstimateNormalizedPoseFromEssentialMatrix(
   const Eigen::Matrix3d& intrinsics_1, const Eigen::Matrix3d& intrinsics_2, const Keypoints& keypoints_1,
   const Keypoints& keypoints_2, const Eigen::Matrix3d& essential_matrix, const std::vector<int>& inliers) {
   std::vector<Eigen::Matrix3d> possible_rotations;
@@ -321,8 +321,8 @@ boost::optional<Eigen::Affine3d> EstimateRelativeAffine3D(
 
   Eigen::Matrix3d r;
   Eigen::Vector3d t;
-  if (!EstimatePoseFromEssentialMatrix(intrinsics, intrinsics, matching_keypoints_a, matching_keypoints_b,
-                                       essential_matrix, vec_inliers, &r, &t)) {
+  if (!EstimateNormalizedPoseFromEssentialMatrix(intrinsics, intrinsics, matching_keypoints_a, matching_keypoints_b,
+                                                 essential_matrix, vec_inliers, &r, &t)) {
     LOG(DEBUG) << "Failed to extract RT from E";
     return boost::none;
   }
