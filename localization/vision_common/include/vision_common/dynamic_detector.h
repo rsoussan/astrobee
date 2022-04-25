@@ -29,7 +29,7 @@ class DynamicDetector {
   virtual ~DynamicDetector() {}
   virtual void InitializeDetector() = 0;
   virtual void SetThreshold(const double threshold) = 0;
-  void DetectAndCompute(const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, cv::Mat& descriptors);
+  void DetectAndCompute(const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, std::vector<cv::Mat>& descriptors);
   void IncreaseThreshold();
   void DecreaseThreshold();
 

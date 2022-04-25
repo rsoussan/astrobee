@@ -39,12 +39,12 @@ boost::optional<double> AngleBetweenRays(const Eigen::Vector3d& a_t_p, const Eig
 // Find the maximum angle between n rays intersecting at given
 // point.
 double MaxAngleBetweenCameraRays(const FeatureTrack& feature_track, const Eigen::Vector3d& global_t_point,
-                                 const std::vector<Eigen::Vector3d>& global_t_cams);
+                                 const CidPoseMap& cid_to_global_t_cam);
 
 void DetectFeatures(const cv::Mat& image,
                       const bool histogram_equalization,
                       vision_common::DynamicDetector& detector,
-                      cv::Mat& descriptors,
+                      Descriptors& descriptors,
                       Keypoints& keypoints);
 
   // Performs a robust, ransac, solving for the essential matrix

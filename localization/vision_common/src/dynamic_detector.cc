@@ -23,7 +23,7 @@ DynamicDetector::DynamicDetector(const DynamicDetectorParams& params)
     : params_(params), dynamic_threshold_(params.starting_threshold) {}
 
 void DynamicDetector::DetectAndCompute(const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints,
-                                       cv::Mat& descriptors) {
+                                       std::vector<cv::Mat>& descriptors) {
   for (int i = 0; i < params_.max_retries; ++i) {
     keypoints.clear();
     detector_->detect(image, keypoints);

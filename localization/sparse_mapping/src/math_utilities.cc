@@ -97,8 +97,8 @@ boost::optional<double> AngleBetweenRays(const Eigen::Vector3d& a_t_p, const Eig
 }
 
 
-double MaxAngleBetweenCameraRays(const std::map<int, int>& feature_track, const Eigen::Vector3d& global_t_point,
-                                 const std::vector<Eigen::Vector3d>& global_t_cams) {
+double MaxAngleBetweenCameraRays(const FeatureTrack& feature_track, const Eigen::Vector3d& global_t_point,
+                                 const CidPoseMap& cid_to_global_t_cam) {
   double max_angle = 0;
   int cid = 0;
   for (auto cid_fid_it1 = feature_track.begin();
@@ -107,8 +107,8 @@ double MaxAngleBetweenCameraRays(const std::map<int, int>& feature_track, const 
     for (auto cid_fid_it2 = cid_fid_it1+1;
          cid_fid_it2 != feature_track.end(); ++cid_fid_it2) {
       const int cid2 = cid_fid_it2->first;
-      const Eigen::Vector3d cam1_t_point = global_t_cams[cid1] - global_t_point;
-      const Eigen::Vector3d cam2_t_point = global_t_cams[cid2] - global_t_point;
+      const Eigen::Vector3d cam1_t_point = cid_to_global_t_cam[cid1] - global_t_point;
+      const Eigen::Vector3d cam2_t_point = cid_to_global_t_cam[cid2] - global_t_point;
       const  auto angle = AngleBetweenRays(cam1_t_point, cam2_t_point);
       if (!angle) continue;
       max_angle = std::max(*angle, max_angle);
@@ -119,23 +119,23 @@ double MaxAngleBetweenCameraRays(const std::map<int, int>& feature_track, const 
 
 void DetectFeatures(const cv::Mat& image, const bool histogram_equalization,
                                 vision_common::DynamicDetector& detector,
-                               cv::Mat& descriptors,
-                               Eigen::Matrix2Xd& keypoints) {
+                               Descriptors& descriptors,
+                               Keypoints& keypoints) {
   cv::Mat hist_image;
   if (histogram_equalization) {
     cv::equalizeHist(image, hist_image);
   }
   const auto& input_image = histogram_equalization ? hist_image : image;
 
-  std::vector<cv::KeyPoint> storage;
-  detector.Detect(input_image, &storage, &descriptors);
+  std::vector<cv::KeyPoint> cv_keypoints;
+  detector.DetectAndCompute(input_image, cv_keypoints, descriptors);
 
-  keypoints.resize(2, storage.size());
-  Eigen::Vector2d output;
+  // Convert keypoints to undistorted frame and Eigen type
   for (int i = 0; i < static_cast<int>(storage.size()); ++i) {
+    Eigen::Vector2d keypoint;
     camera_params_.Convert<camera::DISTORTED_C, camera::UNDISTORTED_C>
-      (Eigen::Vector2d(storage[i].pt.x, storage[i].pt.y), &output);
-    keypoints.col(i) = output;
+      (Eigen::Vector2d(cv_keypoint[i].pt.x, cv_keypoint[i].pt.y), &keypoint);
+    keypoints.emplace_back(keypoint);
   }
 }
 
