@@ -240,66 +240,6 @@ void MatchImages(const int cid_a, const int cid_b, CIDPairAffineMap& relative_af
   match_mutex->unlock();
 }
 
-// delete all the features that do not match to a landmark but are still around!
-void SparseMap::PruneMap() {
-  // Remove unused features
-  for (unsigned int cid = 0; cid < cid_to_fid_to_pid_.size(); cid++) {
-    std::vector<int> deleted_features;
-    for (int fid = 0; fid < cid_to_descriptors_[cid].rows; fid++) {
-      // delete if no matching landmark!
-      if (cid_to_fid_to_pid_[cid].count(fid) == 0) {
-        deleted_features.emplace_back(fid);
-      }
-    }
-    if (deleted_features.size() == 0)
-      continue;
-    // create new descriptor map
-    cv::Mat next_descriptor_map;
-    next_descriptor_map.create(cid_to_descriptors_[cid].rows - deleted_features.size(),
-                               cid_to_descriptors_[cid].cols, cid_to_descriptors_[cid].depth());
-    int new_fid = 0;
-    for (int fid = 0; fid < cid_to_descriptors_[cid].rows; fid++) {
-      // delete if no matching landmark!
-      if (cid_to_fid_to_pid_[cid].count(fid) == 0) {
-        continue;
-      } else {
-        cid_to_descriptors_[cid].row(fid).copyTo(next_descriptor_map.row(new_fid));
-        // fix indexing
-        if (new_fid < fid) {
-          int pid = cid_to_fid_to_pid_[cid][fid];
-          // in localization mode this is empty
-          if (pid_to_feature_track_.size() > 0)
-            pid_to_feature_track_[pid][cid] = new_fid;
-          cid_to_fid_to_pid_[cid][new_fid] = pid;
-          cid_to_fid_to_pid_[cid].erase(fid);
-        }
-        new_fid++;
-      }
-    }
-    cid_to_descriptors_[cid] = next_descriptor_map;
-
-    // clean up other stuff
-    for (int i = static_cast<int>(deleted_features.size() - 1); i >= 0; i--) {
-      int fid = deleted_features[i];
-      // these may not always exist if localizing
-      if (cid_to_keypoints_.size() > 0) {
-        int rows = cid_to_keypoints_[cid].rows();  // must be equal to 2
-        int cols = cid_to_keypoints_[cid].cols();
-        // TODO(oalexan1): Copying blocks like this repeatedly is
-        // expensive.  It is simpler to just shift columns left one by
-        // one, as done above.
-        if (fid < cols - 1)
-          cid_to_keypoints_[cid].block(0, fid, rows, cols - 1 - fid) =
-            cid_to_keypoints_[cid].block(0, fid + 1, rows, cols - 1 - fid);
-        cid_to_keypoints_[cid].conservativeResize(rows, cols - 1);
-      }
-    }
-  }
-
-  // This is not strictly necessary as all book-keeping was already done
-  InitializeCidFidPidMap();
-}
-
 // TODO(rsoussan): Only triangulate newly added points in between bundle adjustment iterations,
 // only bundle adjust cameras and points that have been modified (ala isam2)
 void SparseMap::IncrementallyBundleAdjust(const CIDPairAffineMap& relative_affines) {

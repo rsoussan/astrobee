@@ -109,83 +109,91 @@ void AddControlPoints(const std::vector<std::string>& image_names, std::vector<C
 
 void AddControlPoint(const ControlPoint& control_point, const Pid pid);
 
-  // Accessors
-  const std::string& filename(const Cid cid) const {return cid_to_filename_[cid];}
+void RemoveUnusedFeatures();
 
-  const CidPoseMap& cid_to_cam_T_global() const { return cid_to_cam_T_global_; }
+void RemapFeatureTracks(const Cid cid, const std::unordered_map<Fid, Fid>& fid_remapping);
 
-  const Eigen::Affine3d& cam_T_global(const Cid cid) const {return cid_to_cam_T_global_[cid];}
+// Accessors
+const std::string& filename(const Cid cid) const { return cid_to_filename_[cid]; }
 
-  const Keypoints& keypoints(const Cid cid) const {return cid_to_keypoints_[cid];}
+const CidPoseMap& cid_to_cam_T_global() const { return cid_to_cam_T_global_; }
 
-  const Keypoint& keypoint(const Cid cid, const int fid) {return keypoints(cid)[fid];}
+const Eigen::Affine3d& cam_T_global(const Cid cid) const { return cid_to_cam_T_global_[cid]; }
 
-  const Keypoint& keypoint(const std::pair<Cid, Fid>& cid_fid) { return keypoint(cid_fid.first, cid_fid.second); }
+const Keypoints& keypoints(const Cid cid) const { return cid_to_keypoints_[cid]; }
 
-  const Descriptors& descriptors(const Cid cid) const { return cid_to_descriptors_[cid];}
+const Keypoint& keypoint(const Cid cid, const int fid) { return keypoints(cid)[fid]; }
 
-  const Descriptor& descriptor(const Cid cid, const int fid) const { return desciptors(cid)[fid];}
+const Keypoint& keypoint(const std::pair<Cid, Fid>& cid_fid) { return keypoint(cid_fid.first, cid_fid.second); }
 
-  const FidPidMap& fid_to_pid(const Cid cid) const {return cid_to_fid_to_pid_[cid];}
+const Descriptors& descriptors(const Cid cid) const { return cid_to_descriptors_[cid]; }
 
-  Pid pid(const Cid cid, const int fid) const {return cid_to_fid_to_pid_[cid][fid];}
+const Descriptor& descriptor(const Cid cid, const int fid) const { return desciptors(cid)[fid]; }
 
-  const Eigen::Vector3d& global_t_point(const Pid pid) const {return pid_to_global_t_point_[pid];}
+const FidPidMap& fid_to_pid(const Cid cid) const { return cid_to_fid_to_pid_[cid]; }
 
-  const FeatureTrack& feature_track(const Pid pid) const { return pid_to_feature_track_[pid]; }
+Pid pid(const Cid cid, const int fid) const { return cid_to_fid_to_pid_[cid][fid]; }
 
-  const Eigen::Affine3d& cam_T_global(const Cid cid) const { return cid_to_cam_T_global_[cid]; }
+const Eigen::Vector3d& global_t_point(const Pid pid) const { return pid_to_global_t_point_[pid]; }
 
-  const PidPoseMap& cid_to_cam_T_global() const { return cid_to_cam_T_global_; }
+const FeatureTrack& feature_track(const Pid pid) const { return pid_to_feature_track_[pid]; }
 
-  const CidFilenameMap& cid_to_filename() const {return cid_to_filename_; }
+const Eigen::Affine3d& cam_T_global(const Cid cid) const { return cid_to_cam_T_global_[cid]; }
+
+const PidPoseMap& cid_to_cam_T_global() const { return cid_to_cam_T_global_; }
+
+const CidFilenameMap& cid_to_filename() const { return cid_to_filename_; }
 
  protected:
-  const PidPointMap& pid_to_global_t_point() const { return pid_to_global_t_point_; }
+const PidPointMap& pid_to_global_t_point() const { return pid_to_global_t_point_; }
 
-  const PidFeatureTrackMap& pid_to_feature_track() const { return pid_to_feature_track_; }
+const PidFeatureTrackMap& pid_to_feature_track() const { return pid_to_feature_track_; }
 
-  const CidKeypointsMap& cid_to_keypoints() const { return cid_to_keypoints_; }
+const CidKeypointsMap& cid_to_keypoints() const { return cid_to_keypoints_; }
 
-  const CidDescriptorsMap& cid_to_descriptors() const  { return cid_to_descriptors_; }
+const CidDescriptorsMap& cid_to_descriptors() const { return cid_to_descriptors_; }
 
-  const CidKeypointsMap& control_point_cid_to_keypoints() const { return control_point_cid_to_keypoints_; }
+const CidKeypointsMap& control_point_cid_to_keypoints() const { return control_point_cid_to_keypoints_; }
 
-  const PidFeatureTrackMap& control_point_pid_to_feature_track() const { return control_point_pid_to_feature_track_; }
+const PidFeatureTrackMap& control_point_pid_to_feature_track() const { return control_point_pid_to_feature_track_; }
 
-  Keypoints& keypoints(const Cid cid) {return cid_to_keypoints_[cid];}
+Keypoints& keypoints(const Cid cid) { return cid_to_keypoints_[cid]; }
 
-  Descriptors& descriptors(const Cid cid) { return cid_to_descriptors_[cid];}
+Descriptors& descriptors(const Cid cid) { return cid_to_descriptors_[cid]; }
 
-  Eigen::Affine3d& cam_T_global(const Cid cid) { return cid_to_cam_T_global_[cid]; }
+Eigen::Affine3d& cam_T_global(const Cid cid) { return cid_to_cam_T_global_[cid]; }
 
-  FeatureTrack& feature_track(const Pid pid) { return pid_to_feature_track_[pid]; }
+FeatureTrack& feature_track(const Pid pid) { return pid_to_feature_track_[pid]; }
 
-  Eigen::Vector3d& global_t_point(const Pid pid) {return pid_to_global_t_point_[pid];}
+Eigen::Vector3d& global_t_point(const Pid pid) { return pid_to_global_t_point_[pid]; }
 
-  PidPoseMap& cid_to_cam_T_global() { return cid_to_cam_T_global_; }
+PidPoseMap& cid_to_cam_T_global() { return cid_to_cam_T_global_; }
 
-  PidPointMap& pid_to_global_t_point() { return pid_to_global_t_point_; }
+PidPointMap& pid_to_global_t_point() { return pid_to_global_t_point_; }
 
-  PidFeatureTrackMap& pid_to_feature_track() { return pid_to_feature_track_; }
+PidFeatureTrackMap& pid_to_feature_track() { return pid_to_feature_track_; }
 
-  PidPointMap& control_point_pid_to_global_t_point() { return control_point_pid_to_global_t_point_; }
+FidPidMap& fid_to_pid(const Cid cid) { return cid_to_fid_to_pid_[cid]; }
+
+Fid& fid(const Pid pid, const Cid cid) { return feature_track(pid)[cid]; }
+
+PidPointMap& control_point_pid_to_global_t_point() { return control_point_pid_to_global_t_point_; }
 
  private:
-  CidFilenameMap cid_to_filename_;
-  CidKeypointsMap cid_to_keypoints_;
-  CidDescriptorsMap cid_to_descriptors_;
-  CidPoseMap cid_to_cam_T_global_;
-  PidPointMap pid_to_global_t_point_;
-  PidFeatureTrackMap pid_to_feature_track_;
-  CidFidPidMap cid_to_fid_to_pid_;
+CidFilenameMap cid_to_filename_;
+CidKeypointsMap cid_to_keypoints_;
+CidDescriptorsMap cid_to_descriptors_;
+CidPoseMap cid_to_cam_T_global_;
+PidPointMap pid_to_global_t_point_;
+PidFeatureTrackMap pid_to_feature_track_;
+CidFidPidMap cid_to_fid_to_pid_;
 
-  // Control points define set coordinates in the global frame and their
-  // image space detections. These are fixed during optimization and allow
-  // for registration against a known environment.
-  CidKeypointsMap control_point_cid_to_keypoints_;
-  PidFeatureTrackMap control_point_pid_to_feature_track_;
-  PidPointMap control_point_pid_to_global_t_point_;
+// Control points define set coordinates in the global frame and their
+// image space detections. These are fixed during optimization and allow
+// for registration against a known environment.
+CidKeypointsMap control_point_cid_to_keypoints_;
+PidFeatureTrackMap control_point_pid_to_feature_track_;
+PidPointMap control_point_pid_to_global_t_point_;
 };
 }  // namespace sparse_mapping
 

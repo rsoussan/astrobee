@@ -147,4 +147,37 @@ void SparseMapDatabase::AddControlPoint(const ControlPoint& control_point, const
   control_point_pid_to_feature_track_[pid][control_point.cid_right] = right_fid;
   control_point_pid_to_global_t_point_[pid] = control_point.global_t_point;
 }
+
+void SparseMapDatabase::RemoveUnusedFeatures() {
+  std::vector<bool> remove_fid;
+  for (int cid = 0; cid < NumCids(); ++cid) {
+    // Fid order is always sequential, so when an unused fid is removed,
+    // all larger fids need to shift down by one
+    std::unordered_map<Fid, Fid> fid_remapping;
+    int new_fid = 0;
+    for (int fid = 0; fid < NumFeatures(cid); ++fid) {
+      if (!ContainsPid(cid, fid)) {
+        remove_fid.emplace_back(true);
+      } else {
+        remove_fid.emplace_back(false);
+        fid_remapping[fid] = new_fid++;
+      }
+    }
+    lc::RemoveElements(removed_fid, desciptors(cid));
+    lc::RemoveElements(removed_fid, keypoints(cid));
+    RemapFeatureTracks(cid, fid_remapping);
+  }
+  InitializeCidFidPidMap();
+}
+
+void SparseMapDatabase::RemapFeatureTracks(const Cid cid, const std::unordered_map<Fid, Fid>& fid_remapping) {
+     auto& fid_to_pid = fid_to_pid(cid);
+      // Remap each fid to the new fid for each feature track containing a feature from the given cid
+     for (auto& fid_pid : fid_to_pid) {
+       const Fid fid = fid_pid.first;
+       const Pid pid = fid_pid.second;
+       auto& feature_track = feature_track(pid);
+       feature_track.at(cid) = fid_remapping.at(fid);
+     }
+}
 }  // namespace sparse_mapping
