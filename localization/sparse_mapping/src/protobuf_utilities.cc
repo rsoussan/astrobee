@@ -41,22 +41,18 @@ bool WriteProtobufTo(const google::protobuf::MessageLite& message,
   } else {
     // Slightly-slower path when the message is multiple buffers.
     message.SerializeWithCachedSizes(&output);
-    if (output.HadError())
-      return false;
+    if (output.HadError()) return false;
   }
 
   return true;
 }
 
-bool WriteFileTo(const char* filename,
-                     google::protobuf::io::ZeroCopyOutputStream* rawOutput) {
+bool WriteFileTo(const char* filename, google::protobuf::io::ZeroCopyOutputStream* rawOutput) {
   google::protobuf::io::CodedOutputStream output(rawOutput);
 
-  FILE *f = fopen(filename, "r");
-  if (f == NULL)
-    return false;
-  if (fseek(f, 0L, SEEK_END) != 0)
-    return false;
+  FILE* f = fopen(filename, "r");
+  if (f == NULL) return false;
+  if (fseek(f, 0L, SEEK_END) != 0) return false;
   uint64_t size = ftell(f);
   rewind(f);
 
@@ -69,8 +65,7 @@ bool WriteFileTo(const char* filename,
     size_t len = fread(buffer, sizeof(char), 4096, f);
     count += len;
     output.WriteRaw(buffer, len);
-    if (len != 4096)
-      break;
+    if (len != 4096) break;
   }
   fclose(f);
   if (count != size) {
@@ -82,8 +77,7 @@ bool WriteFileTo(const char* filename,
 }
 
 // read size before protbuf, to save multiple protobufs in one file
-bool ReadProtobufFrom(google::protobuf::io::ZeroCopyInputStream* rawInput,
-                      google::protobuf::MessageLite* message) {
+bool ReadProtobufFrom(google::protobuf::io::ZeroCopyInputStream* rawInput, google::protobuf::MessageLite* message) {
   google::protobuf::io::CodedInputStream input(rawInput);
 
   // Read the size.
@@ -105,9 +99,8 @@ bool ReadProtobufFrom(google::protobuf::io::ZeroCopyInputStream* rawInput,
 
 // read size before protbuf, to save multiple protobufs in one file
 bool ReadFileFrom(google::protobuf::io::ZeroCopyInputStream* rawInput, const char* filename) {
-  FILE * f = fopen(filename, "w");
-  if (f == NULL)
-    return false;
+  FILE* f = fopen(filename, "w");
+  if (f == NULL) return false;
   google::protobuf::io::CodedInputStream input(rawInput);
 
   // Read the size.

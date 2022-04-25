@@ -24,13 +24,13 @@
 #include <vector>
 
 namespace sparse_mapping {
-  class ImageDatabase {
-   public:
-    virtual ~ImageDatabase() {}
-    virtual std::vector<int> Query(const cv::Mat& descriptors, const int max_results) = 0;
-    virtual std::vector<int> Query(const std::vector<cv::Mat>& descriptors, const int max_results) = 0;
-    virtual void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const = 0;
-    virtual void LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input, int db_type) = 0;
-  };
+class ImageDatabase {
+ public:
+  virtual ~ImageDatabase() {}
+  virtual std::vector<int> Query(const cv::Mat& descriptors, const int max_results) = 0;
+  virtual std::vector<int> Query(const std::vector<cv::Mat>& descriptors, const int max_results) = 0;
+  virtual void SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const = 0;
+  virtual void LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input, int db_type) = 0;
+};
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_IMAGE_DATABASE_H_

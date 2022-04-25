@@ -22,8 +22,7 @@ namespace sparse_mapping {
 // TODO(rsoussan): update code
 // Form a sparse map by reading a text file from disk. This is for comparing
 // nvm or theia maps.
-SparseMap::SparseMap(const std::string& filename,
-                     const std::vector<std::string>& all_image_files) {
+SparseMap::SparseMap(const std::string& filename, const std::vector<std::string>& all_image_files) {
   // these are placeholders and must be changed
   const camera::CameraParameters camera_params(Eigen::Vector2i(640, 480), Eigen::Vector2d::Constant(300),
                                                Eigen::Vector2d(320, 240));
@@ -50,35 +49,35 @@ SparseMap::SparseMap(const std::string& filename,
     if (base_to_full_path.find(base) != base_to_full_path.end()) LOG(FATAL) << "Duplicate image: " << base << std::endl;
     base_to_full_path[base] = image;
     orig_order[it] = base;
-    }
+  }
 
-    // Find the permutation which will tell how to reorder the images
-    // in the nvm file to be in the original order.  This must happen
-    // before we change cid_to_filename_ below.
-    std::map<int, int> old_cid_to_new_cid;
-    std::map<std::string, int> base2cid;
-    for (size_t it = 0; it < cid_to_filename_.size(); it++) base2cid[cid_to_filename_[it]] = it;
-    int new_cid = 0;
-    for (auto order_it = orig_order.begin(); order_it != orig_order.end() ; order_it++) {
-      auto base_it = base2cid.find(order_it->second);
-      if (base_it == base2cid.end()) continue;  // Not all input images may be present in the map
+  // Find the permutation which will tell how to reorder the images
+  // in the nvm file to be in the original order.  This must happen
+  // before we change cid_to_filename_ below.
+  std::map<int, int> old_cid_to_new_cid;
+  std::map<std::string, int> base2cid;
+  for (size_t it = 0; it < cid_to_filename_.size(); it++) base2cid[cid_to_filename_[it]] = it;
+  int new_cid = 0;
+  for (auto order_it = orig_order.begin(); order_it != orig_order.end(); order_it++) {
+    auto base_it = base2cid.find(order_it->second);
+    if (base_it == base2cid.end()) continue;  // Not all input images may be present in the map
 
-      int old_cid = base_it->second;
-      old_cid_to_new_cid[old_cid] = new_cid;
-      new_cid++;
-    }
+    int old_cid = base_it->second;
+    old_cid_to_new_cid[old_cid] = new_cid;
+    new_cid++;
+  }
 
-    // Map the theia images to the actual image paths
-    for (size_t it = 0; it < cid_to_filename_.size(); it++) {
-      std::string base = cid_to_filename_[it];
-      auto map_it = base_to_full_path.find(base);
-      if (map_it == base_to_full_path.end())
-        LOG(FATAL) << "The input file list is missing the nvm map image: " << base << std::endl;
-      cid_to_filename_[it] = map_it->second;
-    }
+  // Map the theia images to the actual image paths
+  for (size_t it = 0; it < cid_to_filename_.size(); it++) {
+    std::string base = cid_to_filename_[it];
+    auto map_it = base_to_full_path.find(base);
+    if (map_it == base_to_full_path.end())
+      LOG(FATAL) << "The input file list is missing the nvm map image: " << base << std::endl;
+    cid_to_filename_[it] = map_it->second;
+  }
 
-    // Apply the permutation
-    reorderMap(old_cid_to_new_cid);
+  // Apply the permutation
+  reorderMap(old_cid_to_new_cid);
 
   // Initialize this convenient mapping
   InitializeCidFidPidMap();
@@ -107,10 +106,10 @@ void SparseMap::reorderMap(std::map<int, int> const& old_cid_to_new_cid) {
 
   // TODO(rsoussan): Avoid all this by creating a new sparse map database and assigning it to the sparse map
   // Must create temporary structures
-  std::vector<std::string>        new_cid_to_filename(num_cid);
-  std::vector<Eigen::Matrix2Xd>   new_cid_to_keypoints(num_cid);
-  std::vector<Eigen::Affine3d>    new_cid_to_cam_T_global(num_cid);
-  std::vector<cv::Mat>            new_cid_to_descriptors(num_cid);
+  std::vector<std::string> new_cid_to_filename(num_cid);
+  std::vector<Eigen::Matrix2Xd> new_cid_to_keypoints(num_cid);
+  std::vector<Eigen::Affine3d> new_cid_to_cam_T_global(num_cid);
+  std::vector<cv::Mat> new_cid_to_descriptors(num_cid);
   std::vector<std::map<int, int>> new_pid_to_feature_track(pid_to_feature_track_.size());
 
   // Note that pid_to_global_t_point_ is not changed by this reordering
@@ -137,8 +136,7 @@ void SparseMap::reorderMap(std::map<int, int> const& old_cid_to_new_cid) {
     for (auto cid_fid_it = cid_fid.begin(); cid_fid_it != cid_fid.end(); cid_fid_it++) {
       int old_cid = cid_fid_it->first;
       auto cid_it = old_cid_to_new_cid.find(old_cid);
-      if (cid_it == old_cid_to_new_cid.end())
-        LOG(FATAL) << "Bookkeeping error in SparseMap::reorderMap()";
+      if (cid_it == old_cid_to_new_cid.end()) LOG(FATAL) << "Bookkeeping error in SparseMap::reorderMap()";
 
       int new_cid = cid_it->second;
       new_cid_fid[new_cid] = cid_fid_it->second;
@@ -159,23 +157,18 @@ void SparseMap::reorderMap(std::map<int, int> const& old_cid_to_new_cid) {
 }
 
 // Writes the NVM control network format.
-void WriteNVM(std::vector<Eigen::Matrix2Xd > const& cid_to_keypoints,
-                              std::vector<std::string> const& cid_to_filename,
-                              std::vector<std::map<int, int> > const& pid_to_feature_track,
-                              std::vector<Eigen::Vector3d> const& pid_to_global_t_point,
-                              std::vector<Eigen::Affine3d> const&
-                              cid_to_cam_T_global,
-                              double focal_length,
-                              std::string const& output_filename) {
+void WriteNVM(std::vector<Eigen::Matrix2Xd> const& cid_to_keypoints, std::vector<std::string> const& cid_to_filename,
+              std::vector<std::map<int, int>> const& pid_to_feature_track,
+              std::vector<Eigen::Vector3d> const& pid_to_global_t_point,
+              std::vector<Eigen::Affine3d> const& cid_to_cam_T_global, double focal_length,
+              std::string const& output_filename) {
   std::fstream f(output_filename, std::ios::out);
   f << "NVM_V3\n";
 
-  CHECK(cid_to_filename.size() == cid_to_keypoints.size())
-    << "Unequal number of filenames and keypoints";
+  CHECK(cid_to_filename.size() == cid_to_keypoints.size()) << "Unequal number of filenames and keypoints";
   CHECK(pid_to_feature_track.size() == pid_to_global_t_point.size())
     << "Unequal number of pid_to_feature_track and xyz measurements";
-  CHECK(cid_to_filename.size() == cid_to_cam_T_global.size())
-    << "Unequal number of filename and camera transforms";
+  CHECK(cid_to_filename.size() == cid_to_cam_T_global.size()) << "Unequal number of filename and camera transforms";
 
   // Write camera information
   f << cid_to_filename.size() << std::endl;
@@ -184,32 +177,28 @@ void WriteNVM(std::vector<Eigen::Matrix2Xd > const& cid_to_keypoints,
     // quaternion and an XYZ camera position
     Eigen::Quaterniond q(cid_to_cam_T_global[cid].rotation());
     Eigen::Vector3d t(cid_to_cam_T_global[cid].translation());
-    Eigen::Vector3d camera_center =
-      - cid_to_cam_T_global[cid].rotation().inverse() * t;
+    Eigen::Vector3d camera_center = -cid_to_cam_T_global[cid].rotation().inverse() * t;
 
     // The NVM format is a little crazy. When using a quaternion, we
     // write the camera center instead of the t from camera_t_global.
-    f << cid_to_filename[cid] << " " << focal_length
-      << " " << q.w() << " " << q.x() << " " << q.y() << " " << q.z() << " "
-      << camera_center[0] << " " << camera_center[1] << " "
-      << camera_center[2] << " " << "0.9 0\n";
+    f << cid_to_filename[cid] << " " << focal_length << " " << q.w() << " " << q.x() << " " << q.y() << " " << q.z()
+      << " " << camera_center[0] << " " << camera_center[1] << " " << camera_center[2] << " "
+      << "0.9 0\n";
   }
 
   // Write the number of points
   f << pid_to_feature_track.size() << std::endl;
 
   for (size_t pid = 0; pid < pid_to_feature_track.size(); pid++) {
-    f << pid_to_global_t_point[pid][0] << " " << pid_to_global_t_point[pid][1] << " "
-      << pid_to_global_t_point[pid][2] << " 0 0 0 "
-      << pid_to_feature_track[pid].size();
+    f << pid_to_global_t_point[pid][0] << " " << pid_to_global_t_point[pid][1] << " " << pid_to_global_t_point[pid][2]
+      << " 0 0 0 " << pid_to_feature_track[pid].size();
 
     CHECK(pid_to_feature_track[pid].size() > 1)
       << "PID " << pid << " has " << pid_to_feature_track[pid].size() << " measurements";
 
     for (std::map<int, int>::const_iterator it = pid_to_feature_track[pid].begin();
          it != pid_to_feature_track[pid].end(); it++) {
-      f << " " << it->first << " " << it->second << " "
-        << cid_to_keypoints[it->first].col(it->second)[0] << " "
+      f << " " << it->first << " " << it->second << " " << cid_to_keypoints[it->first].col(it->second)[0] << " "
         << cid_to_keypoints[it->first].col(it->second)[1];
     }
     f << std::endl;
@@ -221,13 +210,9 @@ void WriteNVM(std::vector<Eigen::Matrix2Xd > const& cid_to_keypoints,
 }
 
 // Reads the NVM control network format.
-void ReadNVM(std::string const& input_filename,
-                             std::vector<Eigen::Matrix2Xd > * cid_to_keypoints,
-                             std::vector<std::string> * cid_to_filename,
-                             std::vector<std::map<int, int> > * pid_to_feature_track,
-                             std::vector<Eigen::Vector3d> * pid_to_global_t_point,
-                             std::vector<Eigen::Affine3d> *
-                             cid_to_cam_T_global) {
+void ReadNVM(std::string const& input_filename, std::vector<Eigen::Matrix2Xd>* cid_to_keypoints,
+             std::vector<std::string>* cid_to_filename, std::vector<std::map<int, int>>* pid_to_feature_track,
+             std::vector<Eigen::Vector3d>* pid_to_global_t_point, std::vector<Eigen::Affine3d>* cid_to_cam_T_global) {
   std::ifstream f(input_filename, std::ios::in);
   std::string token;
   std::getline(f, token);
@@ -285,8 +270,7 @@ void ReadNVM(std::string const& input_filename,
     pid_to_feature_track->at(pid).clear();
 
     ptrdiff_t number_of_measures;
-    f >> xyz[0] >> xyz[1] >> xyz[2] >>
-      color[0] >> color[1] >> color[2] >> number_of_measures;
+    f >> xyz[0] >> xyz[1] >> xyz[2] >> color[0] >> color[1] >> color[2] >> number_of_measures;
     pid_to_global_t_point->at(pid) = xyz;
     for (ptrdiff_t m = 0; m < number_of_measures; m++) {
       f >> cid >> fid >> pt[0] >> pt[1];
@@ -299,31 +283,24 @@ void ReadNVM(std::string const& input_filename,
       cid_to_keypoints->at(cid).col(fid) = pt;
     }
 
-    if (!f.good())
-      LOG(FATAL) << "Unable to correctly read PID: " << pid;
+    if (!f.good()) LOG(FATAL) << "Unable to correctly read PID: " << pid;
   }
 }
 
-std::string ImageToFeatureFile(std::string const& image_file,
-                                               std::string const& detector_name) {
+std::string ImageToFeatureFile(std::string const& image_file, std::string const& detector_name) {
   return std::string(image_file) + ".yaml.gz";
 }
 
-void WriteFeatures(std::string const& detector_name,
-                                   std::vector<cv::KeyPoint> const& keypoints,
-                                   cv::Mat const& descriptors,
-                                   std::string const& output_filename) {
+void WriteFeatures(std::string const& detector_name, std::vector<cv::KeyPoint> const& keypoints,
+                   cv::Mat const& descriptors, std::string const& output_filename) {
   LOG(INFO) << "Writing: " << output_filename;
-  cv::FileStorage fs(output_filename,
-                     cv::FileStorage::WRITE);
+  cv::FileStorage fs(output_filename, cv::FileStorage::WRITE);
   cv::write(fs, "keypoints", keypoints);
   cv::write(fs, "descriptions", descriptors);
 }
 
-bool ReadFeatures(std::string const& input_filename,
-                                  std::string const& detector_name,
-                                  std::vector<cv::KeyPoint> * keypoints,
-                                  cv::Mat * descriptors) {
+bool ReadFeatures(std::string const& input_filename, std::string const& detector_name,
+                  std::vector<cv::KeyPoint>* keypoints, cv::Mat* descriptors) {
   LOG(INFO) << "Reading: " << input_filename;
 
   // Test the file

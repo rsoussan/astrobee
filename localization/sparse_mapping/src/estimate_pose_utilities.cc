@@ -33,15 +33,13 @@ std::vector<ImageMatch> FindAndSortMatches(const std::vector<int>& matching_cids
     const auto& map_image_descriptors = map.cid_to_descriptors_[cid];
     ImageMatch image_match;
     image_match.cid = cid;
-    FindMatches(descriptors,
-                                map_image_descriptors,
-                                &image_match.matches);
+    FindMatches(descriptors, map_image_descriptors, &image_match.matches);
     int num_valid_matches = 0;
     if (!check_point_3d_exists) {
       image_match.num_valid_matches = image_match.matches.size();
     } else {
       for (const auto& match : image_match.matches) {
-       const bool map_point_3d_exists = map.cid_to_fid_to_pid_[cid].count(match.trainIdx) > 0;
+        const bool map_point_3d_exists = map.cid_to_fid_to_pid_[cid].count(match.trainIdx) > 0;
         if (!map_point_3d_exists) continue;
         ++image_match.num_valid_matches;
       }
@@ -49,8 +47,7 @@ std::vector<ImageMatch> FindAndSortMatches(const std::vector<int>& matching_cids
 
     sorted_image_matches.emplace_back(image_match);
     total_matches += image_match.num_valid_matches;
-    if (total_matches >= max_num_total_feature_matches)
-      break;
+    if (total_matches >= max_num_total_feature_matches) break;
   }
 
   std::sort(image_matches.begin(), image_matches.end(), std::greater<>());
@@ -67,8 +64,7 @@ void GetMatchingObservationsAndLandmarks(const std::vector<ImageMatches>& image_
       if (!map_point_3d_exists) continue;
       const int landmark_id = map.cid_to_fid_to_pid_.at(cid).at(match.trainIdx);
       if (seen_landmarks.count(landmark_id) > 0) continue;
-      const Eigen::Vector2d observation(keypoints.col(match.queryIdx)[0],
-                          keypoints.col(match.queryIdx)[1]);
+      const Eigen::Vector2d observation(keypoints.col(match.queryIdx)[0], keypoints.col(match.queryIdx)[1]);
       observations.emplace_back(observation);
       landmarks.push_back(map.pid_to_global_t_point_[landmark_id]);
       seen_landmarks.insert(landmark_id);
@@ -110,8 +106,7 @@ EstimatePoseResults EstimatePose(const cv::Mat& descriptors, const Eigen::Matrix
   return results;
 }
 
-EstimatePoseResults EstimatePose(
-  const cv::Mat& image, const EstimatePoseParams& params, SparseMap& map) {
+EstimatePoseResults EstimatePose(const cv::Mat& image, const EstimatePoseParams& params, SparseMap& map) {
   cv::Mat descriptors;
   Eigen::Matrix2Xd keypoints;
   DetectFeatures(image, map.params().histogram_equalization, descriptors, keypoints);

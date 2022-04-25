@@ -51,14 +51,12 @@
 // be useful if each individual map is reasonably accurate and
 // well-registered.
 
-DEFINE_string(reference_map, "",
-              "Reference map to localize against.");
+DEFINE_string(reference_map, "", "Reference map to localize against.");
 DEFINE_string(source_map, "",
               "Localize images in this map against the reference computed map, "
               "and compare with locations from this map.");
 
-DEFINE_double(error_thresh, 0.05,
-              "Count how many localization errors are no more than this threshold, in meters..");
+DEFINE_double(error_thresh, 0.05, "Count how many localization errors are no more than this threshold, in meters..");
 
 DECLARE_bool(histogram_equalization);  // its value will be pulled from sparse_map.cc
 
@@ -73,8 +71,7 @@ int main(int argc, char** argv) {
   sparse_mapping::SparseMap reference(FLAGS_reference_map);
 
   // Ensure we localize with the same flag as in the map
-  sparse_mapping::HistogramEqualizationCheck(reference.GetHistogramEqualization(),
-                                             FLAGS_histogram_equalization);
+  sparse_mapping::HistogramEqualizationCheck(reference.GetHistogramEqualization(), FLAGS_histogram_equalization);
 
   std::string detector = reference.DetectorName();
 
@@ -82,7 +79,7 @@ int main(int argc, char** argv) {
 
   sparse_mapping::SparseMap source(FLAGS_source_map);
 
-  if ( !(source.GetCameraParameters() == reference.GetCameraParameters()) )
+  if (!(source.GetCameraParameters() == reference.GetCameraParameters()))
     LOG(FATAL) << "The source and reference maps don't have the same camera parameters.";
 
   int num_good_errors = 0;
@@ -91,35 +88,30 @@ int main(int argc, char** argv) {
     std::string img_file = source.GetFrameFilename(cid);
 
     // localize frame
-    camera::CameraModel localized_cam(Eigen::Vector3d(), Eigen::Matrix3d::Identity(),
-                                      reference.GetCameraParameters());
+    camera::CameraModel localized_cam(Eigen::Vector3d(), Eigen::Matrix3d::Identity(), reference.GetCameraParameters());
 
-    camera::CameraModel source_cam(source.GetFrameGlobalTransform(cid),
-                                   source.GetCameraParameters());
+    camera::CameraModel source_cam(source.GetFrameGlobalTransform(cid), source.GetCameraParameters());
     std::cout << "Source map position:         " << source_cam.GetPosition().transpose() << "\n";
 
     if (!reference.Localize(img_file, &localized_cam)) {
       // Localization failed
-      std::cout << "Errors for " << img_file << ": "
-                << 1e+6 << " m " << 1e+6 << " degrees" << std::endl;
+      std::cout << "Errors for " << img_file << ": " << 1e+6 << " m " << 1e+6 << " degrees" << std::endl;
       continue;
     }
 
-    Eigen::Vector3d expected_angle  = source_cam.GetRotation() * Eigen::Vector3d::UnitX();
-    Eigen::Vector3d estimated_angle = localized_cam.GetRotation()   * Eigen::Vector3d::UnitX();
+    Eigen::Vector3d expected_angle = source_cam.GetRotation() * Eigen::Vector3d::UnitX();
+    Eigen::Vector3d estimated_angle = localized_cam.GetRotation() * Eigen::Vector3d::UnitX();
     double pos_error = (localized_cam.GetPosition() - source_cam.GetPosition()).norm();
     double angle_err = acos(estimated_angle.dot(expected_angle)) * (180.0 / M_PI);
 
     std::cout << "Localized position from ref: " << localized_cam.GetPosition().transpose() << "\n";
-    std::cout << "Errors for " << img_file << ": "
-              << pos_error << " m " << angle_err << " degrees" << "\n";
-    if (pos_error <= FLAGS_error_thresh)
-      num_good_errors++;
+    std::cout << "Errors for " << img_file << ": " << pos_error << " m " << angle_err << " degrees"
+              << "\n";
+    if (pos_error <= FLAGS_error_thresh) num_good_errors++;
   }
 
-  std::cout << "Number of localization errors no more than "
-            << FLAGS_error_thresh << " m is " << num_good_errors
-            << " (" << num_good_errors * 100.0/num_frames << " %)"
+  std::cout << "Number of localization errors no more than " << FLAGS_error_thresh << " m is " << num_good_errors
+            << " (" << num_good_errors * 100.0 / num_frames << " %)"
             << " out of " << num_frames << " images.\n";
   google::protobuf::ShutdownProtobufLibrary();
   return 0;

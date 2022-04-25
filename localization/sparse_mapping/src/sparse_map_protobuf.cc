@@ -22,14 +22,12 @@
 #include <sparse_map.pb.h>
 
 namespace sparse_mapping {
-void SparseMap::Load(const std::string & protobuf_file, bool localization) {
+void SparseMap::Load(const std::string& protobuf_file, bool localization) {
   sparse_mapping_protobuf::Map map;
   int input_fd = open(protobuf_file.c_str(), O_RDONLY);
-  if (input_fd < 0)
-    LOG(FATAL) << "Failed to open map file: " << protobuf_file;
+  if (input_fd < 0) LOG(FATAL) << "Failed to open map file: " << protobuf_file;
 
-  google::protobuf::io::ZeroCopyInputStream* input =
-    new google::protobuf::io::FileInputStream(input_fd);
+  google::protobuf::io::ZeroCopyInputStream* input = new google::protobuf::io::FileInputStream(input_fd);
   if (!ReadProtobufFrom(input, &map)) {
     LOG(FATAL) << "Failed to parse map file.";
   }
@@ -43,14 +41,11 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
   assert(map.camera().undistorted_image_size_size() == 2);
   typedef Eigen::Vector2d V2d;
   typedef Eigen::Vector2i V2i;
-  camera_params_.SetFocalLength(V2d(map.camera().focal_length(0),
-                                    map.camera().focal_length(1)));
-  camera_params_.SetOpticalOffset(V2d(map.camera().optical_offset(0),
-                                      map.camera().optical_offset(1)));
-  camera_params_.SetDistortedSize(V2i(map.camera().distorted_image_size(0),
-                                      map.camera().distorted_image_size(1)));
-  camera_params_.SetUndistortedSize(V2i(map.camera().undistorted_image_size(0),
-                                        map.camera().undistorted_image_size(1)));
+  camera_params_.SetFocalLength(V2d(map.camera().focal_length(0), map.camera().focal_length(1)));
+  camera_params_.SetOpticalOffset(V2d(map.camera().optical_offset(0), map.camera().optical_offset(1)));
+  camera_params_.SetDistortedSize(V2i(map.camera().distorted_image_size(0), map.camera().distorted_image_size(1)));
+  camera_params_.SetUndistortedSize(
+    V2i(map.camera().undistorted_image_size(0), map.camera().undistorted_image_size(1)));
   Eigen::VectorXd distortion(map.camera().distortion_size());
   for (int i = 0; i < map.camera().distortion_size(); i++) {
     distortion[i] = map.camera().distortion(i);
@@ -79,17 +74,15 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
       cid_to_filename_[cid] = "";
 
     // load keypoints
-    if (!localization)
-      cid_to_keypoints_[cid].resize(Eigen::NoChange_t(), frame.feature_size());
+    if (!localization) cid_to_keypoints_[cid].resize(Eigen::NoChange_t(), frame.feature_size());
 
     // Poke the first frame's first descriptor to see how long the
     // descriptor is.
     if (frame.feature_size()) {
-      size_t descriptor_length = frame.feature(0).description().size() /
-        cv::getElemSize(map.descriptor_depth());
+      size_t descriptor_length = frame.feature(0).description().size() / cv::getElemSize(map.descriptor_depth());
       cid_to_descriptors_[cid].create(frame.feature_size(),  // rows
-                                         descriptor_length,     // columns
-                                         map.descriptor_depth());
+                                      descriptor_length,     // columns
+                                      map.descriptor_depth());
     } else {
       cid_to_descriptors_[cid].create(0, 0, map.descriptor_depth());
     }
@@ -98,24 +91,20 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
       sparse_mapping_protobuf::Feature feature = frame.feature(fid);
 
       // Copy the features
-      if (!localization)
-        cid_to_keypoints_[cid].col(fid) << feature.x(), feature.y();
+      if (!localization) cid_to_keypoints_[cid].col(fid) << feature.x(), feature.y();
 
       // Copy the descriptors
       memcpy(cid_to_descriptors_[cid].ptr<uint8_t>(fid),  // Destination
-             feature.description().data(),                   // Source
-             feature.description().size());                  // Length
+             feature.description().data(),                // Source
+             feature.description().size());               // Length
     }
 
     // Load pose
     if (frame.has_pose() && !localization) {
       sparse_mapping_protobuf::Affine3d pose = frame.pose();
-      cid_to_cam_T_global_[cid].translation()
-        << pose.t0(), pose.t1(), pose.t2();
+      cid_to_cam_T_global_[cid].translation() << pose.t0(), pose.t1(), pose.t2();
 
-      cid_to_cam_T_global_[cid].linear() <<
-        pose.r00(), pose.r01(), pose.r02(),
-        pose.r10(), pose.r11(), pose.r12(),
+      cid_to_cam_T_global_[cid].linear() << pose.r00(), pose.r01(), pose.r02(), pose.r10(), pose.r11(), pose.r12(),
         pose.r20(), pose.r21(), pose.r22();
     }
   }
@@ -149,8 +138,7 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
     }
 
     // If in localization mode, we already initialized cid_to_fid_to_pid_ right above.
-    if (!localization)
-      InitializeCidFidPidMap();
+    if (!localization) InitializeCidFidPidMap();
 
   } else {
     LOG(WARNING) << "There appear to be no landmarks in map file.";
@@ -158,14 +146,11 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
 
   // TODO(rsoussan): Is this right?
   // TODO(rsoussan): Allow for brisk or surf here! add protobuf param?
-  if (map.has_vocab_db())
-    image_database_.reset(new BriskImageDatabase(input));
+  if (map.has_vocab_db()) image_database_.reset(new BriskImageDatabase(input));
 
   histogram_equalization_ = map.histogram_equalization();
 
-  assert(histogram_equalization_ == 0 ||
-         histogram_equalization_ == 1 ||
-         histogram_equalization_ == 2);
+  assert(histogram_equalization_ == 0 || histogram_equalization_ == 1 || histogram_equalization_ == 2);
 
   // For backward compatibility with old maps, allow a map to have its
   // histogram_equalization flag unspecified, but it is best to avoid
@@ -179,7 +164,7 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
   close(input_fd);
 }
 
-void SparseMap::Save(const std::string & protobuf_file) const {
+void SparseMap::Save(const std::string& protobuf_file) const {
   // For backward compatibility with old maps, allow a map to have its
   // histogram_equalization flag unspecified, but it is best to avoid
   // that situation, and rebuild the map if necessary.
@@ -217,8 +202,7 @@ void SparseMap::Save(const std::string & protobuf_file) const {
   map.set_num_landmarks(pid_to_global_t_point_.size());
 
   // TODO(rsoussan): put this back? remove this?
-  if (vocab_db_.binary_db != NULL)
-    map.set_vocab_db(sparse_mapping_protobuf::Map::BINARYDB);
+  if (vocab_db_.binary_db != NULL) map.set_vocab_db(sparse_mapping_protobuf::Map::BINARYDB);
 
   map.set_histogram_equalization(histogram_equalization_);
 
@@ -247,8 +231,7 @@ void SparseMap::Save(const std::string & protobuf_file) const {
       f->set_x(cid_to_keypoints_[cid].col(fid).x());
       f->set_y(cid_to_keypoints_[cid].col(fid).y());
       f->set_description(cid_to_descriptors_[cid].ptr<uint8_t>(fid),
-                         cid_to_descriptors_[cid].elemSize() *
-                         cid_to_descriptors_[cid].cols);
+                         cid_to_descriptors_[cid].elemSize() * cid_to_descriptors_[cid].cols);
     }
 
     // set the camera pose if available.
@@ -285,19 +268,17 @@ void SparseMap::Save(const std::string & protobuf_file) const {
     l.mutable_loc()->set_x(pid_to_global_t_point_[i].x());
     l.mutable_loc()->set_y(pid_to_global_t_point_[i].y());
     l.mutable_loc()->set_z(pid_to_global_t_point_[i].z());
-    for (std::map<int, int >::const_iterator it =
-          pid_to_feature_track_[i].begin(); it != pid_to_feature_track_[i].end(); it++) {
+    for (std::map<int, int>::const_iterator it = pid_to_feature_track_[i].begin(); it != pid_to_feature_track_[i].end();
+         it++) {
       sparse_mapping_protobuf::Matching* m = l.add_match();
       m->set_camera_id(it->first);
       m->set_feature_id(it->second);
     }
 
-    if (!WriteProtobufTo(l, output))
-      LOG(FATAL) << "Failed to write landmark to file.";
+    if (!WriteProtobufTo(l, output)) LOG(FATAL) << "Failed to write landmark to file.";
   }
 
-  if (vocab_db_)
-    vocab_db_->SaveProtobuf(output);
+  if (vocab_db_) vocab_db_->SaveProtobuf(output);
 
   delete output;
   close(output_fd);

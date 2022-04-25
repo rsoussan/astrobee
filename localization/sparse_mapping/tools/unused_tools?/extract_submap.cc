@@ -59,14 +59,11 @@
 // or:
 // extract_submap -input_map <input map> -output_map <output map> -xyz_box "xmin xmax ymin ymax zmin zmax"
 
-DEFINE_string(input_map, "",
-              "Input map.");
+DEFINE_string(input_map, "", "Input map.");
 
-DEFINE_string(output_map, "",
-              "Output map.");
+DEFINE_string(output_map, "", "Output map.");
 
-DEFINE_string(cid_range, "",
-              "Keep only the images with indices in this range (inclusive at both ends).");
+DEFINE_string(cid_range, "", "Keep only the images with indices in this range (inclusive at both ends).");
 
 DEFINE_string(xyz_box, "",
               "Keep only the images with the camera center in this box. "
@@ -76,8 +73,7 @@ DEFINE_string(image_list, "",
               "Instead of the images being specified on the command line, "
               "read them from a file (one per line).");
 
-DEFINE_bool(skip_bundle_adjustment, false,
-            "Skip performing bundle adjustment on the extracted submap.");
+DEFINE_bool(skip_bundle_adjustment, false, "Skip performing bundle adjustment on the extracted submap.");
 
 DEFINE_bool(exclude, false,
             "Extract the images not provided as input, which is the "
@@ -87,10 +83,9 @@ int main(int argc, char** argv) {
   ff_common::InitFreeFlyerApplication(&argc, &argv);
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-  if ((argc <= 1 && FLAGS_cid_range == "" && FLAGS_xyz_box == "" && FLAGS_image_list == "") ||
-      FLAGS_input_map == "" || FLAGS_output_map == "") {
-    LOG(INFO) << "Usage: " << argv[0]
-              << " -input_map <input map> -output_map <output map> [ -exclude ] [ <images> ] "
+  if ((argc <= 1 && FLAGS_cid_range == "" && FLAGS_xyz_box == "" && FLAGS_image_list == "") || FLAGS_input_map == "" ||
+      FLAGS_output_map == "") {
+    LOG(INFO) << "Usage: " << argv[0] << " -input_map <input map> -output_map <output map> [ -exclude ] [ <images> ] "
               << "[ -image_list ] [ -cid_range 'beg end' ] "
               << "[ -xyz_box 'xmin xmax ymin ymax zmin zmax' ]";
     return 0;
@@ -99,14 +94,12 @@ int main(int argc, char** argv) {
   std::vector<std::string> images;
   if (FLAGS_image_list == "") {
     // Get the images from the command line
-    for (int i = 1; i < argc; i++)
-      images.push_back(argv[i]);
+    for (int i = 1; i < argc; i++) images.push_back(argv[i]);
   } else {
     // Get the images from a file
     std::string image;
     std::ifstream image_handle(FLAGS_image_list);
-    while (image_handle >> image)
-      images.push_back(image);
+    while (image_handle >> image) images.push_back(image);
   }
 
   // Start with the output being the same as the input
@@ -119,8 +112,7 @@ int main(int argc, char** argv) {
     } else {
       // Exclude the specified images
       std::set<std::string> exclude;
-      for (size_t it = 0; it < images.size(); it++)
-        exclude.insert(images[it]);
+      for (size_t it = 0; it < images.size(); it++) exclude.insert(images[it]);
       for (size_t cid = 0; cid < out.cid_to_filename_.size(); cid++) {
         if (exclude.find(out.cid_to_filename_[cid]) == exclude.end())
           images_to_keep.push_back(out.cid_to_filename_[cid]);
@@ -131,7 +123,7 @@ int main(int argc, char** argv) {
     std::istringstream is(FLAGS_cid_range);
     size_t min_cid, max_cid;
     if (!(is >> min_cid >> max_cid)) {
-        LOG(FATAL) << "Could not parse the cid range.";
+      LOG(FATAL) << "Could not parse the cid range.";
     }
 
     images_to_keep.clear();
@@ -151,9 +143,7 @@ int main(int argc, char** argv) {
     images_to_keep.clear();
     for (size_t cid = 0; cid < out.cid_to_filename_.size(); cid++) {
       Eigen::Vector3d ctr = out.GetFrameGlobalTransform(cid).inverse().translation();
-      if (ctr[0] >= xmin && ctr[0] <= xmax &&
-          ctr[1] >= ymin && ctr[1] <= ymax &&
-          ctr[2] >= zmin && ctr[2] <= zmax) {
+      if (ctr[0] >= xmin && ctr[0] <= xmax && ctr[1] >= ymin && ctr[1] <= ymax && ctr[2] >= zmin && ctr[2] <= zmax) {
         images_to_keep.push_back(out.cid_to_filename_[cid]);
       }
     }

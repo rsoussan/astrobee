@@ -56,7 +56,8 @@ struct BundleAdjustementParams {
 };
 
 inline ceres::LossFunction* BundleAdjustmentParams::LossFunction() {
-  if (loss_function == "l1") return new ceres::SoftLOneLoss(loss_threshold);
+  if (loss_function == "l1")
+    return new ceres::SoftLOneLoss(loss_threshold);
   else if (loss_function == "l2")
     return nullptr;
   else if (loss_function == "cauchy")
@@ -78,13 +79,12 @@ inline ceres::Solver::Options BunleAdjustmentParams::DefaultSolverOptions() {
   return options;
 }
 
-
 BundleAdjustmentParams BundleAdjustmentParams::IncrementalBundleAdjustmentParams() {
-    BundleAdjustmentParams params;
-    params.options.max_num_iterations = 500;
-    options.logging_type = ceres::SILENT;
-    params.loss_threshold = 0.5;
-    params.optimize_camera_range = true;
+  BundleAdjustmentParams params;
+  params.options.max_num_iterations = 500;
+  options.logging_type = ceres::SILENT;
+  params.loss_threshold = 0.5;
+  params.optimize_camera_range = true;
 }
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_BUNDLE_ADJUSTMENT_PARAMS_H_

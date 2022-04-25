@@ -1,14 +1,14 @@
 /* Copyright (c) 2017, United States Government, as represented by the
  * Administrator of the National Aeronautics and Space Administration.
- * 
+ *
  * All rights reserved.
- * 
+ *
  * The Astrobee platform is licensed under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License. You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -30,7 +30,9 @@
 #include <string>
 #include <vector>
 
-#define EXPECT_VECTOR3D_NEAR(p1, p2, t) EXPECT_NEAR(p1[0], p2[0], t); EXPECT_NEAR(p1[1], p2[1], t); \
+#define EXPECT_VECTOR3D_NEAR(p1, p2, t) \
+  EXPECT_NEAR(p1[0], p2[0], t);         \
+  EXPECT_NEAR(p1[1], p2[1], t);         \
   EXPECT_NEAR(p1[2], p2[2], t);
 
 void RunWithDB(std::string const& detector_name) {
@@ -43,9 +45,15 @@ void RunWithDB(std::string const& detector_name) {
   std::vector<std::string> img_files, local_imgs, feat_files;
   std::string data_dir = std::string(std::getenv("DATA_DIR"));
   std::string f;
-  f = "m0004000.jpg"; img_files.push_back(data_dir + f); local_imgs.push_back(f);
-  f = "m0004025.jpg"; img_files.push_back(data_dir + f); local_imgs.push_back(f);
-  f = "m0004050.jpg"; img_files.push_back(data_dir + f); local_imgs.push_back(f);
+  f = "m0004000.jpg";
+  img_files.push_back(data_dir + f);
+  local_imgs.push_back(f);
+  f = "m0004025.jpg";
+  img_files.push_back(data_dir + f);
+  local_imgs.push_back(f);
+  f = "m0004050.jpg";
+  img_files.push_back(data_dir + f);
+  local_imgs.push_back(f);
 
   // Write local copies of the images.
   for (size_t cid = 0; cid < img_files.size(); cid++) {
@@ -66,13 +74,10 @@ void RunWithDB(std::string const& detector_name) {
   // Build database and save it to disk
   LOG(INFO) << "\n\n================================================\n";
   LOG(INFO) << "\nBuilding the database\n";
-  int depth =  5;
+  int depth = 5;
   int branching_factor = 5;
   int restarts = 1;
-  sparse_mapping::BuildDB(features_out,
-                          detector_name, depth, branching_factor,
-                          restarts);
-
+  sparse_mapping::BuildDB(features_out, detector_name, depth, branching_factor, restarts);
 
   // Matching features using the database
   LOG(INFO) << "\n\n================================================\n";
@@ -99,9 +104,7 @@ void RunWithDB(std::string const& detector_name) {
   sparse_mapping::BundleAdjustment(&map, new ceres::CauchyLoss(1.0), options, &summary);
   map.Save(out_nvm);
 
-  sparse_mapping::BuildDB(out_nvm,
-                          detector_name, depth, branching_factor,
-                          restarts);
+  sparse_mapping::BuildDB(out_nvm, detector_name, depth, branching_factor, restarts);
 
   // Localize features with database.
   sparse_mapping::SparseMap map2(out_nvm);
@@ -129,12 +132,10 @@ void RunWithDB(std::string const& detector_name) {
   std::remove(db_out.c_str());
 }
 
-TEST(build_db_dbow2_orgbrisk, write_descriptors_build_db) {
-  RunWithDB("ORGBRISK");
-}
+TEST(build_db_dbow2_orgbrisk, write_descriptors_build_db) { RunWithDB("ORGBRISK"); }
 
 // Run all the tests that were declared with TEST()
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

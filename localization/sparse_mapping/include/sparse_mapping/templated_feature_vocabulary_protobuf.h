@@ -32,7 +32,7 @@ TemplatedFeatureVocabulary<TDescriptor, F>::TemplatedFeatureVocabulary(google::p
   LoadProtobuf(input);
 }
 
-template<class TDescriptor, class F>
+template <class TDescriptor, class F>
 void TemplatedFeatureVocabulary<TDescriptor, F>::LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) {
   this->m_words.clear();
   this->m_nodes.clear();

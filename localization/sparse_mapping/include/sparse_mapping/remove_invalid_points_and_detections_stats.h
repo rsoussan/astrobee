@@ -20,16 +20,16 @@
 #define SPARSE_MAPPING_REMOVE_INVALID_POINTS_AND_DETECTIONS_STATS_H_
 
 namespace sparse_mapping {
-  struct RemoveInvalidPointsAndDetectionsStats{
-    RemoveInvalidPointsAndDetectionsStats();
-    Print();
+struct RemoveInvalidPointsAndDetectionsStats {
+  RemoveInvalidPointsAndDetectionsStats();
+  Print();
 
-    int num_points;
-    int small_angle;
-    int behind_cam;
-    int invalid_reproj;
-    int big_reproj_err;
-    int num_features;
-  };
+  int num_points;
+  int small_angle;
+  int behind_cam;
+  int invalid_reproj;
+  int big_reproj_err;
+  int num_features;
+};
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_REMOVE_INVALID_POINTS_AND_DETECTIONS_STATS_H_

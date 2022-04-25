@@ -32,10 +32,8 @@
 #include <algorithm>
 #include <thread>
 
-DEFINE_string(input_map, "",
-              "Input map created with undistorted images, in a text file.");
-DEFINE_string(output_map, "output.map",
-              "Output sparse map as expected by Astrobee software.");
+DEFINE_string(input_map, "", "Input map created with undistorted images, in a text file.");
+DEFINE_string(output_map, "output.map", "Output sparse map as expected by Astrobee software.");
 DEFINE_string(undistorted_camera_params, "",
               "Intrinsics of the undistorted camera. Not needed if --distorted_images_list "
               "is specified, as then the camera is set via ASTROBEE_ROBOT. Specify as: "
@@ -50,53 +48,49 @@ DEFINE_string(distorted_images_list, "",
               "must be set.");
 
 namespace {
-  // Keep these utilities in a local namespace
+// Keep these utilities in a local namespace
 
-  void readLines(std::string const& list, std::vector<std::string> & lines) {
-    lines.clear();
-    std::string line;
-    std::ifstream ifs(list.c_str());
-    while (ifs >> line)
-      lines.push_back(line);
+void readLines(std::string const& list, std::vector<std::string>& lines) {
+  lines.clear();
+  std::string line;
+  std::ifstream ifs(list.c_str());
+  while (ifs >> line) lines.push_back(line);
+}
+
+// Replace the undistorted images which Theia used with distorted images.
+// The interest points need not be modified as those are always undistorted
+// when saved, even if the map has distorted images.
+void replaceWithDistortedImages(std::vector<std::string> const& undist_images, std::string const& distorted_images_list,
+                                sparse_mapping::SparseMap& map) {
+  // Must overwrite the camera params for the distorted images
+  std::cout << "Using distorted camera parameters for nav_cam for robot: " << getenv("ASTROBEE_ROBOT") << ".\n";
+  config_reader::ConfigReader config;
+  config.AddFile("cameras.config");
+  if (!config.ReadFiles()) LOG(FATAL) << "Failed to read config files.\n";
+
+  camera::CameraParameters cam_params(&config, "nav_cam");
+  map.SetCameraParameters(cam_params);
+
+  // Replace the undistorted images with distorted ones
+  std::vector<std::string> distorted_images;
+  readLines(distorted_images_list, distorted_images);
+
+  if (undist_images.size() != distorted_images.size())
+    LOG(FATAL) << "The number of distorted images in the list and undistorted ones "
+               << "passed on the command line must be the same.\n";
+
+  std::map<std::string, std::string> undist_to_dist;
+  for (size_t it = 0; it < undist_images.size(); it++) undist_to_dist[undist_images[it]] = distorted_images[it];
+
+  // Replace the images in the map. Keep in mind that the map
+  // may have just a subset of the input images.
+  for (size_t it = 0; it < map.cid_to_filename_.size(); it++) {
+    auto map_it = undist_to_dist.find(map.cid_to_filename_[it]);
+    if (map_it == undist_to_dist.end())
+      LOG(FATAL) << "This map image was not specified on input: " << map.cid_to_filename_[it] << ".\n";
+    map.cid_to_filename_[it] = map_it->second;
   }
-
-  // Replace the undistorted images which Theia used with distorted images.
-  // The interest points need not be modified as those are always undistorted
-  // when saved, even if the map has distorted images.
-  void replaceWithDistortedImages(std::vector<std::string> const& undist_images,
-                                  std::string const& distorted_images_list,
-                                  sparse_mapping::SparseMap & map) {
-    // Must overwrite the camera params for the distorted images
-    std::cout << "Using distorted camera parameters for nav_cam for robot: "
-              << getenv("ASTROBEE_ROBOT") << ".\n";
-    config_reader::ConfigReader config;
-    config.AddFile("cameras.config");
-    if (!config.ReadFiles()) LOG(FATAL) << "Failed to read config files.\n";
-
-    camera::CameraParameters cam_params(&config, "nav_cam");
-    map.SetCameraParameters(cam_params);
-
-    // Replace the undistorted images with distorted ones
-    std::vector<std::string> distorted_images;
-    readLines(distorted_images_list, distorted_images);
-
-    if (undist_images.size() != distorted_images.size())
-      LOG(FATAL) << "The number of distorted images in the list and undistorted ones "
-                 << "passed on the command line must be the same.\n";
-
-    std::map<std::string, std::string> undist_to_dist;
-    for (size_t it = 0; it < undist_images.size(); it++) undist_to_dist[undist_images[it]] = distorted_images[it];
-
-    // Replace the images in the map. Keep in mind that the map
-    // may have just a subset of the input images.
-    for (size_t it = 0; it < map.cid_to_filename_.size(); it++) {
-      auto map_it = undist_to_dist.find(map.cid_to_filename_[it]);
-      if (map_it == undist_to_dist.end())
-        LOG(FATAL) << "This map image was not specified on input: "
-                   << map.cid_to_filename_[it] << ".\n";
-      map.cid_to_filename_[it] = map_it->second;
-    }
-  }
+}
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -108,8 +102,7 @@ int main(int argc, char** argv) {
   if (FLAGS_undistorted_images_list != "") {
     readLines(FLAGS_undistorted_images_list, undist_images);
   } else {
-    for (int i = 1; i < argc; i++)
-      undist_images.push_back(argv[i]);
+    for (int i = 1; i < argc; i++) undist_images.push_back(argv[i]);
   }
 
   std::cout << "Reading map: " << FLAGS_input_map << std::endl;
@@ -119,14 +112,11 @@ int main(int argc, char** argv) {
     // Must overwrite the camera parameters with what is passed on input
     std::vector<double> vals;
     ff_common::parseStr(FLAGS_undistorted_camera_params, vals);
-    if (vals.size() < 5)
-      LOG(FATAL) << "Could not parse --undistorted_camera_params.\n";
+    if (vals.size() < 5) LOG(FATAL) << "Could not parse --undistorted_camera_params.\n";
     double widx = vals[0], widy = vals[1], f = vals[2], cx = vals[3], cy = vals[4];
-    LOG(INFO) << "Using undistorted camera parameters: "
-              << widx << ' ' << widy << ' ' << f << ' ' << cx << ' ' << cy;
-    camera::CameraParameters cam_params = camera::CameraParameters(Eigen::Vector2i(widx, widy),
-                                                                   Eigen::Vector2d::Constant(f),
-                                                                   Eigen::Vector2d(cx, cy));
+    LOG(INFO) << "Using undistorted camera parameters: " << widx << ' ' << widy << ' ' << f << ' ' << cx << ' ' << cy;
+    camera::CameraParameters cam_params =
+      camera::CameraParameters(Eigen::Vector2i(widx, widy), Eigen::Vector2d::Constant(f), Eigen::Vector2d(cx, cy));
     map.SetCameraParameters(cam_params);
   } else {
     replaceWithDistortedImages(undist_images, FLAGS_distorted_images_list, map);

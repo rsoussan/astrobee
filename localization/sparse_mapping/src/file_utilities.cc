@@ -18,25 +18,21 @@
 
 #include <sparse_mapping/file_utilities.h>
 namespace {
-  bool is_blank(std::string const& line) {
-    return (line.find_first_not_of(" \t\n\v\f\r") == std::string::npos);
-  }
-}
+bool is_blank(std::string const& line) { return (line.find_first_not_of(" \t\n\v\f\r") == std::string::npos); }
+}  // namespace
 
 namespace sparse_mapping {
 void LoadHuginControlPoints(const std::string& hugin_file, std::vector<ControlPoint>& control_points,
                             std::vector<std::string>& image_names) {
   const std::ifstream filestream(hugin_file.c_str());
-  if (!filestream.good())
-    LOG(FATAL) << "ParseHuginControlPoints(): Could not open hugin file: " << hugin_file;
+  if (!filestream.good()) LOG(FATAL) << "ParseHuginControlPoints(): Could not open hugin file: " << hugin_file;
 
   std::string line;
   while (getline(filestream, line)) {
     // Load image names
     if (line.find("i ") == 0) {
       const int i = line.find("n\"");
-      if (i == std::string::npos)
-        LOG(FATAL) << "ParseHuginControlPoints(): Invalid line: " << line;
+      if (i == std::string::npos) LOG(FATAL) << "ParseHuginControlPoints(): Invalid line: " << line;
       i += 2;
       std::string image_name;
       while (i < line.size() && line[i] != '"') {
@@ -50,11 +46,10 @@ void LoadHuginControlPoints(const std::string& hugin_file, std::vector<ControlPo
     if (line.find("c ") == 0) {
       // First wipe all letters
       const std::string original_line = line;
-      char * const pruned_line = const_cast<char*>(line.c_str());
+      char* const pruned_line = const_cast<char*>(line.c_str());
       for (int i = 0; i < static_cast<int>(line.size()); ++i) {
         // Wipe some extra chars
-        if ( (pruned_line[i] >= 'a' && pruned_line[i] <= 'z') ||
-             (pruned_line[i] >= 'A' && pruned_line[i] <= 'Z') )
+        if ((pruned_line[i] >= 'a' && pruned_line[i] <= 'z') || (pruned_line[i] >= 'A' && pruned_line[i] <= 'Z'))
           pruned_line[i] = ' ';
       }
 
@@ -83,8 +78,7 @@ void LoadHuginControlPoints(const std::string& hugin_file, std::vector<ControlPo
 
 void LoadPoints(const std::string& points_file, std::vector<Eigen::Vector3d>& points) {
   const std::ifstream filestream(points_file.c_str());
-  if (!filestream.good())
-    LOG(FATAL) << "LoadPoints(): Could not open hugin file: " << points_file;
+  if (!filestream.good()) LOG(FATAL) << "LoadPoints(): Could not open hugin file: " << points_file;
 
   std::string line;
   while (getline(filestream, line)) {
@@ -92,11 +86,10 @@ void LoadPoints(const std::string& points_file, std::vector<Eigen::Vector3d>& po
     if (line.find("#") == 0 || is_blank(line)) continue;
 
     // Apparently sometimes empty lines show up as if of length 1
-    if (line.size() == 1)
-      continue;
+    if (line.size() == 1) continue;
 
     // Replace commas with spaces
-    char * const ptr = const_cast<char*>(line.c_str());
+    char* const ptr = const_cast<char*>(line.c_str());
     for (int c = 0; c < static_cast<int>(line.size()); ++c)
       if (ptr[c] == ',') ptr[c] = ' ';
     double x, y, z;
@@ -120,8 +113,8 @@ void LoadControlPoints(const std::vector<std::string>& files, std::vector<Contro
 
   if (control_points.size() != global_t_points.size())
     LOG(FATAL) << "Could not parse an equal number of control "
-               << "points and xyz coordinates. Their numbers are "
-               << control_points.size() << " vs " << global_t_points.size() << ".\n";
+               << "points and xyz coordinates. Their numbers are " << control_points.size() << " vs "
+               << global_t_points.size() << ".\n";
 
   for (int i = 0; i < static_cast<int>(control_points.size()); ++i) {
     control_points[i].global_t_point = global_t_points[i];
@@ -130,8 +123,7 @@ void LoadControlPoints(const std::vector<std::string>& files, std::vector<Contro
 
 cv::Mat LoadImage(const std::string& filename) {
   const cv::Mat image = cv::imread(filename, cv::IMREAD_GRAYSCALE);
-  if (image.rows == 0 || image.cols == 0)
-    LOG(FATAL) << "Found empty image in file: " << filename;
+  if (image.rows == 0 || image.cols == 0) LOG(FATAL) << "Found empty image in file: " << filename;
   return image;
 }
 }  // namespace sparse_mapping

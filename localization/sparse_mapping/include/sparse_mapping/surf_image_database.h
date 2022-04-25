@@ -22,7 +22,7 @@
 #include <sparse_map/templated_image_database.h>
 
 namespace sparse_mapping {
-    // TODO(rsoussan): Make sure we use surf 64!!!
-  using SurfImageDatabase = TemplatedImageDatabase<DBoW2::FSurf64::TDescriptor, DBoW2::FSurf64>;
+// TODO(rsoussan): Make sure we use surf 64!!!
+using SurfImageDatabase = TemplatedImageDatabase<DBoW2::FSurf64::TDescriptor, DBoW2::FSurf64>;
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_SURF_IMAGE_DATABASE_H_

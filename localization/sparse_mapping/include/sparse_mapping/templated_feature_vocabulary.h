@@ -25,14 +25,14 @@
 // TODO(rsoussan): avoid this? check dbow2 templated voc and see if theres a virtual dtor there
 #pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
 #pragma GCC diagnostic push
-#include <DBoW2/DBoW2.h>      // BoW db that works with both float and binary descriptors
+#include <DBoW2/DBoW2.h>  // BoW db that works with both float and binary descriptors
 #pragma GCC diagnostic pop
 
 #include <vector>
 #include <string>
 
 namespace sparse_mapping {
-template<class TDescriptor, class F>
+template <class TDescriptor, class F>
 class TemplatedFeatureVocabulary : public DBoW2::TemplatedVocabulary<TDescriptor, F> {
  public:
   // Initialize empty vocabulary

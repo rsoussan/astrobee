@@ -21,28 +21,28 @@
 #include <glog/logging.h>
 
 namespace sparse_mapping {
-  Eigen::Affine3d TranslationRotationScaleFittingFunctor::operator() (std::vector<Eigen::Vector3d> const& in_vec,
-                          std::vector<Eigen::Vector3d> const& out_vec) const {
-    // check consistency
-    if (in_vec.size() != out_vec.size())
-      LOG(FATAL) << "There must be as many inputs as outputs to be "
-                 << "able to compute a transform between them.\n";
-    if (in_vec.size() < min_elements_needed_for_fit())
-      LOG(FATAL) << "Cannot compute a transformation. Insufficient data.\n";
+Eigen::Affine3d TranslationRotationScaleFittingFunctor::operator()(std::vector<Eigen::Vector3d> const& in_vec,
+                                                                   std::vector<Eigen::Vector3d> const& out_vec) const {
+  // check consistency
+  if (in_vec.size() != out_vec.size())
+    LOG(FATAL) << "There must be as many inputs as outputs to be "
+               << "able to compute a transform between them.\n";
+  if (in_vec.size() < min_elements_needed_for_fit())
+    LOG(FATAL) << "Cannot compute a transformation. Insufficient data.\n";
 
-    Eigen::Matrix3Xd in_mat  = Eigen::MatrixXd(3, in_vec.size());
-    Eigen::Matrix3Xd out_mat = Eigen::MatrixXd(3, in_vec.size());
-    for (size_t it = 0; it < in_vec.size(); it++) {
-      in_mat.col(it)  = in_vec[it];
-      out_mat.col(it) = out_vec[it];
-    }
-    Eigen::Affine3d out_trans;
-    Find3DAffineTransform(in_mat, out_mat, &out_trans);
-    return out_trans;
+  Eigen::Matrix3Xd in_mat = Eigen::MatrixXd(3, in_vec.size());
+  Eigen::Matrix3Xd out_mat = Eigen::MatrixXd(3, in_vec.size());
+  for (size_t it = 0; it < in_vec.size(); it++) {
+    in_mat.col(it) = in_vec[it];
+    out_mat.col(it) = out_vec[it];
   }
+  Eigen::Affine3d out_trans;
+  Find3DAffineTransform(in_mat, out_mat, &out_trans);
+  return out_trans;
+}
 
-  double TransformError::operator() (Eigen::Affine3d const& T, Eigen::Vector3d const& p1,
-                     Eigen::Vector3d const& p2) const {
-    return (T*p1 - p2).norm();
-  }
+double TransformError::operator()(Eigen::Affine3d const& T, Eigen::Vector3d const& p1,
+                                  Eigen::Vector3d const& p2) const {
+  return (T * p1 - p2).norm();
+}
 }  // namespace sparse_mapping

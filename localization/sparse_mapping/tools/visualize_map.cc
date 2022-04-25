@@ -39,38 +39,29 @@
 #include <fstream>
 #include <sstream>
 
-DEFINE_bool(jump_to_3d_view, false,
-            "Skip displaying images and features, go directly to the 3D view.");
-DEFINE_bool(skip_3d_points, false,
-            "Show just the cameras in 3D space, without the triangulated points.");
-DEFINE_bool(only_3d_points, false,
-            "Show just the the triangulated points.");
-DEFINE_bool(skip_3d_images, false,
-            "Show just the camera wireframes instead of the camera images in the 3D view.");
-DEFINE_bool(fit_view_to_points_bdbox, false,
-            "Zoom just enough to see all points in the cloud.");
-DEFINE_bool(plot_matches, false,
-            "For each feature, also plot (in red) its match in the next image.");
+DEFINE_bool(jump_to_3d_view, false, "Skip displaying images and features, go directly to the 3D view.");
+DEFINE_bool(skip_3d_points, false, "Show just the cameras in 3D space, without the triangulated points.");
+DEFINE_bool(only_3d_points, false, "Show just the the triangulated points.");
+DEFINE_bool(skip_3d_images, false, "Show just the camera wireframes instead of the camera images in the 3D view.");
+DEFINE_bool(fit_view_to_points_bdbox, false, "Zoom just enough to see all points in the cloud.");
+DEFINE_bool(plot_matches, false, "For each feature, also plot (in red) its match in the next image.");
 DEFINE_bool(enable_image_deletion, false,
             "When viewing only images, so without a map, enable deleting the currently "
             "seen image with the Del key.");
 
-DEFINE_int32(first, 0,
-             "The index of the first image to plot in the 3D view.");
-DEFINE_int32(last, std::numeric_limits<int>::max(),
-             "The index after the last image to plot in the 3D view.");
-DEFINE_double(scale, 0.5,
-              "The scale of images in the 3D view.");
+DEFINE_int32(first, 0, "The index of the first image to plot in the 3D view.");
+DEFINE_int32(last, std::numeric_limits<int>::max(), "The index after the last image to plot in the 3D view.");
+DEFINE_double(scale, 0.5, "The scale of images in the 3D view.");
 
 // Global variables
 std::shared_ptr<sparse_mapping::SparseMap> g_map_ptr;
-cv::viz::Viz3d * g_win_ptr;
+cv::viz::Viz3d* g_win_ptr;
 int g_cid;
-cv::Mat * g_image;
-std::string * g_windowName;
+cv::Mat* g_image;
+std::string* g_windowName;
 std::vector<std::string> g_openWindows;
 
-cv::Affine3f EigenToCVAffine(const Eigen::Affine3d & e) {
+cv::Affine3f EigenToCVAffine(const Eigen::Affine3d& e) {
   Eigen::Matrix3f r_e = e.rotation().cast<float>();
   Eigen::Vector3f t_e = e.translation().cast<float>();
   cv::Mat r, t;
@@ -79,8 +70,7 @@ cv::Affine3f EigenToCVAffine(const Eigen::Affine3d & e) {
   return cv::Affine3f(r, t);
 }
 
-void Draw3DFrame(cv::viz::Viz3d* window, const sparse_mapping::SparseMap & map,
-                 int cid, cv::Vec3f const& center) {
+void Draw3DFrame(cv::viz::Viz3d* window, const sparse_mapping::SparseMap& map, int cid, cv::Vec3f const& center) {
   std::ostringstream str;
 
   // Convert to an affine, perhaps change the origin
@@ -94,14 +84,15 @@ void Draw3DFrame(cv::viz::Viz3d* window, const sparse_mapping::SparseMap & map,
   if (!FLAGS_only_3d_points) {
     if (FLAGS_skip_3d_images) {
       window->showWidget(std::string("frame") + std::to_string(cid),
-                         cv::viz::WCameraPosition(cv::Vec2f(2*atan(image.cols * 0.5 / f),
-                             2*atan(image.rows * 0.5 / f)),
-                             FLAGS_scale), camera_pose);
+                         cv::viz::WCameraPosition(
+                           cv::Vec2f(2 * atan(image.cols * 0.5 / f), 2 * atan(image.rows * 0.5 / f)), FLAGS_scale),
+                         camera_pose);
     } else {
-      window->showWidget(std::string("frame") + std::to_string(cid),
-                         cv::viz::WCameraPosition(cv::Vec2f(2*atan(image.cols * 0.5 / f),
-                             2*atan(image.rows * 0.5 / f)),
-                             image, FLAGS_scale), camera_pose);
+      window->showWidget(
+        std::string("frame") + std::to_string(cid),
+        cv::viz::WCameraPosition(cv::Vec2f(2 * atan(image.cols * 0.5 / f), 2 * atan(image.rows * 0.5 / f)), image,
+                                 FLAGS_scale),
+        camera_pose);
     }
   }
 }
@@ -124,8 +115,7 @@ bool LocalizeFrame(MapViewerState* state, int frame) {
     cv::Mat image;
     // display localized images
     if (state->num_frames > 0) {
-      camera::CameraModel camera(Eigen::Vector3d(), Eigen::Matrix3d::Identity(),
-                                 state->map->GetCameraParameters());
+      camera::CameraModel camera(Eigen::Vector3d(), Eigen::Matrix3d::Identity(), state->map->GetCameraParameters());
       image = cv::imread(state->frames[frame], cv::IMREAD_GRAYSCALE);
       if (!state->map->Localize(state->frames[frame], &camera, &landmarks)) {
         LOG(ERROR) << "Failed to localize image.";
@@ -148,21 +138,20 @@ bool LocalizeFrame(MapViewerState* state, int frame) {
     if (state->cur_frame >= 0) {
       cv::Affine3f cur_pose = state->window->getViewerPose();
       cv::Affine3f new_pose(cur_pose.rvec(),  // + (camera_pose.rvec() - state->old_pose.rvec()),
-                            cur_pose.translation() +
-                            (camera_pose.translation() - state->old_pose.translation()));
+                            cur_pose.translation() + (camera_pose.translation() - state->old_pose.translation()));
       state->window->setViewerPose(new_pose);  // state->window->getViewerPose().concatenate(
       // state->old_pose.inv()).concatenate(camera_pose));
     }
     double f = state->map->GetCameraParameters().GetFocalLength();
-    cv::viz::WCameraPosition im_pose(cv::Vec2f(2 * atan(image.cols * 0.5 / f), 2 * atan(image.rows * 0.5 / f)),
-                                     image, 0.5, cv::viz::Color::red());
+    cv::viz::WCameraPosition im_pose(cv::Vec2f(2 * atan(image.cols * 0.5 / f), 2 * atan(image.rows * 0.5 / f)), image,
+                                     0.5, cv::viz::Color::red());
     im_pose.setRenderingProperty(cv::viz::LINE_WIDTH, 6.0);
     state->window->showWidget("localize_pose", im_pose, camera_pose);
     int window_w = state->window->getWindowSize().width;
     int window_h = state->window->getWindowSize().height;
     int image_w = std::min(image.cols, window_w / 4);
-    int image_h = std::min(image.rows, std::min(window_h / 4,
-                           static_cast<int>(static_cast<float>(image_w) / image.cols * image.rows)));
+    int image_h = std::min(
+      image.rows, std::min(window_h / 4, static_cast<int>(static_cast<float>(image_w) / image.cols * image.rows)));
     cv::viz::WImageOverlay im_overlay(image, cv::Rect(window_w - image_w, window_h - image_h, image_w, image_h));
     state->window->showWidget("localize_image", im_overlay);
     state->old_pose = camera_pose;
@@ -204,7 +193,7 @@ int remainder(int cid, int num) {
 
 // Set the origin be the centroid of all camera centers, for easier rotation
 void Recenter() {
-  sparse_mapping::SparseMap & map = *g_map_ptr;  // make notation easy
+  sparse_mapping::SparseMap& map = *g_map_ptr;  // make notation easy
 
   g_win_ptr->removeAllWidgets();
 
@@ -217,7 +206,7 @@ void Recenter() {
     center += camera_pose.translation();
     count++;
   }
-  center = center/count;
+  center = center / count;
 
   for (int cid = FLAGS_first; cid < FLAGS_last; cid++) {
     int cid2 = remainder(cid, num_frames);
@@ -226,7 +215,7 @@ void Recenter() {
   g_win_ptr->resetCamera();
 }
 
-void KeyboardCallback(const cv::viz::KeyboardEvent & event, void* param) {
+void KeyboardCallback(const cv::viz::KeyboardEvent& event, void* param) {
   MapViewerState* state = reinterpret_cast<MapViewerState*>(param);
   int next_frame = -1;
   if (event.action == cv::viz::KeyboardEvent::KEY_UP) {
@@ -236,23 +225,18 @@ void KeyboardCallback(const cv::viz::KeyboardEvent & event, void* param) {
       else
         next_frame = state->cur_frame + 1;
       if (state->num_frames > 0) {
-        if (next_frame < -1)
-          next_frame = state->num_frames - 1;
-        if (next_frame >= state->num_frames)
-          next_frame = -1;
+        if (next_frame < -1) next_frame = state->num_frames - 1;
+        if (next_frame >= state->num_frames) next_frame = -1;
       } else {
-        if (next_frame < -1)
-          next_frame = state->map->GetNumFrames() - 1;
-        if (next_frame >= static_cast<int>(state->map->GetNumFrames()))
-          next_frame = -1;
+        if (next_frame < -1) next_frame = state->map->GetNumFrames() - 1;
+        if (next_frame >= static_cast<int>(state->map->GetNumFrames())) next_frame = -1;
       }
 
       if (state->cur_frame >= 0) {
         state->window->removeWidget("localize_pose");
         state->window->removeWidget("localize_image");
         state->window->removeWidget("frame_cloud");
-        for (int i = 0; i < state->num_arrows; i++)
-          state->window->removeWidget("arrow" + std::to_string(i));
+        for (int i = 0; i < state->num_arrows; i++) state->window->removeWidget("arrow" + std::to_string(i));
         state->num_arrows = 0;
       }
       LocalizeFrame(state, next_frame);
@@ -270,8 +254,7 @@ void KeyboardCallback(const cv::viz::KeyboardEvent & event, void* param) {
           state->window->removeWidget("localize_pose");
           state->window->removeWidget("localize_image");
           state->window->removeWidget("frame_cloud");
-          for (int i = 0; i < state->num_arrows; i++)
-            state->window->removeWidget("arrow" + std::to_string(i));
+          for (int i = 0; i < state->num_arrows; i++) state->window->removeWidget("arrow" + std::to_string(i));
           state->num_arrows = 0;
         }
         if (!LocalizeFrame(state, next_frame)) {
@@ -287,8 +270,8 @@ void KeyboardCallback(const cv::viz::KeyboardEvent & event, void* param) {
     if (event.symbol == "a") {
       // Save pose to disk
       cv::Affine3d pose = state->window->getViewerPose();
-      cv:: Matx33d R = pose.rotation();
-      cv:: Vec3d t   = pose.translation();
+      cv::Matx33d R = pose.rotation();
+      cv::Vec3d t = pose.translation();
       std::ofstream pf(poseFile.c_str());
       std::cout << "Rotation is " << R << std::endl;
       std::cout << "Translation is " << t << std::endl;
@@ -298,13 +281,12 @@ void KeyboardCallback(const cv::viz::KeyboardEvent & event, void* param) {
           pf << R(c, r) << std::endl;
         }
       }
-      for (int c = 0; c < t.rows; c++)
-        pf << t(c) << std::endl;
+      for (int c = 0; c < t.rows; c++) pf << t(c) << std::endl;
     }
     if (event.symbol == "b") {
       // Read pose from disk
-      cv:: Matx33d R;
-      cv:: Vec3d t;
+      cv::Matx33d R;
+      cv::Vec3d t;
       std::cout << "Reading pose from: " << poseFile << std::endl;
       std::ifstream pf(poseFile.c_str());
       for (int c = 0; c < R.cols; c++) {
@@ -312,8 +294,7 @@ void KeyboardCallback(const cv::viz::KeyboardEvent & event, void* param) {
           pf >> R(c, r);
         }
       }
-      for (int c = 0; c < t.rows; c++)
-        pf >> t(c);
+      for (int c = 0; c < t.rows; c++) pf >> t(c);
       state->window->setViewerPose(cv::Affine3d(R, t));
       std::cout << "Rotation is " << R << std::endl;
       std::cout << "Translation is " << t << std::endl;
@@ -336,21 +317,19 @@ void KeyboardCallback(const cv::viz::KeyboardEvent & event, void* param) {
 
 static void onMouse(int event, int x, int y, int, void*) {
   // Make notation easy
-  sparse_mapping::SparseMap & map = *g_map_ptr;
-  cv::Mat & image = *g_image;
-  std::string & windowName = *g_windowName;
+  sparse_mapping::SparseMap& map = *g_map_ptr;
+  cv::Mat& image = *g_image;
+  std::string& windowName = *g_windowName;
   int cid = g_cid;
 
   // Print the current image and the pixel clicked onto.
   // This is useful in assembling a subset of images.
   if (event == cv::EVENT_LBUTTONDOWN) {
-    std::cout << "Pixel: " << x << " " << y << " in "
-              << map.GetFrameFilename(cid)  << "\n";
+    std::cout << "Pixel: " << x << " " << y << " in " << map.GetFrameFilename(cid) << "\n";
     return;
   }
 
-  if (event != cv::EVENT_MBUTTONDOWN)
-    return;
+  if (event != cv::EVENT_MBUTTONDOWN) return;
 
   // Identify in the map the feature that was clicked with the middle
   // mouse button. Then list the images that have that feature and
@@ -367,14 +346,14 @@ static void onMouse(int event, int x, int y, int, void*) {
   }
 
   camera::CameraParameters camera_param = map.GetCameraParameters();
-  const Eigen::Matrix2Xd & keypoint_map = map.GetFrameKeypoints(cid);
+  const Eigen::Matrix2Xd& keypoint_map = map.GetFrameKeypoints(cid);
 
   // Locate that point in the image
   Eigen::Vector2d curr_pix(x, y);
   int curr_pid = -1;
 
   for (size_t pid = 0; pid < map.GetNumLandmarks(); pid++) {
-    const std::map<int, int> & cid_to_fid = map.GetLandmarkCidToFidMap(pid);
+    const std::map<int, int>& cid_to_fid = map.GetLandmarkCidToFidMap(pid);
     std::map<int, int>::const_iterator it = cid_to_fid.find(cid);
     if (it == cid_to_fid.end()) continue;
 
@@ -383,8 +362,7 @@ static void onMouse(int event, int x, int y, int, void*) {
     double tol = 15.0;  // Making this big risks mis-identification
 
     Eigen::Vector2d dist_pix;
-    camera_param.Convert<camera::UNDISTORTED_C, camera::DISTORTED>
-      (keypoint_map.col(it->second), &dist_pix);
+    camera_param.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(keypoint_map.col(it->second), &dist_pix);
     if ((dist_pix - curr_pix).norm() > tol) continue;
 
     curr_pid = pid;
@@ -406,9 +384,8 @@ static void onMouse(int event, int x, int y, int, void*) {
   // List and display the images having this feature with the feature
   // shown as a dot.
   std::cout << "Images having this feature: ";
-  const std::map<int, int> & cid_to_fid = map.GetLandmarkCidToFidMap(curr_pid);
-  for (std::map<int, int>::const_iterator it = cid_to_fid.begin();
-       it != cid_to_fid.end(); it++) {
+  const std::map<int, int>& cid_to_fid = map.GetLandmarkCidToFidMap(curr_pid);
+  for (std::map<int, int>::const_iterator it = cid_to_fid.begin(); it != cid_to_fid.end(); it++) {
     int curr_cid = it->first;
     int curr_fid = it->second;
     std::string imfile = map.GetFrameFilename(curr_cid);
@@ -420,10 +397,9 @@ static void onMouse(int event, int x, int y, int, void*) {
 
     cv::Mat curr_image = cv::imread(imfile);
 
-    const Eigen::Matrix2Xd & curr_keypoint_map = map.GetFrameKeypoints(curr_cid);
+    const Eigen::Matrix2Xd& curr_keypoint_map = map.GetFrameKeypoints(curr_cid);
     Eigen::Vector2d dist_pix;
-    camera_param.Convert<camera::UNDISTORTED_C, camera::DISTORTED>
-      (curr_keypoint_map.col(curr_fid), &dist_pix);
+    camera_param.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(curr_keypoint_map.col(curr_fid), &dist_pix);
 
     cv::Scalar color = cv::Scalar(0, 0, 255);  // red
     cv::Point2f pt(dist_pix[0], dist_pix[1]);
@@ -437,28 +413,24 @@ static void onMouse(int event, int x, int y, int, void*) {
 }
 
 // Form a map with images only, for the purpose of visualization
-std::shared_ptr<sparse_mapping::SparseMap> map_with_no_features(int argc, char ** argv) {
+std::shared_ptr<sparse_mapping::SparseMap> map_with_no_features(int argc, char** argv) {
   std::vector<std::string> images;
   for (int i = 1; i < argc; i++) {
     std::string image_name = argv[i];
-    if (ff_common::file_extension(image_name) != "jpg")
-      LOG(FATAL) << "Unsupported image: " << image_name;
+    if (ff_common::file_extension(image_name) != "jpg") LOG(FATAL) << "Unsupported image: " << image_name;
     images.push_back(image_name);
   }
 
-  camera::CameraParameters cam_params(Eigen::Vector2i(0, 0), Eigen::Vector2d(0, 0),
-                                      Eigen::Vector2d(0, 0));
-  return std::shared_ptr<sparse_mapping::SparseMap>
-    (new sparse_mapping::SparseMap(images, "SURF", cam_params));
+  camera::CameraParameters cam_params(Eigen::Vector2i(0, 0), Eigen::Vector2d(0, 0), Eigen::Vector2d(0, 0));
+  return std::shared_ptr<sparse_mapping::SparseMap>(new sparse_mapping::SparseMap(images, "SURF", cam_params));
 }
 
 // Delete an image from disk and from a map, such as when we would like to weed out similar images.
-void deleteImageFromDiskAndMap(sparse_mapping::SparseMap & map, std::string const& image_name) {
+void deleteImageFromDiskAndMap(sparse_mapping::SparseMap& map, std::string const& image_name) {
   // This must not be attempted for non-empty maps.
-  if (!map.pid_to_cid_fid_.empty())
-    LOG(FATAL) << "Tried to delete images from a non-empty map. That is not supported.";
+  if (!map.pid_to_cid_fid_.empty()) LOG(FATAL) << "Tried to delete images from a non-empty map. That is not supported.";
 
-  std::vector<std::string> & images = map.cid_to_filename_;  // alias
+  std::vector<std::string>& images = map.cid_to_filename_;  // alias
   auto pos = std::find(images.begin(), images.end(), image_name);
   if (pos == images.end()) {
     std::cout << "Could not find image: " << image_name << std::endl;
@@ -466,8 +438,7 @@ void deleteImageFromDiskAndMap(sparse_mapping::SparseMap & map, std::string cons
     std::cout << "Deleting from disk image: " << image_name << std::endl;
     images.erase(pos);  // this changes the map
     boost::filesystem::path image_path(image_name);
-    if ( boost::filesystem::exists(image_path))
-      boost::filesystem::remove(image_path);
+    if (boost::filesystem::exists(image_path)) boost::filesystem::remove(image_path);
   }
 }
 
@@ -480,7 +451,8 @@ int main(int argc, char** argv) {
   ff_common::InitFreeFlyerApplication(&argc, &argv);
 
   if (argc < 2) {
-    std::cerr << "Usage: " << argv[0] << " [ map.map ] [image1.jpg image2.jpg ...]" << "\n";
+    std::cerr << "Usage: " << argv[0] << " [ map.map ] [image1.jpg image2.jpg ...]"
+              << "\n";
     return 0;
   }
 
@@ -505,11 +477,10 @@ int main(int argc, char** argv) {
   }
 
   // Make notation easy
-  sparse_mapping::SparseMap & map = *g_map_ptr;
+  sparse_mapping::SparseMap& map = *g_map_ptr;
 
   LOG(INFO) << "Loaded " << argv[1];
-  LOG(INFO) << "\t" << map.GetNumFrames() << " cameras and "
-            << map.GetNumLandmarks() << " points";
+  LOG(INFO) << "\t" << map.GetNumFrames() << " cameras and " << map.GetNumLandmarks() << " points";
 
   camera::CameraParameters camera_param = map.GetCameraParameters();
 
@@ -517,12 +488,10 @@ int main(int argc, char** argv) {
   int num_images = map.GetNumFrames();
   bool windowInitalized = false;
   while (1) {
-    if (FLAGS_jump_to_3d_view)
-      break;
+    if (FLAGS_jump_to_3d_view) break;
 
     std::string imfile = map.GetFrameFilename(cid);
-    if (!file_exists(imfile))
-      LOG(FATAL) << "File does not exist: " << imfile << std::endl;
+    if (!file_exists(imfile)) LOG(FATAL) << "File does not exist: " << imfile << std::endl;
 
     cv::Mat image = cv::imread(imfile);
     g_image = &image;  // to be able to use it in callbacks
@@ -536,12 +505,12 @@ int main(int argc, char** argv) {
     // cv::rectangle(area_check, cv::Point2f(0, 0), cv::Point2f(area_check.cols,
     //      area_check.rows), 0, CV_FILLED);
 
-    const Eigen::Matrix2Xd & keypoint_map = map.GetFrameKeypoints(cid);
+    const Eigen::Matrix2Xd& keypoint_map = map.GetFrameKeypoints(cid);
 
     // Iterate through control points and draw ones that apply to this camera
     Eigen::Vector2d output;
     for (size_t pid = 0; pid < map.GetNumLandmarks(); pid++) {
-      const std::map<int, int> & cid_to_fid = map.GetLandmarkCidToFidMap(pid);
+      const std::map<int, int>& cid_to_fid = map.GetLandmarkCidToFidMap(pid);
       std::map<int, int>::const_iterator it = cid_to_fid.find(cid);
       if (it != cid_to_fid.end()) {
         cv::Scalar color;
@@ -564,9 +533,9 @@ int main(int argc, char** argv) {
 
         // Draw a segment from the current point to its match in next image
         if (FLAGS_plot_matches) {
-          std::map<int, int>::const_iterator it2 = cid_to_fid.find(cid+1);
+          std::map<int, int>::const_iterator it2 = cid_to_fid.find(cid + 1);
           if (it2 != cid_to_fid.end()) {
-            const Eigen::Matrix2Xd & keypoint_map2 = map.GetFrameKeypoints(cid+1);
+            const Eigen::Matrix2Xd& keypoint_map2 = map.GetFrameKeypoints(cid + 1);
             cv::Scalar color2(0, 0, 255);  // red
 
             // Draw the point location
@@ -578,7 +547,6 @@ int main(int argc, char** argv) {
         }
       }
     }
-
 
     // Create a window that can be resized by the user
     std::string windowName = map_file + ": individual frames";
@@ -596,16 +564,16 @@ int main(int argc, char** argv) {
     int ret = cv::waitKey(0) & 0xFF;  // On some machines there are bits set in front.
 
     // Navigate through the images with the arrow keys.
-    if (ret == 'a'  ||  // key 'a'
+    if (ret == 'a' ||   // key 'a'
         ret == 0x51 ||  // left arrow key
         ret == 158      // ins on numpad (when the arrow keys fail to work)
-        ) {
+    ) {
       cid = (cid + num_images - 1) % num_images;  // go to prev image
     }
-    if (ret == 'd'  ||  // key 'd'
+    if (ret == 'd' ||   // key 'd'
         ret == 0x53 ||  // right arrow key
         ret == 159      // del on numpad (when the arrow keys fail to work)
-        ) {
+    ) {
       cid = (cid + num_images + 1) % num_images;  // go to next image
     }
 
@@ -621,7 +589,7 @@ int main(int argc, char** argv) {
     // situations, due to some quirk, certain window events can send a
     // signal the viewer interprets as this key, and images are
     // deleted then when not intended.
-    if (ret =='x' && FLAGS_enable_image_deletion) {
+    if (ret == 'x' && FLAGS_enable_image_deletion) {
       deleteImageFromDiskAndMap(map, imfile);
       num_images = map.GetNumFrames();  // update the number of images
       if (num_images == 0) {
@@ -649,8 +617,7 @@ int main(int argc, char** argv) {
   g_win_ptr = &window;
 
   int num_frames = map.GetNumFrames();
-  if ( FLAGS_last == std::numeric_limits<int>::max())
-    FLAGS_last = num_frames;
+  if (FLAGS_last == std::numeric_limits<int>::max()) FLAGS_last = num_frames;
 
   // Adding widgets for all the cameras
   // Draw only frames withing specified range
@@ -673,8 +640,7 @@ int main(int argc, char** argv) {
       data++;
     }
     window.showWidget("CLOUD", cv::viz::WCloud(cloud));
-    if (!FLAGS_fit_view_to_points_bdbox)
-      window.setViewerPose(EigenToCVAffine(map.GetFrameGlobalTransform(0)).inv());
+    if (!FLAGS_fit_view_to_points_bdbox) window.setViewerPose(EigenToCVAffine(map.GetFrameGlobalTransform(0)).inv());
   }
 
   MapViewerState callback_state = {&window, &map, -1, argv + 2, argc - 2};

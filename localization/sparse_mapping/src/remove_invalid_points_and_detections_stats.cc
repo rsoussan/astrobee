@@ -33,5 +33,5 @@ RemoveInvalidPointsAndDetectionsStats::Print() {
             << " %)";
   LOG(INFO) << "Features with big reprojection error: " << big_reproj_err << " ("
             << (100.0 * big_reproj_err) / num_features << " %)";
-    }
+}
 }  // namespace sparse_mapping

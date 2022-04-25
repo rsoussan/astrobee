@@ -118,7 +118,7 @@ DEFINE_string(undistorted_camera_params, "",
 */
 
 // TODO(rsoussan): move this to sparse_map
-//bool g_pruning_was_done = false;  // If we already pruned the map, don't prune it again
+// bool g_pruning_was_done = false;  // If we already pruned the map, don't prune it again
 
 /*void IncrementalBA() {
   LOG(INFO) << "Beginning incremental bundle adjustment.";
@@ -143,7 +143,7 @@ void BundleAdjust() {
 }
 
 // rebuilds with a different descriptor and detector
-// TODO(Rsoussan): move this to sparse_map, rename 
+// TODO(Rsoussan): move this to sparse_map, rename
 void Rebuild() {
   LOG(INFO) << "Rebuilding map with " << FLAGS_rebuild_detector << " detector.";
   sparse_mapping::SparseMap original(FLAGS_output_map);
@@ -251,7 +251,7 @@ void VocabDB() {
     branching_factor = 10;
 
   sparse_mapping::SparseMap map(FLAGS_output_map);
-  sparse_mapping::SparseMapParams params; 
+  sparse_mapping::SparseMapParams params;
   params.image_database.depth = depth;
   params.image_database.branching_factor = branching_factor;
   map.params() = params;
@@ -292,7 +292,7 @@ void RegistrationOrVerification(std::vector<std::string> const& data_files) {
 */
 
 /*
-// TODO(Rsoussan): move this to sparse_map 
+// TODO(Rsoussan): move this to sparse_map
 void MapInfo() {
   sparse_mapping::SparseMap map(FLAGS_output_map);
 
@@ -366,7 +366,7 @@ void SaveXYZ() {
 
 int main(int argc, char** argv) {
   std::string robot_config_file;
-  //std::string world;
+  // std::string world;
   po::options_description desc(
     "Creates a surf map from a set of images. Detects features, matches features, builds feature tracks, performs
       incremental bundle adjustment, and performs loop closures.");
@@ -421,42 +421,42 @@ int main(int argc, char** argv) {
   map.BuildMap();
   map.Save(map_filename);
 
-/*  if (FLAGS_incremental_ba) {
-    IncrementalBA();
-  }
-  if (FLAGS_bundle_adjustment) {
-    BundleAdjust();
-  }
-  if (FLAGS_rebuild) {
-    Rebuild();
-  }
-  if (FLAGS_vocab_db) {
-    VocabDB();
-  }
-
-
-  // TODO(rsoussan): Move the following functions to seperate tools (expect for prune map)?
-  if (FLAGS_registration || FLAGS_verification) {
-    std::vector<std::string> data_files;
-    for (int arg = 1; arg < argc; arg++) {
-      data_files.push_back(argv[arg]);
+  /*  if (FLAGS_incremental_ba) {
+      IncrementalBA();
     }
-    RegistrationOrVerification(data_files);
-  }
+    if (FLAGS_bundle_adjustment) {
+      BundleAdjust();
+    }
+    if (FLAGS_rebuild) {
+      Rebuild();
+    }
+    if (FLAGS_vocab_db) {
+      VocabDB();
+    }
 
-  if (FLAGS_prune)
-    PruneMap();
 
-  if (FLAGS_info)
-    MapInfo();
+    // TODO(rsoussan): Move the following functions to seperate tools (expect for prune map)?
+    if (FLAGS_registration || FLAGS_verification) {
+      std::vector<std::string> data_files;
+      for (int arg = 1; arg < argc; arg++) {
+        data_files.push_back(argv[arg]);
+      }
+      RegistrationOrVerification(data_files);
+    }
 
-  if (FLAGS_save_poses)
-    SavePoses();
+    if (FLAGS_prune)
+      PruneMap();
 
-  if (FLAGS_save_xyz)
-    SaveXYZ();
+    if (FLAGS_info)
+      MapInfo();
 
-  google::protobuf::ShutdownProtobufLibrary();
+    if (FLAGS_save_poses)
+      SavePoses();
 
-  return 0;*/
+    if (FLAGS_save_xyz)
+      SaveXYZ();
+
+    google::protobuf::ShutdownProtobufLibrary();
+
+    return 0;*/
 }

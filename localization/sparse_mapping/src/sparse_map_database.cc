@@ -25,9 +25,7 @@ void SparseMapDatabase::ResizeFeatureMaps() {
   cid_to_descriptors_.resize(num_cids);
 }
 
-void SparseMapDatabase::SetPoses(const CidPoseMap& cid_to_cam_T_global) {
-  cid_to_cam_T_global_ = cid_to_cam_T_global;
-}
+void SparseMapDatabase::SetPoses(const CidPoseMap& cid_to_cam_T_global) { cid_to_cam_T_global_ = cid_to_cam_T_global; }
 
 void SparseMapDatabase::AddImagesAndFeatures(const SparseMapDatabase& map) {
   const int num_initial_cids = NumCids();
@@ -50,17 +48,16 @@ void SparseMapDatabase::AddPoses(const std::vector<Eigen::Affine3d>& cam_T_globa
 }
 
 void SparseMapDatabase::AddPose(const Eigen::Affine3d& cam_T_global) {
-    cid_to_cam_T_global_.emplace_back(cam_T_global);
+  cid_to_cam_T_global_.emplace_back(cam_T_global);
 }
 
-
-  std::vector<Descriptors> SparseMapDatabase::AllDescriptors() const {
-      std::vector<Descriptors> all_descriptors;
-      const int num_cids = NumCids();
-      for (int cid = 0; cid < num_cids; ++cid) {
-        all_descriptors.emplace_back(Descriptors(cid));
-      }
+std::vector<Descriptors> SparseMapDatabase::AllDescriptors() const {
+  std::vector<Descriptors> all_descriptors;
+  const int num_cids = NumCids();
+  for (int cid = 0; cid < num_cids; ++cid) {
+    all_descriptors.emplace_back(Descriptors(cid));
   }
+}
 
 void SparseMapDatabase::Transform(const Eigen::Affine3d& new_global_T_global) {
   for (auto& point : pid_to_global_t_point_) {
@@ -92,8 +89,8 @@ void SparseMapDatabase::MergeTrack(const int pid, const Eigen::Vector3d& global_
   auto& current_global_t_point = global_t_point(pid);
   const int total_size = feature_track(pid).size();
   // TODO(rsoussan): Allow for user defined weight?
-  const double weight = feature_track.size()/(static_cast<double>(total_size));
-  current_global_t_point = (1.0 - weight)*current_global_t_point + weight*global_t_point;
+  const double weight = feature_track.size() / (static_cast<double>(total_size));
+  current_global_t_point = (1.0 - weight) * current_global_t_point + weight * global_t_point;
 }
 
 void SparseMapDatabase::InitializeCidFidPidMap() {
@@ -171,13 +168,13 @@ void SparseMapDatabase::RemoveUnusedFeatures() {
 }
 
 void SparseMapDatabase::RemapFeatureTracks(const Cid cid, const std::unordered_map<Fid, Fid>& fid_remapping) {
-     auto& fid_to_pid = fid_to_pid(cid);
-      // Remap each fid to the new fid for each feature track containing a feature from the given cid
-     for (auto& fid_pid : fid_to_pid) {
-       const Fid fid = fid_pid.first;
-       const Pid pid = fid_pid.second;
-       auto& feature_track = feature_track(pid);
-       feature_track.at(cid) = fid_remapping.at(fid);
-     }
+  auto& fid_to_pid = fid_to_pid(cid);
+  // Remap each fid to the new fid for each feature track containing a feature from the given cid
+  for (auto& fid_pid : fid_to_pid) {
+    const Fid fid = fid_pid.first;
+    const Pid pid = fid_pid.second;
+    auto& feature_track = feature_track(pid);
+    feature_track.at(cid) = fid_remapping.at(fid);
+  }
 }
 }  // namespace sparse_mapping

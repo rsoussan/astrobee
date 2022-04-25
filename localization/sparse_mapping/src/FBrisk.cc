@@ -38,7 +38,7 @@ void FBrisk::meanValue(const std::vector<FBrisk::pDescriptor>& descriptors, FBri
 
   std::vector<FBrisk::pDescriptor>::const_iterator it;
   for (it = descriptors.begin(); it != descriptors.end(); ++it) {
-    const FBrisk::TDescriptor &desc = **it;
+    const FBrisk::TDescriptor& desc = **it;
     for (int i = 0; i < FBrisk::L; ++i) {
       if (desc[i]) counters[i]++;
     }
@@ -82,7 +82,7 @@ void FBrisk::toMat32F(const std::vector<TDescriptor>& descriptors, cv::Mat& mat)
 
   for (int i = 0; i < N; ++i) {
     const TDescriptor& desc = descriptors[i];
-    float *p = mat.ptr<float>(i);
+    float* p = mat.ptr<float>(i);
     for (int j = 0; j < FBrisk::L; ++j, ++p) {
       *p = (desc[j] ? 1.f : 0.f);
     }

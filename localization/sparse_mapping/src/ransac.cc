@@ -30,22 +30,19 @@ namespace sparse_mapping {
 // outside, so we don't always initialize it to the same value. That
 // would result in same random numbers each time this function is
 // called which is very undesirable.
-void get_n_unique_integers(int min_val, int max_val, int num,
-                             std::mt19937 * generator, std::vector<int> * values) {
+void get_n_unique_integers(int min_val, int max_val, int num, std::mt19937* generator, std::vector<int>* values) {
   // Sanity check
   if (max_val - min_val + 1 < num) {
-    LOG(FATAL) << "Cannot get " << num << " unique integers in ["
-               << min_val << ", " << max_val << "]" << std::endl;
+    LOG(FATAL) << "Cannot get " << num << " unique integers in [" << min_val << ", " << max_val << "]" << std::endl;
   }
 
   values->clear();
   std::set<int> done;
 
-  std::uniform_int_distribution < int> distribution(min_val, max_val);
+  std::uniform_int_distribution<int> distribution(min_val, max_val);
 
   while (1) {
-    if (values->size() == static_cast<size_t>(num))
-      break;
+    if (values->size() == static_cast<size_t>(num)) break;
 
     int val = distribution(*generator);
 

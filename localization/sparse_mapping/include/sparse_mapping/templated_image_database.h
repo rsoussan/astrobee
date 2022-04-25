@@ -34,8 +34,8 @@
 
 namespace sparse_mapping {
 
-template<class TDescriptor, class F>
-class TemplatedImageDatabase : public DBoW2::TemplatedDatabase<TDescriptor, F>, public ImageDatabase{
+template <class TDescriptor, class F>
+class TemplatedImageDatabase : public DBoW2::TemplatedDatabase<TDescriptor, F>, public ImageDatabase {
  public:
   TemplatedImageDatabase(const TemplatedFeatureVocabulary<TDescriptor, F>& voc, const ImageDatabaseParams& params);
   TemplatedImageDatabase(const FeatureSets& feature_sets, const ImageDatabaseParams& params);
@@ -68,18 +68,16 @@ TemplatedImageDatabase<TDescriptor, F>::TemplatedImageDatabase(const FeatureSets
 }
 
 template <class TDescriptor, class F>
-std::vector<int> TemplatedImageDatabase<TDescriptor, F>::Query(const cv::Mat& features,
-                                                               const int max_results) {
-    FeatureSet feature_set;
-    for (int row = 0; row < features.rows; ++row) {
+std::vector<int> TemplatedImageDatabase<TDescriptor, F>::Query(const cv::Mat& features, const int max_results) {
+  FeatureSet feature_set;
+  for (int row = 0; row < features.rows; ++row) {
       feature_set.push_back(features.row(row);
-    }
-    return Query(feature_set, max_results);
+  }
+  return Query(feature_set, max_results);
 }
 
 template <class TDescriptor, class F>
-std::vector<int> TemplatedImageDatabase<TDescriptor, F>::Query(const FeatureSet& features,
-                                                               const int max_results) {
+std::vector<int> TemplatedImageDatabase<TDescriptor, F>::Query(const FeatureSet& features, const int max_results) {
   std::vector<int> matching_cids;
   DBoW2::QueryResults results;
   this->query(features, results, max_results);

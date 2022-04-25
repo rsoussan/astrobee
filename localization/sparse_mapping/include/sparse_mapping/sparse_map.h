@@ -56,16 +56,14 @@ class SparseMap : public SparseMapDatabase {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   /**
    * Creates a sparse map containing only a list of image files.
-  **/
-  SparseMap(const CidFilenameMap& cid_to_filename,
-            const SparseMapParams& params);
+   **/
+  SparseMap(const CidFilenameMap& cid_to_filename, const SparseMapParams& params);
 
   /**
    * Creates a sparse map containing only a list of image files and camera poses.
-  **/
+   **/
   // TODO(rsoussan): How to use this in practice? remove this?
-  SparseMap(const CidPoseMap& cid_to_cam_T_global,
-            const CidFilenameMap& cid_to_filename,
+  SparseMap(const CidPoseMap& cid_to_cam_T_global, const CidFilenameMap& cid_to_filename,
             const SparseMapParams& params);
 
   void BuildMap();
@@ -75,18 +73,16 @@ class SparseMap : public SparseMapDatabase {
    **/
   void DetectImageFeatures();
 
-  int GetHistogramEqualization() const {return params_.histogram_equalization;}
+  int GetHistogramEqualization() const { return params_.histogram_equalization; }
   /**
    * Return the parameters of the camera used to construct the map.
    **/
-  const camera::CameraParameters& camera_params() const {return params_.camera;}
+  const camera::CameraParameters& camera_params() const { return params_.camera; }
 
   // TODO(rsoussan): remove this?
-  void SetCameraParameters(const camera::CameraParameters& camera_params) {params_.camera = camera_params;}
+  void SetCameraParameters(const camera::CameraParameters& camera_params) { params_.camera = camera_params; }
 
-  void DetectImageFeaturesFromFile(const std::string& filename,
-                              Descriptors& descriptors,
-                              Keypoints& keypoints);
+  void DetectImageFeaturesFromFile(const std::string& filename, Descriptors& descriptors, Keypoints& keypoints);
 
   std::vector<MatchCandidates> SequentialMatchCandidates() const;
 
@@ -103,11 +99,9 @@ class SparseMap : public SparseMapDatabase {
 
   // Assumes poses are initialized
   ceres::Solver::Summary BundleAdjust(const BundleAdjustmentParams& params,
-                                    const std::vector<Eigen::Matrix2Xd>& cid_to_keypoints,
-                                    PidPoseMap* cid_to_cam_T_global,
-                                    PidFeatureTrackMap* pid_to_feature_track,
-                                    PidPointMap* pid_to_global_t_point,
-                                    CidFidPidMap* cid_to_fid_to_pid = nullptr);
+                                      const std::vector<Eigen::Matrix2Xd>& cid_to_keypoints,
+                                      PidPoseMap* cid_to_cam_T_global, PidFeatureTrackMap* pid_to_feature_track,
+                                      PidPointMap* pid_to_global_t_point, CidFidPidMap* cid_to_fid_to_pid = nullptr);
 
   void UndistortAndAddControlPoints(std::vector<ControlPoint>& control_points);
 
@@ -134,54 +128,54 @@ class SparseMap : public SparseMapDatabase {
   void Load(const std::string& protobuf_file, bool localization = false);
 
  private:
-void MatchImages(const int cid_a, const int cid_b, sparse_mapping::CIDPairAffineMap& relative_affines,
-                 openMVG::matching::PairWiseMatches& match_map, std::mutex& match_mutex) const;
+  void MatchImages(const int cid_a, const int cid_b, sparse_mapping::CIDPairAffineMap& relative_affines,
+                   openMVG::matching::PairWiseMatches& match_map, std::mutex& match_mutex) const;
 
-int OldestCidToOptimize(const int latest_cid) const;
+  int OldestCidToOptimize(const int latest_cid) const;
 
-void TriangulateAllPoints(const bool remove_invalid_points = true, const bool initialize_cid_fid_pid_map = true,
-                          const CidKeypointsMap& cid_to_keypoints = cid_to_keypoints(),
-                          const PidFeatureTrackMap& pid_to_feature_track = pid_to_feature_track(),
-                          PidPointMap& pid_to_global_t_point = pid_to_global_t_point());
+  void TriangulateAllPoints(const bool remove_invalid_points = true, const bool initialize_cid_fid_pid_map = true,
+                            const CidKeypointsMap& cid_to_keypoints = cid_to_keypoints(),
+                            const PidFeatureTrackMap& pid_to_feature_track = pid_to_feature_track(),
+                            PidPointMap& pid_to_global_t_point = pid_to_global_t_point());
 
-void AddCostsToBundleAdjustmentProblem(const BundleAdjustmentParams& params,
-                                       const Eigen::Vector2d& zero_principal_points,
-                                       const Eigen::VectorXd& zero_distortion, const Eigen::Vector2d& focal_lengths,
-                                       const CidKeypointsMap& cid_to_keypoints,
-                                       const PidFeatureTrackMap& pid_to_feature_track,
-                                       PidPointMap& pid_to_global_t_point, ceres::LossFunction* loss_function,
-                                       ceres::Problem& problem, const bool fix_all_points = false) const;
+  void AddCostsToBundleAdjustmentProblem(const BundleAdjustmentParams& params,
+                                         const Eigen::Vector2d& zero_principal_points,
+                                         const Eigen::VectorXd& zero_distortion, const Eigen::Vector2d& focal_lengths,
+                                         const CidKeypointsMap& cid_to_keypoints,
+                                         const PidFeatureTrackMap& pid_to_feature_track,
+                                         PidPointMap& pid_to_global_t_point, ceres::LossFunction* loss_function,
+                                         ceres::Problem& problem, const bool fix_all_points = false) const;
 
-// Remove points that don't project at valid camera pixels,
-// points behind the camera, and matches having large reprojection error.
-void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsParams& params);
+  // Remove points that don't project at valid camera pixels,
+  // points behind the camera, and matches having large reprojection error.
+  void RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDetectionsParams& params);
 
-double ReprojectionError(const std::pair<int, int>& cid_fid, const Eigen::Matrix3d& intrinsics);
+  double ReprojectionError(const std::pair<int, int>& cid_fid, const Eigen::Matrix3d& intrinsics);
 
-std::vector<Eigen::Vector3d> TriangulatedControlPoints() const;
+  std::vector<Eigen::Vector3d> TriangulatedControlPoints() const;
 
-void PrintControlPointErrors(const std::vector<Eigen::Vector3d>& triangulated_pid_to_global_t_point) const;
+  void PrintControlPointErrors(const std::vector<Eigen::Vector3d>& triangulated_pid_to_global_t_point) const;
 
-template <class TDescriptor, class F>
-void BuildTemplatedImageDatabase();
+  template <class TDescriptor, class F>
+  void BuildTemplatedImageDatabase();
 
-void BuildSurfImageDatabase();
+  void BuildSurfImageDatabase();
 
-void BuildBriskImageDatabase();
+  void BuildBriskImageDatabase();
 
-std::unique_ptr<ImageDatabase> image_database_;
-SparseMapParams params_;
+  std::unique_ptr<ImageDatabase> image_database_;
+  SparseMapParams params_;
 
-/*// I found out the hard way that sparse maps cannot be copied
-// correctly, hence prohibit this. The only good way seems to be to
-// load a copy from disk. (oalexan1)
-SparseMap();
-SparseMap(SparseMap&);
-SparseMap& operator=(const SparseMap&);*/
+  /*// I found out the hard way that sparse maps cannot be copied
+  // correctly, hence prohibit this. The only good way seems to be to
+  // load a copy from disk. (oalexan1)
+  SparseMap();
+  SparseMap(SparseMap&);
+  SparseMap& operator=(const SparseMap&);*/
 };
 
 // Implementation
-template<class TDescriptor, class F>
+template <class TDescriptor, class F>
 void SparseMap::BuildTemplatedImageDatabase() {
   const int total_features = NumFeatures();
   while (std::pow(params_.image_database.vocabulary.branching_factor, params_.image_database.vocabulary.depth) <

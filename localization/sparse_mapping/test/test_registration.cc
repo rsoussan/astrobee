@@ -1,14 +1,14 @@
 /* Copyright (c) 2017, United States Government, as represented by the
  * Administrator of the National Aeronautics and Space Administration.
- * 
+ *
  * All rights reserved.
- * 
+ *
  * The Astrobee platform is licensed under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License. You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -29,7 +29,9 @@
 #include <string>
 #include <vector>
 
-#define EXPECT_VECTOR3D_NEAR(p1, p2, t) EXPECT_NEAR(p1[0], p2[0], t); EXPECT_NEAR(p1[1], p2[1], t); \
+#define EXPECT_VECTOR3D_NEAR(p1, p2, t) \
+  EXPECT_NEAR(p1[0], p2[0], t);         \
+  EXPECT_NEAR(p1[1], p2[1], t);         \
   EXPECT_NEAR(p1[2], p2[2], t);
 
 const std::string DATA_DIR = std::string(std::getenv("DATA_DIR"));
@@ -45,9 +47,12 @@ class SparseMapTest : public ::testing::Test {
     std::vector<std::string> img_files;
     img_files.reserve(3);
     local_imgs.reserve(3);
-    local_imgs.push_back("m0000182.jpg"); img_files.push_back(DATA_DIR + local_imgs.back());
-    local_imgs.push_back("m0000189.jpg"); img_files.push_back(DATA_DIR + local_imgs.back());
-    local_imgs.push_back("m0000210.jpg"); img_files.push_back(DATA_DIR + local_imgs.back());
+    local_imgs.push_back("m0000182.jpg");
+    img_files.push_back(DATA_DIR + local_imgs.back());
+    local_imgs.push_back("m0000189.jpg");
+    img_files.push_back(DATA_DIR + local_imgs.back());
+    local_imgs.push_back("m0000210.jpg");
+    img_files.push_back(DATA_DIR + local_imgs.back());
 
     // Write local copies of the images. Why?
     for (size_t cid = 0; cid < img_files.size(); cid++) {
@@ -56,10 +61,8 @@ class SparseMapTest : public ::testing::Test {
     }
 
     // feature detection
-    camera::CameraParameters params
-      (Eigen::Vector2i(780, 620),
-       Eigen::Vector2d::Constant(258.5),
-       Eigen::Vector2d(390, 310));
+    camera::CameraParameters params(Eigen::Vector2i(780, 620), Eigen::Vector2d::Constant(258.5),
+                                    Eigen::Vector2d(390, 310));
     surf_map = new sparse_mapping::SparseMap(local_imgs, "SURF", params);
   }
 
@@ -108,16 +111,13 @@ class SparseMapTest : public ::testing::Test {
     EXPECT_NEAR(surf_map->GetCameraParameters().GetFocalLength(), 258.5, 1e-5);
   }
 
-  virtual void TearDown() {
-    delete surf_map;
-  }
+  virtual void TearDown() { delete surf_map; }
 };
 
 TEST(Registration, CheckHuginFileIO) {
   std::vector<std::string> images;
   Eigen::MatrixXd user_ip;  // This shouldn't be full dynamic
-  sparse_mapping::ParseHuginControlPoints(DATA_DIR + "m0000182-m0000210.pto",
-                                          &images, &user_ip);
+  sparse_mapping::ParseHuginControlPoints(DATA_DIR + "m0000182-m0000210.pto", &images, &user_ip);
   EXPECT_EQ(6, user_ip.rows());
   EXPECT_EQ(15, user_ip.cols());
   EXPECT_STREQ("m0000182.jpg", images[0].c_str());

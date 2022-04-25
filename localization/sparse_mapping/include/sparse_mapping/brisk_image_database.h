@@ -23,6 +23,6 @@
 #include <sparse_map/templated_image_database.h>
 
 namespace sparse_mapping {
-  using BriskImageDatabase = TemplatedImageDatabase<DBoW2::FBrisk::TDescriptor, DBoW2::FBrisk>;
+using BriskImageDatabase = TemplatedImageDatabase<DBoW2::FBrisk::TDescriptor, DBoW2::FBrisk>;
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_BRISK_IMAGE_DATABASE_H_

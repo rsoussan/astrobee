@@ -23,11 +23,13 @@
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 
 // Implementation
-template<class TDescriptor, class F>
+template <class TDescriptor, class F>
 TemplatedImageDatabase<TDescriptor, F>::TemplatedImageDatabase(google::protobuf::io::ZeroCopyInputStream* input)
-     : DBoW2::TemplatedDatabase<TDescriptor, F>() {LoadProtobuf(input);}
+    : DBoW2::TemplatedDatabase<TDescriptor, F>() {
+  LoadProtobuf(input);
+}
 
-template<class TDescriptor, class F>
+template <class TDescriptor, class F>
 void TemplatedImageDatabase<TDescriptor, F>::LoadProtobuf(google::protobuf::io::ZeroCopyInputStream* input) {
   TemplatedFeatureVocabulary<TDescriptor, F>* voc = new TemplatedFeatureVocabulary<TDescriptor, F>();
   voc->LoadProtobuf(input);
@@ -58,9 +60,9 @@ void TemplatedImageDatabase<TDescriptor, F>::LoadProtobuf(google::protobuf::io::
   }
 }
 
-template<class TDescriptor, class F>
+template <class TDescriptor, class F>
 void TemplatedImageDatabase<TDescriptor, F>::SaveProtobuf(google::protobuf::io::ZeroCopyOutputStream* output) const {
-  (dynamic_cast<TemplatedFeatureVocabulary<TDescriptor, F>* >(this->m_voc))->SaveProtobuf(output);
+  (dynamic_cast<TemplatedFeatureVocabulary<TDescriptor, F>*>(this->m_voc))->SaveProtobuf(output);
 
   sparse_mapping_protobuf::DBoWDB db;
 
@@ -68,8 +70,7 @@ void TemplatedImageDatabase<TDescriptor, F>::SaveProtobuf(google::protobuf::io::
 
   int num_inverted_index = 0;
   typename DBoW2::TemplatedDatabase<TDescriptor, F>::InvertedFile::const_iterator iit;
-  for (iit = this->m_ifile.begin(); iit != this->m_ifile.end(); ++iit)
-    num_inverted_index += (*iit).size();
+  for (iit = this->m_ifile.begin(); iit != this->m_ifile.end(); ++iit) num_inverted_index += (*iit).size();
   db.set_num_inverted_index(num_inverted_index);
   if (!WriteProtobufTo(db, output)) {
     LOG(FATAL) << "Failed to write db to file.";

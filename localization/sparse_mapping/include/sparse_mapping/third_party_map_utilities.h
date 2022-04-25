@@ -30,37 +30,26 @@ SparseMap(std::string const& filename, std::vector<std::string> const& files);
 // Reorder the images in the map and the rest of the data accordingly
 void reorderMap(std::map<int, int> const& old_cid_to_new_cid);
 
-  // Writes the NVM control network format.
-  void WriteNVM(std::vector<Eigen::Matrix2Xd > const& cid_to_keypoints,
-                std::vector<std::string> const& cid_to_filename,
-                std::vector<std::map<int, int> > const& pid_to_feature_track,
-                std::vector<Eigen::Vector3d> const& pid_to_xyz,
-                std::vector<Eigen::Affine3d> const& cid_to_cam_T_global,
-                double focal_length,
-                std::string const& output_filename);
-  // Reads the NVM control network format.
-  void ReadNVM(std::string const& input_filename,
-               std::vector<Eigen::Matrix2Xd > * cid_to_keypoints,
-               std::vector<std::string> * cid_to_filename,
-               std::vector<std::map<int, int> > * pid_to_feature_track,
-               std::vector<Eigen::Vector3d> * pid_to_xyz,
-               std::vector<Eigen::Affine3d> * cid_to_cam_T_global);
+// Writes the NVM control network format.
+void WriteNVM(std::vector<Eigen::Matrix2Xd> const& cid_to_keypoints, std::vector<std::string> const& cid_to_filename,
+              std::vector<std::map<int, int> > const& pid_to_feature_track,
+              std::vector<Eigen::Vector3d> const& pid_to_xyz, std::vector<Eigen::Affine3d> const& cid_to_cam_T_global,
+              double focal_length, std::string const& output_filename);
+// Reads the NVM control network format.
+void ReadNVM(std::string const& input_filename, std::vector<Eigen::Matrix2Xd>* cid_to_keypoints,
+             std::vector<std::string>* cid_to_filename, std::vector<std::map<int, int> >* pid_to_feature_track,
+             std::vector<Eigen::Vector3d>* pid_to_xyz, std::vector<Eigen::Affine3d>* cid_to_cam_T_global);
 
-  // Adds yaml.gz or .txt extension, depending on descriptor
-  std::string ImageToFeatureFile(std::string const& image_file,
-                                 std::string const& detector_name);
+// Adds yaml.gz or .txt extension, depending on descriptor
+std::string ImageToFeatureFile(std::string const& image_file, std::string const& detector_name);
 
-  // Write features yaml file
-  void WriteFeatures(std::string const& detector_name,
-                     std::vector<cv::KeyPoint> const& keypoints,
-                     cv::Mat const& descriptors,
-                     std::string const& output_filename);
+// Write features yaml file
+void WriteFeatures(std::string const& detector_name, std::vector<cv::KeyPoint> const& keypoints,
+                   cv::Mat const& descriptors, std::string const& output_filename);
 
-  // Read features yaml file
-  bool ReadFeatures(std::string const& input_filename,
-                    std::string const& detector_name,
-                    std::vector<cv::KeyPoint> * keypoints,
-                    cv::Mat * descriptors);
+// Read features yaml file
+bool ReadFeatures(std::string const& input_filename, std::string const& detector_name,
+                  std::vector<cv::KeyPoint>* keypoints, cv::Mat* descriptors);
 }  // namespace sparse_mapping
 
 #endif  // SPARSE_MAPPING_THIRD_PARTY_MAP_UTILITIES_H_

@@ -46,8 +46,7 @@ void SparseMapMerger::Initialize(const SparseMap& map_a, const SparseMap& map_b,
 bool SparseMapMerger::CompatableMaps() const {
   if (map_a_->camera_params() != map_b_->camera_params())
     LOG(FATAL) << "Input maps don't have the same camera parameters.";
-  if (map_a_->DetectorName() != map_b_->DetectorName())
-    LOG(FATAL) << "Input maps use different detectors.";
+  if (map_a_->DetectorName() != map_b_->DetectorName()) LOG(FATAL) << "Input maps use different detectors.";
   if (map_a_->GetHistogramEqualization() != map_b_->GetHistogramEqualization())
     LOG(FATAL) << "Input maps use different histogram equalization.";
 }
@@ -72,8 +71,7 @@ std::vector<MatchCandidates> SparseMapMerger::DatabaseMatchCandidates(const Spar
     MatchCandidates match_candidates;
     // Offset by num_map_a_cids since map_b cid indices start at num_map_a_cids in the merged map
     match_candidates.cid = num_map_a_cids + cid;
-    const auto db_match_candidate_cids =
-      map_a.image_database().Query(map_b.descriptors(cid), max_query_matches);
+    const auto db_match_candidate_cids = map_a.image_database().Query(map_b.descriptors(cid), max_query_matches);
     for (const auto candidate_cid : db_match_candidate_cids) {
       match_candidates.candidate_cids.emplace_back(candidate_cid);
     }
@@ -172,8 +170,8 @@ double SparseMapMerger::InlierThreshold(const std::vector<Eigen::Vector3d>& poin
   if (num_pts <= 0) LOG(FATAL) << "Empty set of points.\n";
 
   // TODO(rsoussan): Is bounding here really necessary?
-  const int low_index = std::min(num_pts - 1, std::round(num_pts*params_.inlier_threshold_low_index_percent));
-  const int high_index = std::min(num_pts -1, std::round(num_pts*params_.inlier_threshold_high_index_percent));
+  const int low_index = std::min(num_pts - 1, std::round(num_pts * params_.inlier_threshold_low_index_percent));
+  const int high_index = std::min(num_pts - 1, std::round(num_pts * params_.inlier_threshold_high_index_percent));
 
   Eigen::Vector3d scaled_bounds;
   for (int i = 0; i < 3; ++i) {
@@ -185,11 +183,11 @@ double SparseMapMerger::InlierThreshold(const std::vector<Eigen::Vector3d>& poin
     std::sort(vals.begin(), vals.end());
     const double low_val = vals[low_index];
     const double high_val = vals[high_index];
-    scaled_bounds[i] = params_.inlier_threshold_scale_factor*(high_val - low_val);
+    scaled_bounds[i] = params_.inlier_threshold_scale_factor * (high_val - low_val);
   }
 
   // TODO(rsoussan): Use norm or some better distance metric than averaged indices?
-  const double inlier_threshold = scaled_bounds.sum()/3.0;
+  const double inlier_threshold = scaled_bounds.sum() / 3.0;
   return inlier_threshld;
 }
 
@@ -205,10 +203,10 @@ Eigen::Affine3d SparseMapMerger::EstimateRelativePoseAndPruneOutlierMatches(cons
     b_points.emplace_back(map_b.Point(b_pid));
   }
   const double inlier_threshold = InlierThreshold(a_points);
-  const int min_num_output_inliers = a_points.size()* params_.ransac_min_num_ouput_inliers_percent;
-  RansacEstimateAffine3d ransac_affine3d(num_iterations,
-           inlier_threshold, min_num_output_inliers,
-           params_.ransac_reduce_min_num_output_inliers_if_no_fit, params_.ransac_increase_threshold_if_no_fit);
+  const int min_num_output_inliers = a_points.size() * params_.ransac_min_num_ouput_inliers_percent;
+  RansacEstimateAffine3d ransac_affine3d(num_iterations, inlier_threshold, min_num_output_inliers,
+                                         params_.ransac_reduce_min_num_output_inliers_if_no_fit,
+                                         params_.ransac_increase_threshold_if_no_fit);
   const auto map_a_T_map_b = ransac_affine3d(b_points, a_points);
 
   // Remove outliers from correspondences
@@ -256,17 +254,14 @@ void SparseMapMerger::AddRemainingMapBTracks(const std::vector<int>& non_matchin
   }
 }
 
-
 void SparseMapMerger::AddNewTracks(const MatchingTracks& matching_tracks) {
-      // TODO(rsoussan): add intrinsics creation in constructor, store as member variable???
-      const double focal_length = map_a_->params().camera.GetFocalLength();
-      Eigen::Matrix3d intrinsics;
-  intrinsics << focal_length, 0, 0,
-    0, focal_length, 0,
-    0, 0, 1;
+  // TODO(rsoussan): add intrinsics creation in constructor, store as member variable???
+  const double focal_length = map_a_->params().camera.GetFocalLength();
+  Eigen::Matrix3d intrinsics;
+  intrinsics << focal_length, 0, 0, 0, focal_length, 0, 0, 0, 1;
   for (int i = 0; i < matching_tracks.pid_to_feature_track.size(); ++i) {
     if (matching_tracks.track_label[i] == TrackLabel::KNewTrack) {
-     const auto& cid_to_fid = matching_tracks.pid_to_feature_track[i];
+      const auto& cid_to_fid = matching_tracks.pid_to_feature_track[i];
       std::vector<Eigen::Affine3d> poses;
       Keypoints keypoints;
       for (const auto& cid_fid_pair : cid_to_fid) {
@@ -287,19 +282,19 @@ void SparseMapMerger::BundleAdjust(const std::vector<std::pair<int, int>>& a_b_p
       params_.bundle_adjustment.optimize_camera_range = false;
       params_.bundle_adjustment.fix_all_cameras = false;
       break;
-  case kOptimizeMergedPosesAndPoints:
-  params_.bundle_adjustment.fix_all_cameras = false;
-  params_.bundle_adjustment.optimize_camera_range = true;
-  // Map b cameras in merged map start after the last map a camera
-  params_.bundle_adjustment.first_optimized_camera = map_a_->NumCids();
-  params_.bundle_adjustment.last_optimized_camera = merged_map_->NumCids() - 1;
+    case kOptimizeMergedPosesAndPoints:
+      params_.bundle_adjustment.fix_all_cameras = false;
+      params_.bundle_adjustment.optimize_camera_range = true;
+      // Map b cameras in merged map start after the last map a camera
+      params_.bundle_adjustment.first_optimized_camera = map_a_->NumCids();
+      params_.bundle_adjustment.last_optimized_camera = merged_map_->NumCids() - 1;
       break;
-  case kOptimizeMergedAndUpdatedPosesAndPoints:
-  params_.bundle_adjustment.fix_all_cameras = false;
-  params_.bundle_adjustment.optimize_camera_range = false;
-  FillUnmodifiedCamerasAndPoints(a_b_pid_correspondences, params_.bundle_adjustment.fixed_cameras,
-                                 params_.bundle_adjustment.fixed_points);
-  break;
+    case kOptimizeMergedAndUpdatedPosesAndPoints:
+      params_.bundle_adjustment.fix_all_cameras = false;
+      params_.bundle_adjustment.optimize_camera_range = false;
+      FillUnmodifiedCamerasAndPoints(a_b_pid_correspondences, params_.bundle_adjustment.fixed_cameras,
+                                     params_.bundle_adjustment.fixed_points);
+      break;
   }
   merged_map_->IterativelyBundleAdjust(params_.bundle_adjustment, params_.num_bundle_adjustment_iterations);
 }

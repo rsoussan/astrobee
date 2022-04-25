@@ -21,9 +21,9 @@
 
 namespace sparse_mapping {
 struct EstimatePoseParams : vision_common::ReprojectionPoseEstimateParams {
-    int max_num_total_feature_matches;
-    bool check_point_3d_exists;
-    int max_image_matches;
+  int max_num_total_feature_matches;
+  bool check_point_3d_exists;
+  int max_image_matches;
 };
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_ESTIMATE_POSE_PARAMS_H_

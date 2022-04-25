@@ -38,7 +38,7 @@ enum class TrackLabel {
 
 struct MatchingTracks {
   std::vector<TrackLabel> track_labels;
-  std::vector<std::map<int, int> > pid_to_feature_track;
+  std::vector<std::map<int, int>> pid_to_feature_track;
   std::vector<std::pair<int, int>> a_b_pid_correspondences;
   std::vector<int> non_matching_b_pids;
 };
@@ -50,7 +50,6 @@ class SparseMapMerger {
   SparseMapMerger(const std::string& map_a_filename, const std::string& map_b_filename,
                   const SparseMapMergerParams& params);
 
-
   void MergeMaps();
 
  private:
@@ -60,13 +59,13 @@ class SparseMapMerger {
                      std::vector<TrackLabel>& track_labels,
                      std::vector<std::pair<int, int>>& a_b_pid_tracks_to_merge) const;
 
-// Uses the range of the point axes to find an inlier threshold.
-// Computes a low and high index and uses the scaled distance between sorted values
-// for each point axis at these indices to calculate the threshold.
+  // Uses the range of the point axes to find an inlier threshold.
+  // Computes a low and high index and uses the scaled distance between sorted values
+  // for each point axis at these indices to calculate the threshold.
   double InlierThreshold(const std::vector<Eigen::Vector3d>& points) const;
   // Returns map_a_T_map_b
   Eigen::Affine3d EstimateRelativePoseAndPruneOutlierMatches(const SparseMap& map_a, const SparseMap& map_b,
-                                                  MatchingTracks& matching_tracks) const;
+                                                             MatchingTracks& matching_tracks) const;
   boost::optional<int> BestMatch(const std::map<int, int>& pid_match_counts) const;
   MatchingTracks MatchingTracks(const SparseMap& map_a, const SparseMap& map_b, SparseMap& merged_map);
   // Use track identifications to combine/extend/add tracks from map b to merged map
