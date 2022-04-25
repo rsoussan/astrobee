@@ -138,11 +138,10 @@ void DetectFeatures(const cv::Mat& image, const bool histogram_equalization, vis
 }
 
 bool EstimateEssentialMatrix(const Eigen::Matrix3d& intrinsics_1, const Eigen::Matrix3d& intrinsics_2,
-                             const std::vector<Eigen::Vector2d>& keypoints_1,
-                             const std::vector<Eigen::Vector2d>& keypoints_2,
-                             const std::pair<size_t, size_t>& image_size_1,
-                             const std::pair<size_t, size_t>& image_size_2, const double precision,
-                             Eigen::Matrix3d& essential_matrix, std::vector<size_t>& inliers, double& max_error) {
+                             const Keypoints& keypoints_1, const Keypoints& keypoints_2,
+                             const std::pair<int, int>& image_size_1, const std::pair<int, int>& image_size_2,
+                             const double precision, Eigen::Matrix3d& essential_matrix, std::vector<int>& inliers,
+                             double& max_error) {
   const auto keypoints_1_matrix = MatrixFromVector(keypoints_1);
   const auto keypoints_2_matrix = MatrixFromVector(keypoints_2);
   return EstimateEssentialMatrix(intrinsics_1, intrinsics_2, keypoints_1_matrix, keypoints_2_matrix, image_size_1,
@@ -151,9 +150,9 @@ bool EstimateEssentialMatrix(const Eigen::Matrix3d& intrinsics_1, const Eigen::M
 
 bool EstimateEssentialMatrix(const Eigen::Matrix3d& intrinsics_1, const Eigen::Matrix3d& intrinsics_2,
                              const Eigen::Matrix2Xd& keypoints_1, const Eigen::Matrix2Xd& keypoints_2,
-                             const std::pair<size_t, size_t>& image_size_1,
-                             const std::pair<size_t, size_t>& image_size_2, const double precision,
-                             Eigen::Matrix3d& essential_matrix, std::vector<size_t>& inliers, double& max_error) {
+                             const std::pair<int, int>& image_size_1, const std::pair<int, int>& image_size_2,
+                             const double precision, Eigen::Matrix3d& essential_matrix, std::vector<int>& inliers,
+                             double& max_error) {
   using SolverType = openMVG::essential::kernel::FivePointKernel;
   using KernelType =
     openMVG::robust::ACKernelAdaptorEssential<SolverType, openMVG::fundamental::kernel::EpipolarDistanceError,
@@ -166,56 +165,60 @@ bool EstimateEssentialMatrix(const Eigen::Matrix3d& intrinsics_1, const Eigen::M
   return inliers.size() > 1.5 * SolverType::MINIMUM_SAMPLES;
 }
 
-bool EstimateRTFromE(Eigen::Matrix3d const& intrinsics_1, Eigen::Matrix3d const& intrinsics_2,
-                     Eigen::Matrix2Xd const& x1, Eigen::Matrix2Xd const& x2, Eigen::Matrix3d const& e,
-                     std::vector<size_t> const& vec_inliers, Eigen::Matrix3d* r, Eigen::Vector3d* t) {
-  // Accumulator to find the best solution
-  std::vector<size_t> f(4, 0);
+boost::optional<Eigen::Isometry3d> EstimatePoseFromEssentialMatrix(
+  const Eigen::Matrix3d& intrinsics_1, const Eigen::Matrix3d& intrinsics_2, const Keypoints& keypoints_1,
+  const Keypoints& keypoints_2, const Eigen::Matrix3d& essential_matrix, const std::vector<int>& inliers) {
+  std::vector<Eigen::Matrix3d> possible_rotations;
+  std::vector<Eigen::Vector3d> possible_translations;
+  possible_rotations.reserve(4);
+  possible_translations.reserve(4);
+  openMVG::MotionFromEssential(essential_matrix, &possible_rotations, &possible_translations);
 
-  std::vector<Eigen::Matrix3d> possible_r;  // Rotation matrix.
-  std::vector<Eigen::Vector3d> possible_t;  // Translation matrix.
-  possible_r.reserve(4);
-  possible_t.reserve(4);
+  if (possible_rotations.size() != 4 || possible_translations.size() != 4) {
+    LOG(ERROR) << "Failed to find 4 solutions for R & T";
+    return boost::none;
+  }
 
-  // Recover best rotation and translation from E.
-  openMVG::MotionFromEssential(e, &possible_r, &possible_t);
+  // Use identity projection matrix as other projection matrix since
+  // we are estimating a relative pose
+  openMVG::Mat34 identity_projection_matrix, candidate_projection_matrix;
+  const Eigen::Matrix3d zero_rotation(Eigen::Matrix3d::Identity());
+  const Eigen::Vector3d zero_translation(Eigen::Vector3d::Zero());
+  openMVG::P_From_KRt(intrinsics_1, zero_rotation, zero_translation, &identity_projection_matrix);
 
-  //-> Test the 4 solutions will all the point
-  CHECK(possible_r.size() == 4 && possible_t.size() == 4) << "Failed to find 4 solutions for R & T";
+  // See which pose candidate has the most valid triangulated keypoints
+  std::vector<int> candidate_valid_triangulated_points(4, 0);
+  for (int i = 0; i < 4; ++i) {
+    const auto& rotation_candidate = possible_rotations[i];
+    const auto& translation_candidate = possible_translations[i];
+    openMVG::P_From_KRt(intrinsics_2, rotation_candidate, translation_candidate, &candidate_projection_matrix);
 
-  openMVG::Mat34 P1, P2;
-  Eigen::Matrix3d r1 = Eigen::Matrix3d::Identity();
-  Eigen::Vector3d t1 = Eigen::Vector3d::Zero();
-  openMVG::P_From_KRt(intrinsics_1, r1, t1, &P1);
-
-  for (size_t i = 0; i < 4; ++i) {
-    const Eigen::Matrix3d& r2 = possible_r[i];
-    const Eigen::Vector3d& t2 = possible_t[i];
-    openMVG::P_From_KRt(intrinsics_2, r2, t2, &P2);
-    Eigen::Vector3d X;
-
-    for (size_t k = 0; k < vec_inliers.size(); ++k) {
-      const Eigen::Vector2d &x1_ = x1.col(vec_inliers[k]), &x2_ = x2.col(vec_inliers[k]);
-      openMVG::TriangulateDLT(P1, x1_, P2, x2_, &X);
-      // Test if point is front to the two cameras.
-      if (openMVG::Depth(r1, t1, X) > 0 && openMVG::Depth(r2, t2, X) > 0) {
-        ++f[i];
+    Eigen::Vector3d triangulated_point;
+    for (int j = 0; j < static_cast<int>(inliers.size()); ++j) {
+      const auto& keypoint_1 = keypoints_1[vec_inliers[j]];
+      const auto& keypoint_2 = keypoints_2[vec_inliers[j]];
+      openMVG::TriangulateDLT(identity_projection_matrix, keypoint_1, candidate_projection_matrix, keypoint_2,
+                              &triangulated_point);
+      if (openMVG::Depth(zero_rotation, zero_translation, triangulated_point) > 0 &&
+          openMVG::Depth(rotation_candidate, translation_candidate, triangulated_point) > 0) {
+        ++candidate_valid_triangulated_points[i];
       }
     }
   }
 
-  // Check the solution:
-  std::vector<size_t>::const_iterator iter = std::max_element(f.begin(), f.end());
-  if (*iter == 0) {
+  const auto most_valid_triangulate_points_index =
+    std::max_element(candidate_valid_triangulated_points.begin(), candidate_valid_triangulated_points.end());
+  if (*most_valid_triangulate_points_index == 0) {
     LOG(ERROR) << "Unable to find right solution for RT, possibly there is none.";
-    return false;
+    return boost::none;
   }
-  size_t index = std::distance(f.cbegin(), iter);
-  *r = possible_r[index];
-  *t = possible_t[index];
-
-  return true;
+  const int best_candidate_index =
+    std::distance(candidate_valid_triangulated_points.cbegin(), most_valid_triangulate_points_index);
+  const auto best_rotation = possible_rotations[best_candidate_index];
+  const auto best_translation = possible_translations[best_candidate_index];
+  return lc::Isometry3d(best_translation, best_rotation);
 }
+
 std::vector<cv::DMatch> FindMatches(const Descriptors& descriptors_a, const Descriptors& descriptors_b,
                                     const int brisk_hamming_distance, const double surf_goodness_ratio) {
   if (descriptors_a.size() == 0 || descriptors_b.size() == 0) return;
@@ -297,12 +300,11 @@ boost::optional<Eigen::Affine3d> EstimateRelativeAffine3D(
     matching_keypoints_b.col(i) = keypoints_b.col(matches[i].trainIdx);
   }
 
-  const std::pair<size_t, size_t> image_size(camera_params.GetUndistortedSize()[0],
-                                             camera_params.GetUndistortedSize()[1]);
+  const std::pair<int, int> image_size(camera_params.GetUndistortedSize()[0], camera_params.GetUndistortedSize()[1]);
   const Eigen::Matrix3d intrinsics = camera_params.GetIntrinsicMatrix<camera::UNDISTORTED_C>();
 
   Eigen::Matrix3d essential_matrix;
-  std::vector<size_t> vec_inliers;
+  std::vector<int> vec_inliers;
   double max_error = std::numeric_limits<double>::max();
   double max_expected_error = 2.5;
   // TODO(rsoussan): Update this!
@@ -312,15 +314,15 @@ boost::optional<Eigen::Affine3d> EstimateRelativeAffine3D(
     return boost::none;
   }
 
-  if (vec_inliers.size() < static_cast<size_t>(FLAGS_min_valid)) {
+  if (vec_inliers.size() < static_cast<int>(FLAGS_min_valid)) {
     LOG(DEBUG) << "Failed to get enough inliers " << vec_inliers.size();
     return boost::none;
   }
 
   Eigen::Matrix3d r;
   Eigen::Vector3d t;
-  if (!EstimateRTFromE(intrinsics, intrinsics, matching_keypoints_a, matching_keypoints_b, essential_matrix,
-                       vec_inliers, &r, &t)) {
+  if (!EstimatePoseFromEssentialMatrix(intrinsics, intrinsics, matching_keypoints_a, matching_keypoints_b,
+                                       essential_matrix, vec_inliers, &r, &t)) {
     LOG(DEBUG) << "Failed to extract RT from E";
     return boost::none;
   }
@@ -483,22 +485,22 @@ void BundleAdjustSmallSet(std::vector<Eigen::Matrix2Xd> const& features_n, doubl
   CHECK(cam_T_global_n->size() > 1) << "Bundle adjust needs at least 2 or more cameras";
   CHECK(pid_to_global_t_point->cols() == features_n[0].cols())
     << "There should be an equal amount of XYZ points as there are feature observations";
-  for (size_t i = 1; i < features_n.size(); i++) {
+  for (int i = 1; i < features_n.size(); i++) {
     CHECK(features_n[0].cols() == features_n[i].cols()) << "The same amount of features should be seen in all cameras";
   }
 
-  const size_t n_cameras = features_n.size();
+  const int n_cameras = features_n.size();
 
   // Allocate space for the angle axis representation of rotation
   std::vector<Eigen::Vector3d> aa(n_cameras);
-  for (size_t cid = 0; cid < n_cameras; cid++) {
+  for (int cid = 0; cid < n_cameras; cid++) {
     camera::RotationToRodrigues(cam_T_global_n->at(cid).linear(), &aa[cid]);
   }
 
   // Build the problem
   ceres::Problem problem;
   for (ptrdiff_t pid = 0; pid < pid_to_global_t_point->cols(); pid++) {
-    for (size_t cid = 0; cid < n_cameras; cid++) {
+    for (int cid = 0; cid < n_cameras; cid++) {
       ceres::CostFunction* cost_function = ReprojectionError::Create(features_n[cid].col(pid));
       problem.AddResidualBlock(cost_function, loss, &cam_T_global_n->at(cid).translation()[0], &aa.at(cid)[0],
                                &pid_to_global_t_point->col(pid)[0], &focal_length);
@@ -511,7 +513,7 @@ void BundleAdjustSmallSet(std::vector<Eigen::Matrix2Xd> const& features_n, doubl
 
   // Write the rotations back to the transform
   Eigen::Matrix3d r;
-  for (size_t cid = 0; cid < n_cameras; cid++) {
+  for (int cid = 0; cid < n_cameras; cid++) {
     camera::RodriguesToRotation(aa[cid], &r);
     cam_T_global_n->at(cid).linear() = r;
   }
