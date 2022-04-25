@@ -63,19 +63,18 @@ bool EstimateRTFromE(Eigen::Matrix3d const& k1, Eigen::Matrix3d const& k2, Eigen
 
   // TODO(rsoussan): Remove this/use vision_common code, remove detection of feature type
   // base on descriptor
-  void FindMatches(const cv::Mat & img1_descriptor_map,
-                   const cv::Mat & img2_descriptor_map,
-                   std::vector<cv::DMatch> * matches);
+std::vector<cv::DMatch> FindMatches(const Descriptors& descriptors_a, const Descriptors& descriptors_b,
+                                    const int brisk_hamming_distance = 90, const double surf_goodness_ratio = 0.8);
 
-  boost::optional<Eigen::Affine3d> MatchImages(const Eigen::Matrix2Xd& keypoints_a, const Eigen::Matrix2Xd& keypoints_b,
-                                               const cv::Mat& descriptors_a, const cv::Mat& descriptors_b,
-                                               const camera::CameraParameters& camera_params, const int max_num_matches,
-                                               const int min_num_inliers_for_valid_match,
-                                               std::vector<cv::DMatch>& inlier_matches);
+boost::optional<Eigen::Affine3d> MatchImages(const Keypoints& keypoints_a, const Keypoints& keypoints_b,
+                                             const Descriptors& descriptors_a, const Descriptors& descriptors_b,
+                                             const camera::CameraParameters& camera_params, const int max_num_matches,
+                                             const int min_num_inliers_for_valid_match,
+                                             std::vector<cv::DMatch>& inlier_matches);
 
-  boost::optional<Eigen::Affine3d> EstimateRelativeAffine3D(
-    const Eigen::Matrix2Xd& keypoints_a, const Eigen::Matrix2Xd& keypoints_b, const std::vector<cv::DMatch>& matches,
-    const camera::CameraParameters& camera_params, const int max_num_matches, std::vector<cv::DMatch>& inlier_matches);
+boost::optional<Eigen::Affine3d> EstimateRelativeAffine3D(
+  const Eigen::Matrix2Xd& keypoints_a, const Eigen::Matrix2Xd& keypoints_b, const std::vector<cv::DMatch>& matches,
+  const camera::CameraParameters& camera_params, const int max_num_matches, std::vector<cv::DMatch>& inlier_matches);
 
 // ICP solver that given matching 3D points, finds an affine transform that
 // best fits in to out.
