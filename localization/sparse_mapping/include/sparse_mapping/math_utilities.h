@@ -72,7 +72,7 @@ boost::optional<Eigen::Affine3d> MatchImages(const Keypoints& keypoints_a, const
                                              const int min_num_inliers_for_valid_match,
                                              std::vector<cv::DMatch>& inlier_matches);
 
-boost::optional<Eigen::Affine3d> EstimateRelativeAffine3D(
+boost::optional<Eigen::Affine3d> EstimateNormalizedRelativeAffine3D(
   const Eigen::Matrix2Xd& keypoints_a, const Eigen::Matrix2Xd& keypoints_b, const std::vector<cv::DMatch>& matches,
   const camera::CameraParameters& camera_params, const int max_num_matches, std::vector<cv::DMatch>& inlier_matches);
 

@@ -275,7 +275,7 @@ boost::optional<Eigen::Affine3d> MatchImages(const Keypoints& keypoints_a, const
   }
 
   const auto relative_pose =
-    EstimateRelativeAffine3D(keypoints1, keypoints2, matches, camera_params, max_num_matches, inlier_matches);
+    EstimateNormalizedRelativeAffine3D(keypoints1, keypoints2, matches, camera_params, max_num_matches, inlier_matches);
   if (!relative_pose) return boost::none;
 
   if (static_cast<int>(inlier_matches.size()) < min_num_inliers_for_valid_match) {
@@ -286,12 +286,10 @@ boost::optional<Eigen::Affine3d> MatchImages(const Keypoints& keypoints_a, const
   return relative_pose;
 }
 
-boost::optional<Eigen::Affine3d> EstimateRelativeAffine3D(const Keypoints& keypoints_a, const Keypoints& keypoints_b,
-                                                          const std::vector<cv::DMatch>& matches,
-                                                          const camera::CameraParameters& camera_params,
-                                                          const int max_num_matches,
-                                                          std::vector<cv::DMatch>& inlier_matches,
-                                                          const int min_valid_inliers = 20) {
+boost::optional<Eigen::Affine3d> EstimateNormalizedRelativeAffine3D(
+  const Keypoints& keypoints_a, const Keypoints& keypoints_b, const std::vector<cv::DMatch>& matches,
+  const camera::CameraParameters& camera_params, const int max_num_matches, std::vector<cv::DMatch>& inlier_matches,
+  const int min_valid_inliers = 20) {
   const int num_matches = matches.size();
   Keypoints matching_keypoints_a;
   Keypoints matching_keypoints_b;
