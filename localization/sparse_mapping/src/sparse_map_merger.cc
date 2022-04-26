@@ -271,7 +271,8 @@ void SparseMapMerger::AddNewTracks(const MatchingTracks& matching_tracks) {
         keypoints.emplace_back(merged_map_->keypoint(cid, fid));
       }
       const auto global_t_point = Triangulate(intrinsics, poses, keypoints);
-      merged_map_->AddTrack(global_t_b_point, cid_to_fid);
+      if (!global_t_point) continue;
+      merged_map_->AddTrack(*global_t_b_point, cid_to_fid);
     }
   }
 }
