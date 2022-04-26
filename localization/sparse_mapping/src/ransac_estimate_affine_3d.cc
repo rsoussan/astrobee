@@ -30,7 +30,7 @@ Eigen::Affine3d TranslationRotationScaleFittingFunctor::operator()(std::vector<E
   if (in_vec.size() < min_elements_needed_for_fit())
     LOG(FATAL) << "Cannot compute a transformation. Insufficient data.\n";
 
-  return Find3DAffineTransform(in_vec, out_vec);
+  return EstimateRelativeAffine3D(in_vec, out_vec);
 }
 
 double TransformError::operator()(Eigen::Affine3d const& T, Eigen::Vector3d const& p1,

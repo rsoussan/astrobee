@@ -558,7 +558,8 @@ void SparseMap::RegisterUsingControlPoints() {
   const auto triangulated_global_t_points = TriangulatedControlPoints();
   std::cout << "Control Point errors before registration: " << std::endl;
   PrintControlPointErrors(triangulated_global_t_points);
-  const auto registered_global_T_global = Find3DAffineTransform(triangulated_global_t_points, control_point_pid_to_global_t_point());
+  const auto registered_global_T_global =
+    EstimateRelativeAffine3D(triangulated_global_t_points, control_point_pid_to_global_t_point());
   Transform(registered_global_T_global);
 
   std::vector<Eigen::Vector3d> triangulated_registered_global_t_points;

@@ -76,7 +76,8 @@ boost::optional<Eigen::Affine3d> EstimateNormalizedRelativeAffine3D(
   const Eigen::Matrix2Xd& keypoints_a, const Eigen::Matrix2Xd& keypoints_b, const std::vector<cv::DMatch>& matches,
   const camera::CameraParameters& camera_params, const int max_num_matches, std::vector<cv::DMatch>& inlier_matches);
 
-Eigen::Affine3d Find3DAffineTransform(const std::vector<Eigen::Vector3d>& points_a, const std::vector<Eigen::Vector3d>& points_b);
+Eigen::Affine3d EstimateRelativeAffine3D(const std::vector<Eigen::Vector3d>& points_a,
+                                         const std::vector<Eigen::Vector3d>& points_b);
 
 // Assumes each feature is seen in every camera
 ceres::Solver::Summary BundleAdjustFeatureSet(const std::vector<Keypoints>& camera_keypoints, const double focal_length,
