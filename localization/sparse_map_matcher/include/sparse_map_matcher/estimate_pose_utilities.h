@@ -15,12 +15,12 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-#ifndef SPARSE_MAPPING_ESTIMATE_POSE_UTILITIES_H_
-#define SPARSE_MAPPING_ESTIMATE_POSE_UTILITIES_H_
+#ifndef SPARSE_MAP_MATCHER_ESTIMATE_POSE_UTILITIES_H_
+#define SPARSE_MAP_MATCHER_ESTIMATE_POSE_UTILITIES_H_
 
 #include <ff_common/eigen_vectors.h>
-#include <sparse_mapping/estimate_pose_params.h>
-#include <sparse_mapping/estimate_pose_results.h>
+#include <sparse_map_matcher/estimate_pose_params.h>
+#include <sparse_map_matcher/estimate_pose_results.h>
 #include <sparse_mapping/sparse_map.h>
 
 #include <Eigen/Geometry>
@@ -28,7 +28,10 @@
 #include <vector>
 #include <string>
 
-namespace sparse_mapping {
+namespace sparse_map_matcher {
+using Keypoints = std::vector<Keypoints>;
+using Descriptors = std::vector<Descriptor>;
+
 struct ImageMatch {
   std::vector<cv::DMatch> matches;
   int num_valid_matches;
@@ -37,25 +40,20 @@ struct ImageMatch {
 };
 
 void GetMatchingObservationsAndLandmarks(const std::vector<ImageMatches>& image_matches, const SparseMap& map,
-                                         std::vector<Eigen::Vector2d>& observations,
+                                         const Keypoints& keypoints, std::vector<Eigen::Vector2d>& observations,
                                          std::vector<Eigen::Vector3d>& landmarks);
 
-std::vector<ImageMatch> FindAndSortMatches(const std::vector<int>& matching_cids, const SparseMap& map,
-                                           const int max_num_total_feature_matches = 100,
+std::vector<ImageMatch> FindAndSortMatches(const std::vector<int>& matching_cids, const Descriptors& descriptors,
+                                           const SparseMap& map, const int max_num_total_feature_matches = 100,
                                            const bool check_point_3d_exists = true,
                                            const int min_matches_per_image = 5);
-/**
- * Estimate the camera pose for a set of image descriptors and keypoints.
- **/
-EstimatePoseResults EstimatePose(
-  const cv::Mat& descriptors,  // TODO(rsoussan): change this to vector of descriptors
-                               // TODO(rsoussan): change this to vector of Eigen::Vector2ds
-  const Eigen::Matrix2Xd& keypoints, const SparseMap& map, const EstimatePoseParams& params);
+
+EstimatePoseResults EstimatePose(const Descriptors& descriptors, const Keypoints& keypoints, const SparseMap& map,
+                                 const EstimatePoseParams& params);
 
 EstimatePoseResults EstimatePose(const cv::Mat& image, const EstimatePoseParams& params, SparseMap& map);
 
 EstimatePoseResults EstimatePose(const std::string& image_filename, const EstimatePoseParams& params, SparseMap& map);
+}  // namespace sparse_map_matcher
 
-}  // namespace sparse_mapping
-
-#endif  // SPARSE_MAPPING_ESTIMATE_POSE_UTILITIES_H_
+#endif  // SPARSE_MAP_MATCHER_ESTIMATE_POSE_UTILITIES_H_

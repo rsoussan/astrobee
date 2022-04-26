@@ -16,18 +16,18 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_ESTIMATE_POSE_RESULTS_H_
-#define SPARSE_MAPPING_ESTIMATE_POSE_RESULTS_H_
+#ifndef SPARSE_MAP_MATCHER_ESTIMATE_POSE_RESULTS_H_
+#define SPARSE_MAP_MATCHER_ESTIMATE_POSE_RESULTS_H_
 
 #include <Eigen/Geometry>
 
 #include <vector>
 
-namespace sparse_mapping {
+namespace sparse_map_matcher {
 struct EstimatePoseResults {
   boost::optional<Eigen::Isometry3d> pose;
   boost::optional<std::vector<Eigen::Vector3d>> inlier_landmarks;
   boost::optional<std::vector<Eigen::Vector2d>> inlier_observations;
 };
-}  // namespace sparse_mapping
-#endif  // SPARSE_MAPPING_ESTIMATE_POSE_RESULTS_H_
+}  // namespace sparse_map_matcher
+#endif  // SPARSE_MAP_MATCHER_ESTIMATE_POSE_RESULTS_H_

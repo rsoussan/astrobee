@@ -24,8 +24,7 @@ namespace sparse_map_matcher {
 namespace sm = sparse_mapping;
 
 SparseMapMatcher::SparseMapMatcher(const SparseMapMatcherParams& params)
-    : params_(params), detector_(params.detector), map_(params.map_name, true) {
-}
+    : params_(params), detector_(params.detector), map_(params.map_name, true) {}
 
 sm::EstimatePoseResults SparseMapMatcher::Match(const cv::Mat& image) {
   cv::Mat descriptors;

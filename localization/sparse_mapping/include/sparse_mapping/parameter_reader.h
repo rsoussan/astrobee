@@ -19,9 +19,7 @@
 #define SPARSE_MAPPING_PARAMETER_READER_H_
 
 #include <config_reader/config_reader.h>
-#include <sparse_mapping/estimate_pose_params.h>
 
-namespace sparse_mapping {
-void LoadEstimatePoseParams(config_reader::ConfigReader& config, EstimatePoseParams& params);
-}  // namespace sparse_mapping
-#endif  // SPARSE_MAPPING_PARAMETER_READER_H_
+namespace sparse_mapping {}  // namespace sparse_mapping
+#endif  // SPARSE_MAPPING_PARAMETER_READER_H_   NOLINT
+

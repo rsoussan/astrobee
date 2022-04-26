@@ -16,18 +16,10 @@
  * under the License.
  */
 
-#include <localization_common/logger.h>
 #include <msg_conversions/msg_conversions.h>
 #include <sparse_mapping/parameter_reader.h>
 
 namespace sparse_mapping {
 namespace mc = msg_conversions;
-namespace vc = vision_common;
 
-void LoadEstimatePoseParams(config_reader::ConfigReader& config, EstimatePoseParams& params) {
-  vc::LoadReprojectionPoseEstimateParams(config, params);
-  params.max_num_total_feature_matches = mc::LoadInt(config, "max_num_total_feature_matches");
-  params.check_point_3d_exists = mc::LoadBool(config, "check_point_3d_exists");
-  params.max_image_matches = mc::LoadInt(config, "max_image_matches");
-}
 }  // namespace sparse_mapping

@@ -20,10 +20,12 @@
 #define SPARSE_MAP_MATCHER_PARAMETER_READER_H_
 
 #include <config_reader/config_reader.h>
+#include <sparse_map_matcher/estimate_pose_params.h>
 #include <sparse_map_matcher/sparse_map_matcher_params.h>
 
 namespace sparse_map_matcher {
-LoadSparseMapMatcherParams(config_reader::ConfigReader& config, SparseMapMatcherParams& params);
+void LoadSparseMapMatcherParams(config_reader::ConfigReader& config, SparseMapMatcherParams& params);
+void LoadEstimatePoseParams(config_reader::ConfigReader& config, EstimatePoseParams& params);
 }  // namespace sparse_map_matcher
 
 #endif  // SPARSE_MAP_MATCHER_PARAMETER_READER_H_

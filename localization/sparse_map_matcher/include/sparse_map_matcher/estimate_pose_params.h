@@ -16,14 +16,16 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_ESTIMATE_POSE_PARAMS_H_
-#define SPARSE_MAPPING_ESTIMATE_POSE_PARAMS_H_
+#ifndef SPARSE_MAP_MATCHER_ESTIMATE_POSE_PARAMS_H_
+#define SPARSE_MAP_MATCHER_ESTIMATE_POSE_PARAMS_H_
 
-namespace sparse_mapping {
+#include <vision_common/reprojection_pose_estimate_params.h>
+
+namespace sparse_map_matcher {
 struct EstimatePoseParams : vision_common::ReprojectionPoseEstimateParams {
   int max_num_total_feature_matches;
   bool check_point_3d_exists;
   int max_image_matches;
 };
-}  // namespace sparse_mapping
-#endif  // SPARSE_MAPPING_ESTIMATE_POSE_PARAMS_H_
+}  // namespace sparse_map_matcher
+#endif  // SPARSE_MAP_MATCHER_ESTIMATE_POSE_PARAMS_H_

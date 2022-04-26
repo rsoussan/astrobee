@@ -16,18 +16,25 @@
  * under the License.
  */
 
+#include <msg_conversions/msg_conversions.h>
 #include <sparse_map_matcher/parameter_reader.h>
-#include <sparse_mapping/parameter_reader.h>
 #include <vision_common/parameter_reader.h>
 
 namespace sparse_map_matcher {
-namespace sm = sparse_mapping;
+namespace mc = msg_conversions;
 namespace vc = vision_common;
 
-LoadSparseMapMatcherParams(config_reader::ConfigReader& config, SparseMapMatcherParams& params) {
+void LoadSparseMapMatcherParams(config_reader::ConfigReader& config, SparseMapMatcherParams& params) {
   params.map_name = mc::LoadString(config, "world_vision_map_filename");
-  params.estimate_pose = sm::LoadEstimatePoseParams(config, params);
+  params.estimate_pose = LoadEstimatePoseParams(config, params);
   params.brisk_detector = vc::LoadBriskDynamicDetectorParams(config, params);
   params.num_cv_threads = mc::LoadInt(config, "num_cv_threads");
+}
+
+void LoadEstimatePoseParams(config_reader::ConfigReader& config, EstimatePoseParams& params) {
+  vc::LoadReprojectionPoseEstimateParams(config, params);
+  params.max_num_total_feature_matches = mc::LoadInt(config, "max_num_total_feature_matches");
+  params.check_point_3d_exists = mc::LoadBool(config, "check_point_3d_exists");
+  params.max_image_matches = mc::LoadInt(config, "max_image_matches");
 }
 }  // namespace sparse_map_matcher
