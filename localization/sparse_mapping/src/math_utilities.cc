@@ -41,7 +41,7 @@ Eigen::Matrix2Xd MatrixFromVector(const std::vector<Eigen::Vector2d>& vector) {
 // Compute the n-weight slerp, analogous to the linear combination
 // W[0]*Q[0] + ... + W[n-1]*Q[n-1]. This is experimental.
 // We assume the sum of weights is 1.
-Eigen::Quaternion<double> slerp_n(std::vector<double> const& W, std::vector<Eigen::Quaternion<double> > const& Q) {
+Eigen::Quaternion<double> slerp_n(std::vector<double> const& W, std::vector<Eigen::Quaternion<double>> const& Q) {
   if (W.size() != Q.size()) LOG(FATAL) << "Expecting as many quaternions as weights.";
 
   if (Q.empty()) LOG(FATAL) << "Expecting at least one quaternion and weight.";
@@ -59,7 +59,7 @@ Eigen::Quaternion<double> slerp_n(std::vector<double> const& W, std::vector<Eige
   if (sum == 0) sum = 1.0;
   Eigen::Quaternion<double> q = Q[0].slerp(W[1] / sum, Q[1]);
   std::vector<double> W2 = W;
-  std::vector<Eigen::Quaternion<double> > Q2 = Q;
+  std::vector<Eigen::Quaternion<double>> Q2 = Q;
   W2.erase(W2.begin());
   Q2.erase(Q2.begin());
   W2[0] = sum;
@@ -245,7 +245,7 @@ std::vector<cv::DMatch> FindMatches(const Descriptors& descriptors_a, const Desc
     return inlier_matches;
   } else {  // Floating point descriptor
     cv::FlannBasedMatcher matcher;
-    std::vector<std::vector<cv::DMatch> > possible_matches;
+    std::vector<std::vector<cv::DMatch>> possible_matches;
     matcher.knnMatch(descriptors_a, descriptors_b, possible_matches, 2);
     std::vector<cv::DMatch> matches;
     for (const auto& best_matches : possible_matches) {
@@ -473,49 +473,57 @@ void Find3DAffineTransform(Eigen::Matrix3Xd const& in, Eigen::Matrix3Xd const& o
   result->translation() = scale * (out_ctr - R * in_ctr);
 }
 
-// This is a very specialized function
-// TODO(rsoussan): Clean this up? Use for ransac affine3d?
-void BundleAdjustSmallSet(std::vector<Eigen::Matrix2Xd> const& features_n, double focal_length,
-                          std::vector<Eigen::Affine3d>* cam_T_global_n, Eigen::Matrix3Xd* pid_to_global_t_point,
-                          ceres::LossFunction* loss, ceres::Solver::Options const& options,
-                          ceres::Solver::Summary* summary) {
-  CHECK(cam_T_global_n) << "Variable cam_T_global_n needs to be defined";
-  CHECK(cam_T_global_n->size() == features_n.size())
-    << "Variables features_n and cam_T_global_n need to agree on the number of cameras";
-  CHECK(cam_T_global_n->size() > 1) << "Bundle adjust needs at least 2 or more cameras";
-  CHECK(pid_to_global_t_point->cols() == features_n[0].cols())
+ceres::Solver::Summary BundleAdjustFeatureSet(const std::vector<Keypoints>& camera_keypoints, const double focal_length,
+                                              const ceres::Solver::Options& options,
+                                              std::vector<Eigen::Affine3d>& cam_T_globals,
+                                              std::vector<Eigen::Vector3d>& global_t_points,
+                                              ceres::LossFunction* loss) {
+  CHECK(cam_T_globals.size() == camera_keypoints.size())
+    << "Variables features_n and cam_T_globals need to agree on the number of cameras";
+  CHECK(cam_T_globals.size() > 1) << "Bundle adjust needs at least 2 or more cameras";
+  CHECK(global_t_point.size() == camera_keypoints[0].size())
     << "There should be an equal amount of XYZ points as there are feature observations";
-  for (int i = 1; i < features_n.size(); i++) {
-    CHECK(features_n[0].cols() == features_n[i].cols()) << "The same amount of features should be seen in all cameras";
+  for (int i = 1; i < static_cast<int>(camera_keypoints.size()); ++i) {
+    CHECK(camera_keypoints[0].cols() == camera_keypoints[i].cols())
+      << "The same amount of features should be seen in all cameras";
   }
 
-  const int n_cameras = features_n.size();
-
-  // Allocate space for the angle axis representation of rotation
-  std::vector<Eigen::Vector3d> aa(n_cameras);
-  for (int cid = 0; cid < n_cameras; cid++) {
-    camera::RotationToRodrigues(cam_T_global_n->at(cid).linear(), &aa[cid]);
+  const int num_cameras = camera_keypoints.size();
+  std::vector<Eigen::Matrix<double, 7, 1>> cam_T_global_data_vec;
+  cam_T_global_data_vec.reserve(num_cameras);
+  for (const auto& cam_T_global : cam_T_globals) {
+    cam_T_global_data_vec.emplace_back(oc::VectorFromAffine3d(cam_T_global));
   }
 
-  // Build the problem
   ceres::Problem problem;
-  for (ptrdiff_t pid = 0; pid < pid_to_global_t_point->cols(); pid++) {
-    for (int cid = 0; cid < n_cameras; cid++) {
-      ceres::CostFunction* cost_function = ReprojectionError::Create(features_n[cid].col(pid));
-      problem.AddResidualBlock(cost_function, loss, &cam_T_global_n->at(cid).translation()[0], &aa.at(cid)[0],
-                               &pid_to_global_t_point->col(pid)[0], &focal_length);
+  // Centered, undistored camera
+  const Eigen::Vector2d zero_principal_points(Eigen::Vector2d::Zero());
+  const Eigen::VectorXd zero_distortion(1);
+  const Eigen::Vector2d focal_lengths(focal_length, focal_length);
+  oc::AddConstantParameterBlock(2, zero_principal_points.data(), problem);
+  oc::AddConstantParameterBlock(1, zero_distortion.data(), problem);
+  oc::AddConstantParameterBlock(2, focal_lengths.data(), problem);
+
+  for (int pid = 0; pid < static_cast<int>(global_t_points.size()); ++pid) {
+    for (int cid = 0; cid < num_cameras; ++cid) {
+      auto& cam_T_global_data = cam_T_global_data_vec[cid];
+      oc::AddAffine3ParameterBlock(cam_T_global_data.data(), problem);
+      ceres::SubsetParameterization* constant_scale_parameterization = new ceres::SubsetParameterization(7, {6});
+      problem.SetParameterization(cam_T_global_data.data(), constant_scale_parameterization);
+      oc::ReprojectionError<vc::IdentityDistorter, oc::AffineFunctor>::AddCostFunction(
+        camera_keypoints[cid][pid], global_t_points[pid], cam_T_global_data,
+        const_cast<Eigen::Vector2d&>(focal_lengths), const_cast<Eigen::Vector2d&>(zero_principal_points),
+        const_cast<Eigen::VectorXd&>(zero_distortion), problem, loss);
     }
   }
-  problem.SetParameterBlockConstant(&focal_length);
 
-  // Solve the problem
-  ceres::Solve(options, &problem, summary);
+  ceres::Solver::Summary summary;
+  ceres::Solve(params.options, &problem, &summary);
 
-  // Write the rotations back to the transform
-  Eigen::Matrix3d r;
-  for (int cid = 0; cid < n_cameras; cid++) {
-    camera::RodriguesToRotation(aa[cid], &r);
-    cam_T_global_n->at(cid).linear() = r;
+  for (int cid = 0; cid < num_cameras; ++cid) {
+    cam_T_globals[cid] = oc::Affine3d(cam_T_global_data_vec[cid]);
   }
+
+  return summary;
 }
 }  // namespace sparse_mapping

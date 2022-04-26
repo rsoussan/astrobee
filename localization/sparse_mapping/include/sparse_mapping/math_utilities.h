@@ -80,18 +80,11 @@ boost::optional<Eigen::Affine3d> EstimateRelativeAffine3D(
 // best fits in to out.
 void Find3DAffineTransform(Eigen::Matrix3Xd const& in, Eigen::Matrix3Xd const& out, Eigen::Affine3d* result);
 
-/**
- * Perform bundle adjustment.
- *
- * This variant assumes that all cameras see that same points. This is
- * meant to be used to do 2 or 3 camera refinements however it can do
- * N cameras just fine.
- *
- **/
-void BundleAdjustSmallSet(std::vector<Eigen::Matrix2Xd> const& features_n, double focal_length,
-                          std::vector<Eigen::Affine3d>* cam_t_global_n, Eigen::Matrix3Xd* pid_to_xyz,
-                          ceres::LossFunction* loss, ceres::Solver::Options const& options,
-                          ceres::Solver::Summary* summary);
+// Assumes each feature is seen in every camera
+ceres::Solver::Summary BundleAdjustFeatureSet(const std::vector<Keypoints>& camera_keypoints, const double focal_length,
+                                              const ceres::Solver::Options& options,
+                                              std::vector<Eigen::Affine3d>& cam_T_globals,
+                                              std::vector<Eigen::Vector3d>& global_t_points, ceres::LossFunction* loss);
 }  // namespace sparse_mapping
 
 #endif  // SPARSE_MAPPING_MATH_UTILITIES_H_
