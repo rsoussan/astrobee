@@ -16,11 +16,12 @@
  * under the License.
  */
 
-#include <sparse_mapping/ransac_estimate_affine_3d.h>
+#include <vision_common/mapping_utilities.h>
+#include <vision_common/ransac_estimate_affine_3d.h>
 
 #include <glog/logging.h>
 
-namespace sparse_mapping {
+namespace vision_common {
 Eigen::Affine3d TranslationRotationScaleFittingFunctor::operator()(std::vector<Eigen::Vector3d> const& in_vec,
                                                                    std::vector<Eigen::Vector3d> const& out_vec) const {
   // check consistency
@@ -37,4 +38,4 @@ double TransformError::operator()(Eigen::Affine3d const& T, Eigen::Vector3d cons
                                   Eigen::Vector3d const& p2) const {
   return (T * p1 - p2).norm();
 }
-}  // namespace sparse_mapping
+}  // namespace vision_common

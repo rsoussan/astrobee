@@ -16,17 +16,17 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_RANSAC_ESTIMATE_AFFINE_3D_H_
-#define SPARSE_MAPPING_RANSAC_ESTIMATE_AFFINE_3D_H_
+#ifndef VISION_COMMON_RANSAC_ESTIMATE_AFFINE_3D_H_
+#define VISION_COMMON_RANSAC_ESTIMATE_AFFINE_3D_H_
 
-#include <sparse_mapping/ransac.h>
+#include <vision_common/ransac.h>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
 #include <vector>
 
-namespace sparse_mapping {
+namespace vision_common {
 using RansacEstimateAffine3d = RandomSampleConsus<TranslationRotationScaleFittingFunctor, TransformError>;
 
 // This fitting functor attempts to find a rotation + translation + scale transformation
@@ -44,6 +44,6 @@ struct TranslationRotationScaleFittingFunctor {
 struct TransformError {
   double operator()(Eigen::Affine3d const& T, Eigen::Vector3d const& p1, Eigen::Vector3d const& p2) const;
 };
-}  // namespace sparse_mapping
+}  // namespace vision_common
 
-#endif  // SPARSE_MAPPING_RANSAC_ESTIMATE_AFFINE_3D_H_
+#endif  // VISION_COMMON_RANSAC_ESTIMATE_AFFINE_3D_H_

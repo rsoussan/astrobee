@@ -16,8 +16,8 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_RANSAC_H_
-#define SPARSE_MAPPING_RANSAC_H_
+#ifndef VISION_COMMON_RANSAC_H_
+#define VISION_COMMON_RANSAC_H_
 
 #include <glog/logging.h>
 
@@ -29,7 +29,7 @@
 #include <random>
 #include <limits>
 
-namespace sparse_mapping {
+namespace vision_common {
 
 void get_n_unique_integers(int min_val, int max_val, int num, std::mt19937* generator, std::vector<int>* values);
 
@@ -234,6 +234,6 @@ typename FittingFuncT::result_type ransac(std::vector<ContainerT1> const& p1, st
   return ransac_instance(p1, p2);
 }
 
-}  // namespace sparse_mapping
+}  // namespace vision_common
 
-#endif  // SPARSE_MAPPING_RANSAC_H_
+#endif  // VISION_COMMON_RANSAC_H_

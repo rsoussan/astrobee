@@ -17,13 +17,13 @@
  */
 
 #include <glog/logging.h>
-#include <sparse_mapping/ransac.h>
+#include <vision_common/ransac.h>
 
 #include <iostream>
 #include <set>
 #include <functional>
 
-namespace sparse_mapping {
+namespace vision_common {
 
 // Get a given number of unique random integers within a given range
 // (inclusive). It is very important that the generator be stored
@@ -54,4 +54,4 @@ void get_n_unique_integers(int min_val, int max_val, int num, std::mt19937* gene
   }
 }
 
-}  // namespace sparse_mapping
+}  // namespace vision_common
