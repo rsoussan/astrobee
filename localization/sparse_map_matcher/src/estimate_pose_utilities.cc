@@ -72,8 +72,8 @@ void GetMatchingObservationsAndLandmarks(const std::vector<ImageMatches>& image_
   }
 }
 
-EstimatePoseResults EstimatePose(const Descriptors& descriptors, const Keypoints& keypoints, const SparseMap& map,
-                                 const EstimatePoseParams& params) {
+boost::optional<EstimatePoseResults> EstimatePose(const Descriptors& descriptors, const Keypoints& keypoints,
+                                                  const SparseMap& map, const EstimatePoseParams& params) {
   const auto matching_cids = map.image_database().Query(descriptors, params.max_image_matches);
   if (matching_cids.empty()) {
     LOG(FATAL) << "No matching cids found.";
@@ -90,11 +90,9 @@ EstimatePoseResults EstimatePose(const Descriptors& descriptors, const Keypoints
   const Eigen::Vector2d focal_lengths = map.params().camera.GetFocalVector();
   const auto pose = vc::ReprojectionPoseEstimate<vc::IdentityDistorter>(observations, landmarks, focal_lengths,
                                                                         zero_principal_points, zero_distortion, params);
+  if (!pose) return boost::none;
+
   EstimatePoseResults results;
-  if (!pose) {
-    results.pose = boost::none;
-    return results;
-  }
   results.pose = pose->pose;
   results.inlier_landmarks = std::vector<Eigen::Vector3d>();
   results.inlier_observations = std::vector<Eigen::Vector2d>();
@@ -105,16 +103,17 @@ EstimatePoseResults EstimatePose(const Descriptors& descriptors, const Keypoints
   return results;
 }
 
-EstimatePoseResults EstimatePose(const cv::Mat& image, const EstimatePoseParams& params, SparseMap& map) {
+boost::optional<EstimatePoseResults>  EstimatePose(const cv::Mat& image, const EstimatePoseParams& params,
+                                 vision_common::DynamicDetector& detector, SparseMap& map) {
   Descriptors descriptors;
   Keypoints keypoints;
-  vc::DetectFeatures(image, map.params().histogram_equalization, descriptors, keypoints);
+  vc::DetectFeatures(image, map.params().histogram_equalization, detector, descriptors, keypoints);
   return EstimatePose(descriptors, keypoints, map, params);
 }
 
-EstimatePoseResults EstimatePose(const std::string& image_filename, const EstimatePoseParams& params, SparseMap& map) {
+boost::optional<EstimatePoseResults> EstimatePose(const std::string& image_filename, const EstimatePoseParams& params,
+                                 vision_common::DynamicDetector& detector, SparseMap& map) {
   const auto image = vc::LoadImage(filename);
-  return EstimatePose(image, params, map);
+  return EstimatePose(image, params, detector, map);
 }
-
 }  // namespace sparse_map_matcher

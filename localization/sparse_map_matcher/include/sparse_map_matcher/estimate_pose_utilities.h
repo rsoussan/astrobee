@@ -48,12 +48,14 @@ std::vector<ImageMatch> FindAndSortMatches(const std::vector<int>& matching_cids
                                            const bool check_point_3d_exists = true,
                                            const int min_matches_per_image = 5);
 
-EstimatePoseResults EstimatePose(const Descriptors& descriptors, const Keypoints& keypoints, const SparseMap& map,
-                                 const EstimatePoseParams& params);
+boost::optional<EstimatePoseResults> EstimatePose(const Descriptors& descriptors, const Keypoints& keypoints,
+                                                  const SparseMap& map, const EstimatePoseParams& params);
 
-EstimatePoseResults EstimatePose(const cv::Mat& image, const EstimatePoseParams& params, SparseMap& map);
+boost::optional<EstimatePoseResults>  EstimatePose(const cv::Mat& image, const EstimatePoseParams& params,
+                                 vision_common::DynamicDetector& detector, SparseMap& map);
 
-EstimatePoseResults EstimatePose(const std::string& image_filename, const EstimatePoseParams& params, SparseMap& map);
+boost::optional<EstimatePoseResults> EstimatePose(const std::string& image_filename, const EstimatePoseParams& params,
+                                 vision_common::DynamicDetector& detector, SparseMap& map);
 }  // namespace sparse_map_matcher
 
 #endif  // SPARSE_MAP_MATCHER_ESTIMATE_POSE_UTILITIES_H_

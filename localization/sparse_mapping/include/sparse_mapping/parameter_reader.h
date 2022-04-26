@@ -21,5 +21,4 @@
 #include <config_reader/config_reader.h>
 
 namespace sparse_mapping {}  // namespace sparse_mapping
-#endif  // SPARSE_MAPPING_PARAMETER_READER_H_   NOLINT
-
+#endif                       // SPARSE_MAPPING_PARAMETER_READER_H_   NOLINT

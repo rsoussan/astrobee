@@ -64,9 +64,9 @@ boost::optional<ff_msgs::VisualLandmarks> SparseMapMatcherWrapper::ImageCallback
   const sensor_msgs::ImageConstPtr& image_msg) {
   const auto image_measurement = lm::MakeImageMeasurement(image_msg);
   const auto pose_estimate = matcher_.ImageCallback(image_measurement.image);
-  if (!pose_estimate.pose) return boost::none;
-  const Eigen::Isometry3d world_T_camera(pose_estimate.pose->GetTransform().matrix());
-  return VlMsg(world_T_camera, image_measurement.timestamp, *(pose_estimate->inlier_observations),
-               *(pose_estimate->inlier_landmarks));
+  if (!pose_estimate) return boost::none;
+  const Eigen::Isometry3d world_T_camera(pose_estimate->pose.GetTransform().matrix());
+  return VlMsg(world_T_camera, image_measurement.timestamp, pose_estimate->inlier_observations,
+               pose_estimate->inlier_landmarks);
 }
 }  // namespace sparse_map_matcher

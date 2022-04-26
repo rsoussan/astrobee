@@ -16,20 +16,14 @@
  * under the License.
  */
 
+#include <sparse_map_matcher/estimate_pose_utilities.h>
 #include <sparse_map_matcher/sparse_map_matcher.h>
-#include <sparse_mapping/estimate_pose_utilities.h>
-#include <sparse_mapping/sparse_map_utilities.h>
 
 namespace sparse_map_matcher {
-namespace sm = sparse_mapping;
-
 SparseMapMatcher::SparseMapMatcher(const SparseMapMatcherParams& params)
-    : params_(params), detector_(params.detector), map_(params.map_name, true) {}
+    : params_(params), detector_(params.detector), map_(params.map_name) {}
 
-sm::EstimatePoseResults SparseMapMatcher::Match(const cv::Mat& image) {
-  cv::Mat descriptors;
-  Eigen::Matrix2Xd keypoints;
-  sm::DetectFeatures(image, map_.GetHistogramEqualization(), detector_, &descriptors, &keypoints);
-  return sm::EstimatePose(descriptors, keypoints, map_, params_.estimate_pose);
+boost::optional<EstimatePoseResults> SparseMapMatcher::Match(const cv::Mat& image) {
+  return EstimatePose(image, params_.estimate_pose, detector_, map_);
 }
 }  // namespace sparse_map_matcher
