@@ -51,11 +51,11 @@ std::vector<ImageMatch> FindAndSortMatches(const std::vector<int>& matching_cids
 boost::optional<EstimatePoseResults> EstimatePose(const Descriptors& descriptors, const Keypoints& keypoints,
                                                   const SparseMap& map, const EstimatePoseParams& params);
 
-boost::optional<EstimatePoseResults>  EstimatePose(const cv::Mat& image, const EstimatePoseParams& params,
-                                 vision_common::DynamicDetector& detector, SparseMap& map);
+boost::optional<EstimatePoseResults> EstimatePose(const cv::Mat& image, const EstimatePoseParams& params,
+                                                  vision_common::DynamicDetector& detector, SparseMap& map);
 
 boost::optional<EstimatePoseResults> EstimatePose(const std::string& image_filename, const EstimatePoseParams& params,
-                                 vision_common::DynamicDetector& detector, SparseMap& map);
+                                                  vision_common::DynamicDetector& detector, SparseMap& map);
 }  // namespace sparse_map_matcher
 
 #endif  // SPARSE_MAP_MATCHER_ESTIMATE_POSE_UTILITIES_H_

@@ -17,7 +17,8 @@
  */
 
 #include <localization_common/utilities.h>
-#include <sparse_mapping/math_utilities.h>
+#include <vision_common/dynamic_detector.h>
+#include <vision_common/mapping_utilities.h>
 
 #pragma GCC diagnostic ignored "-Wunused-function"
 #pragma GCC diagnostic ignored "-Wsign-compare"
@@ -30,41 +31,12 @@
 #include <openMVG/robust_estimation/robust_estimator_ACRansacKernelAdaptator.hpp>
 #pragma GCC diagnostic pop
 
-namespace sparse_mapping {
+namespace vision_common {
 Eigen::Matrix2Xd MatrixFromVector(const std::vector<Eigen::Vector2d>& vector) {
-  // TODO(rsoussan): Better way to do this?
   Eigen::Matrix2Xd matrix(2, vector.size());
   for (int i = 0; i < static_cast<int>(vector.size()); ++i) {
     matrix.col(i) = vector[i];
   }
-}
-// Compute the n-weight slerp, analogous to the linear combination
-// W[0]*Q[0] + ... + W[n-1]*Q[n-1]. This is experimental.
-// We assume the sum of weights is 1.
-Eigen::Quaternion<double> slerp_n(std::vector<double> const& W, std::vector<Eigen::Quaternion<double>> const& Q) {
-  if (W.size() != Q.size()) LOG(FATAL) << "Expecting as many quaternions as weights.";
-
-  if (Q.empty()) LOG(FATAL) << "Expecting at least one quaternion and weight.";
-
-  if (Q.size() == 1) return Q[0];
-
-  if (Q.size() == 2) {
-    if (!(std::abs(W[0] + W[1] - 1.0) < 1e-6 && W[0] >= 0 && W[1] >= 0))
-      LOG(FATAL) << "Expecting the weights to be >= 0 and sum up to 1.";
-    return Q[0].slerp(W[1], Q[1]);
-  }
-
-  // Call recursively this function with fewer terms
-  double sum = W[0] + W[1];
-  if (sum == 0) sum = 1.0;
-  Eigen::Quaternion<double> q = Q[0].slerp(W[1] / sum, Q[1]);
-  std::vector<double> W2 = W;
-  std::vector<Eigen::Quaternion<double>> Q2 = Q;
-  W2.erase(W2.begin());
-  Q2.erase(Q2.begin());
-  W2[0] = sum;
-  Q2[0] = q;
-  return slerp_n(W2, Q2);
 }
 
 boost::optional<Eigen::Vector3d> Triangulate(const Eigen::Matrix3d& intrinsics,
@@ -117,7 +89,7 @@ double MaxAngleBetweenCameraRays(const FeatureTrack& feature_track, const Eigen:
   return max_angle;
 }
 
-void DetectFeatures(const cv::Mat& image, const bool histogram_equalization, vision_common::DynamicDetector& detector,
+void DetectFeatures(const cv::Mat& image, const bool histogram_equalization, DynamicDetector& detector,
                     Descriptors& descriptors, Keypoints& keypoints) {
   cv::Mat hist_image;
   if (histogram_equalization) {
@@ -401,55 +373,55 @@ boost::optional<Eigen::Affine3d> EstimateNormalizedRelativeAffine3D(
 
 // Source: http://en.wikipedia.org/wiki/Kabsch_algorithm
 Eigen::Affine3d EstimateRelativeAffine3D(const std::vector<Eigen::Vector3d>& points_a,
-                                         const std::vector<Eigen::Vector3d>& points_b);
-if (points_a.size() != points_b.size()) throw "EstimateRelativeAffine3D(): points are different sizes.";
-Eigen::Affine3d b_T_a(Eigen::Affine3d::Identity());
+                                         const std::vector<Eigen::Vector3d>& points_b) {
+  if (points_a.size() != points_b.size()) throw "EstimateRelativeAffine3D(): points are different sizes.";
+  Eigen::Affine3d b_T_a(Eigen::Affine3d::Identity());
 
-Eigen::Matrix3Xd points_matrix_a = Eigen::MatrixXd(3, points_a.size());
-Eigen::Matrix3Xd points_matrix_b = Eigen::MatrixXd(3, points_b.size());
-for (int i = 0; i < static_cast<int>(points_a.size()); ++i) {
-  points_matrix_a.col(i) = points_a[i];
-  points_matrix_b.col(i) = points_b[i];
+  Eigen::Matrix3Xd points_matrix_a = Eigen::MatrixXd(3, points_a.size());
+  Eigen::Matrix3Xd points_matrix_b = Eigen::MatrixXd(3, points_b.size());
+  for (int i = 0; i < static_cast<int>(points_a.size()); ++i) {
+    points_matrix_a.col(i) = points_a[i];
+    points_matrix_b.col(i) = points_b[i];
+  }
+
+  // First find the scale, by finding the ratio of sums of some distances,
+  // then bring the datasets to the same scale.
+  double sum_sequential_distances_a = 0, sum_sequential_distances_b = 0;
+  for (int i = 0; i < static_cast<int>(points_a.size()) - 1; ++i) {
+    sum_sequential_distances_a += (points_matrix_a.col(i + 1) - points_matrix_a.col(i)).norm();
+    sum_sequential_distances_b += (points_matrix_b.col(i + 1) - points_matrix_b.col(i)).norm();
+  }
+  if (sum_sequential_distances_a <= 0 || sum_sequential_distances_b <= 0) return b_T_a;
+  const double scale = sum_sequential_distances_b / sum_sequential_distances_a;
+  points_matrix_b /= scale;
+
+  // Center points
+  Eigen::Vector3d a_centroid = Eigen::Vector3d::Zero();
+  Eigen::Vector3d b_centroid = Eigen::Vector3d::Zero();
+  for (int i = 0; i < static_cast<int>(points_a.size()); ++i) {
+    a_centroid += points_matrix_a.col(i);
+    b_centroid += points_matrix_b.col(i);
+  }
+  a_centroid /= static_cast<double>(points_a.size());
+  b_centroid /= static_cast<double>(points_b.size());
+  for (int i = 0; i < static_cast<int>(points_a.size()); ++i) {
+    points_matrix_a.col(i) -= a_centroid;
+    points_matrix_b.col(i) -= b_centroid;
+  }
+
+  // Find the rotation
+  const Eigen::Matrix3d Cov = points_matrix_a * points_matrix_b.transpose();
+  const Eigen::JacobiSVD<Eigen::Matrix3d> svd(Cov, Eigen::ComputeFullU | Eigen::ComputeFullV);
+  double d = (svd.matrixV() * svd.matrixU().transpose()).determinant();
+  d = d > 0 ? 1.0 : -1.0;
+  Eigen::Matrix3d I = Eigen::Matrix3d::Identity(3, 3);
+  I(2, 2) = d;
+  const Eigen::Matrix3d rotation = svd.matrixV() * I * svd.matrixU().transpose();
+
+  b_T_a.linear() = scale * rotation;
+  b_T_a.translation() = scale * (b_centroid - rotation * a_centroid);
+  return b_T_a;
 }
-
-// First find the scale, by finding the ratio of sums of some distances,
-// then bring the datasets to the same scale.
-double sum_sequential_distances_a = 0, sum_sequential_distances_b = 0;
-for (int i = 0; i < static_cast<int>(points_a.size()) - 1; ++i) {
-  sum_sequential_distances_a += (points_matrix_a.col(i + 1) - points_matrix_a.col(i)).norm();
-  sum_sequential_distances_b += (points_matrix_b.col(i + 1) - points_matrix_b.col(i)).norm();
-}
-if (sum_sequential_distances_a <= 0 || sum_sequential_distances_b <= 0) return b_T_a;
-const double scale = sum_sequential_distances_b / sum_sequential_distances_a;
-points_matrix_b /= scale;
-
-// Center points
-Eigen::Vector3d a_centroid = Eigen::Vector3d::Zero();
-Eigen::Vector3d b_centroid = Eigen::Vector3d::Zero();
-for (int i = 0; i < static_cast<int>(points_a.size()); ++i) {
-  a_centroid += points_matrix_a.col(i);
-  b_centroid += points_matrix_b.col(i);
-}
-a_centroid /= static_cast<double>(points_a.size());
-b_centroid /= static_cast<double>(points_b.size());
-for (int i = 0; i < static_cast<int>(points_a.size()); ++i) {
-  points_matrix_a.col(i) -= a_centroid;
-  points_matrix_b.col(i) -= b_centroid;
-}
-
-// Find the rotation
-const Eigen::Matrix3d Cov = points_matrix_a * points_matrix_b.transpose();
-const Eigen::JacobiSVD<Eigen::Matrix3d> svd(Cov, Eigen::ComputeFullU | Eigen::ComputeFullV);
-double d = (svd.matrixV() * svd.matrixU().transpose()).determinant();
-d = d > 0 ? 1.0 : -1.0;
-Eigen::Matrix3d I = Eigen::Matrix3d::Identity(3, 3);
-I(2, 2) = d;
-const Eigen::Matrix3d rotation = svd.matrixV() * I * svd.matrixU().transpose();
-
-b_T_a.linear() = scale * rotation;
-b_T_a.translation() = scale * (b_centroid - rotation * a_centroid);
-return b_T_a;
-}  // namespace sparse_mapping
 
 ceres::Solver::Summary BundleAdjustFeatureSet(const std::vector<Keypoints>& camera_keypoints, const double focal_length,
                                               const ceres::Solver::Options& options,
@@ -504,4 +476,4 @@ ceres::Solver::Summary BundleAdjustFeatureSet(const std::vector<Keypoints>& came
 
   return summary;
 }
-}  // namespace sparse_mapping
+}  // namespace vision_common

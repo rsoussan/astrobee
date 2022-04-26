@@ -103,8 +103,8 @@ boost::optional<EstimatePoseResults> EstimatePose(const Descriptors& descriptors
   return results;
 }
 
-boost::optional<EstimatePoseResults>  EstimatePose(const cv::Mat& image, const EstimatePoseParams& params,
-                                 vision_common::DynamicDetector& detector, SparseMap& map) {
+boost::optional<EstimatePoseResults> EstimatePose(const cv::Mat& image, const EstimatePoseParams& params,
+                                                  vision_common::DynamicDetector& detector, SparseMap& map) {
   Descriptors descriptors;
   Keypoints keypoints;
   vc::DetectFeatures(image, map.params().histogram_equalization, detector, descriptors, keypoints);
@@ -112,7 +112,7 @@ boost::optional<EstimatePoseResults>  EstimatePose(const cv::Mat& image, const E
 }
 
 boost::optional<EstimatePoseResults> EstimatePose(const std::string& image_filename, const EstimatePoseParams& params,
-                                 vision_common::DynamicDetector& detector, SparseMap& map) {
+                                                  vision_common::DynamicDetector& detector, SparseMap& map) {
   const auto image = vc::LoadImage(filename);
   return EstimatePose(image, params, detector, map);
 }

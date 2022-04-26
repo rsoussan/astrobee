@@ -16,8 +16,8 @@
  * under the License.
  */
 
-#ifndef SPARSE_MAPPING_MATH_UTILITIES_H_
-#define SPARSE_MAPPING_MATH_UTILITIES_H_
+#ifndef VISION_COMMON_MAPPING_UTILITIES_H_
+#define VISION_COMMON_MAPPING_UTILITIES_H_
 
 #include <Eigen/Geometry>
 
@@ -26,25 +26,20 @@
 #include <utility>
 #include <vector>
 
-namespace sparse_mapping {
-Eigen::Quaternion<double> slerp_n(std::vector<double> const& W, std::vector<Eigen::Quaternion<double> > const& Q);
-
+namespace vision_common {
 boost::optional<Eigen::Vector3d> Triangulate(const Eigen::Matrix3d& intrinsics,
                                              const std::vector<Eigen::Affine3d>& camera_T_worlds,
                                              const Keypoints& keypoints);
 
 boost::optional<double> AngleBetweenRays(const Eigen::Vector3d& a_t_p, const Eigen::Vector3d& b_t_p);
 
-// Find the maximum angle between n rays intersecting at given
-// point.
+// Find the maximum angle between n rays intersecting at given point.
 double MaxAngleBetweenCameraRays(const FeatureTrack& feature_track, const Eigen::Vector3d& global_t_point,
                                  const CidPoseMap& cid_to_global_t_cam);
 
-void DetectFeatures(const cv::Mat& image, const bool histogram_equalization, vision_common::DynamicDetector& detector,
+void DetectFeatures(const cv::Mat& image, const bool histogram_equalization, DynamicDetector& detector,
                     Descriptors& descriptors, Keypoints& keypoints);
 
-// Performs a robust, ransac, solving for the essential matrix
-// between interest point measurements in keypoints_1 and keypoints_2.
 bool EstimateEssentialMatrix(const Eigen::Matrix3d& intrinsics_1, const Eigen::Matrix3d& intrinsics_2,
                              const Keypoints& keypoints_1, const Keypoints& keypoints_2,
                              const std::pair<int, int>& image_size_1, const std::pair<int, int>& image_size_2,
@@ -61,8 +56,6 @@ boost::optional<Eigen::Isometry3d> EstimateNormalizedPoseFromEssentialMatrix(
   const Eigen::Matrix3d& intrinsics_1, const Eigen::Matrix3d& intrinsics_2, const Keypoints& keypoints_1,
   const Keypoints& keypoints_2, const Eigen::Matrix3d& essential_matrix, const std::vector<int>& inliers);
 
-// TODO(rsoussan): Remove this/use vision_common code, remove detection of feature type
-// base on descriptor
 std::vector<cv::DMatch> FindMatches(const Descriptors& descriptors_a, const Descriptors& descriptors_b,
                                     const int brisk_hamming_distance = 90, const double surf_goodness_ratio = 0.8);
 
@@ -84,6 +77,6 @@ ceres::Solver::Summary BundleAdjustFeatureSet(const std::vector<Keypoints>& came
                                               const ceres::Solver::Options& options,
                                               std::vector<Eigen::Affine3d>& cam_T_globals,
                                               std::vector<Eigen::Vector3d>& global_t_points, ceres::LossFunction* loss);
-}  // namespace sparse_mapping
+}  // namespace vision_common
 
-#endif  // SPARSE_MAPPING_MATH_UTILITIES_H_
+#endif  // VISION_COMMON_MAPPING_UTILITIES_H_
