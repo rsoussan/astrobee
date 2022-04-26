@@ -51,14 +51,6 @@ void SparseMapDatabase::AddPose(const Eigen::Affine3d& cam_T_global) {
   cid_to_cam_T_global_.emplace_back(cam_T_global);
 }
 
-std::vector<Descriptors> SparseMapDatabase::AllDescriptors() const {
-  std::vector<Descriptors> all_descriptors;
-  const int num_cids = NumCids();
-  for (int cid = 0; cid < num_cids; ++cid) {
-    all_descriptors.emplace_back(Descriptors(cid));
-  }
-}
-
 void SparseMapDatabase::Transform(const Eigen::Affine3d& new_global_T_global) {
   for (auto& point : pid_to_global_t_point_) {
     point = new_global_T_global * point;

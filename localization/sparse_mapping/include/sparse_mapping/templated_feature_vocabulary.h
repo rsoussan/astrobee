@@ -19,7 +19,6 @@
 #ifndef SPARSE_MAPPING_TEMPLATED_FEATURE_VOCABULARY_H_
 #define SPARSE_MAPPING_TEMPLATED_FEATURE_VOCABULARY_H_
 
-#include <sparse_map/feature_set.h>
 #include <sparse_map/feature_vocabulary_params.h>
 
 // TODO(rsoussan): avoid this? check dbow2 templated voc and see if theres a virtual dtor there
@@ -38,7 +37,7 @@ class TemplatedFeatureVocabulary : public DBoW2::TemplatedVocabulary<TDescriptor
   // Initialize empty vocabulary
   explicit TemplatedFeatureVocabulary(const FeatureVocabularyParams& params);
   // Create vocabulary
-  TemplatedFeatureVocabulary(const FeatureSets& feature_sets, const FeatureVocabularyParams& params);
+  TemplatedFeatureVocabulary(const DescriptorsSet& descriptors_set, const FeatureVocabularyParams& params);
 
   // Protobuf Functions
   explicit TemplatedFeatureVocabulary(google::protobuf::io::ZeroCopyInputStream* input);
@@ -53,11 +52,11 @@ TemplatedFeatureVocabulary<TDescriptor, F>::TemplatedFeatureVocabulary(const Fea
                                                  params.scoring) {}
 
 template <class TDescriptor, class F>
-TemplatedFeatureVocabulary<TDescriptor, F>::TemplatedFeatureVocabulary(const FeatureSets& feature_sets,
+TemplatedFeatureVocabulary<TDescriptor, F>::TemplatedFeatureVocabulary(const DescriptorsSet& descriptors_set,
                                                                        const FeatureVocabularyParams& params)
     : DBoW2::TemplatedVocabulary<TDescriptor, F>(params.branching_factor, params.depth_levels, params.weighting,
                                                  params.scoring) {
-  create(feature_sets);
+  create(descriptors_set);
 }
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_TEMPLATED_FEATURE_VOCABULARY_H_

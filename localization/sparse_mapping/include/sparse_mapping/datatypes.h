@@ -39,8 +39,9 @@ using Keypoint = Eigen::Vector2d;
 using Keypoints = std::vector<Keypoints>;
 using Descriptor = cv::Mat;
 using Descriptors = std::vector<Descriptor>;
-using CidKeypointsMap = std::vector<Cid, Keypoints>;
-using CidDescriptorsMap = std::vector<Cid, Descriptors>;
+using DescriptorsSet = std::vector<Descriptors>;
+using CidKeypointsMap = DescriptorsSet;
+using CidDescriptorsMap = std::vector<Descriptors>;
 using CidFilenameMap = std::vector<std::string>;
 using CidPoseMap = std::vector<Eigen::Affine3d>;
 using FeatureTrack = std::unordered_map<Cid, Fid>;
@@ -49,7 +50,12 @@ using PidPointMap = std::vector<Eigen::Vector3d>;
 // Useful for inverse lookup of points given feature ids
 using FidPidMap = std::unordered_map<Fid, Pid>;
 using CidFidPidMap = std::vector<FidPidMap>;
-using CIDPairAffineMap = std::map<std::pair<int, int>, Eigen::Affine3d, std::less<std::pair<int, int> >,
-                                  Eigen::aligned_allocator<std::pair<std::pair<int, int> const, Eigen::Affine3d> > >;
+using CIDPairAffineMap = std::map<std::pair<int, int>, Eigen::Affine3d, std::less<std::pair<int, int>>,
+                                  Eigen::aligned_allocator<std::pair<std::pair<int, int> const, Eigen::Affine3d>>>;
+
+struct MatchCandidates {
+  int cid;
+  std::vector<int> candidate_cids;
+};
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_DATATYPES_H_

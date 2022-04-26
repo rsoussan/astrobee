@@ -36,11 +36,6 @@
 #include <vector>
 
 namespace sparse_mapping {
-struct MatchCandidates {
-  int cid;
-  std::vector<int> candidate_cids;
-};
-
 // Contains functions to build a sparse map from images, consisting of finding features,
 // building feature tracks, and performing bundle adjustment.
 class SparseMap : public SparseMapDatabase {
@@ -179,8 +174,7 @@ void SparseMap::BuildTemplatedImageDatabase() {
             << std::pow(params_.image_database.vocabulary.branching_factor, params_.image_database.vocabulary.depth)
             << ", total features to insert are " << total_features << ".";
 
-  const auto feature_sets = AllFeatures();
-  image_database_.reset(new TemplatedImageDatabase<TDescriptor, F>(feature_sets, params_.image_database));
+  image_database_.reset(new TemplatedImageDatabase<TDescriptor, F>(cid_to_descriptors(), params_.image_database));
 }
 }  // namespace sparse_mapping
 

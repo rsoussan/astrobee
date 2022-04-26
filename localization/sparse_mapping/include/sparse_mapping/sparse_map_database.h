@@ -70,8 +70,6 @@ class SparseMapDatabase {
   // From pid_to_feature_track_, create cid_to_fid_to_pid for lookup.
   void InitializeCidFidPidMap();
 
-  std::vector<Descriptors> AllDescriptors() const;
-
   int NumFeatures() const {
     return std::accumulate(cid_to_keypoints_.begin(), cid_to_keypoints_.end(), 0,
                            [](size_t size, const Keypoints& keypoints) { return size + keypoints.size(); });

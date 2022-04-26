@@ -19,7 +19,6 @@
 #ifndef SPARSE_MAPPING_TEMPLATED_IMAGE_DATABASE_H_
 #define SPARSE_MAPPING_TEMPLATED_IMAGE_DATABASE_H_
 
-#include <sparse_map/feature_set.h>
 #include <sparse_map/image_database.h>
 #include <sparse_map/image_database_params.h>
 #include <sparse_map/templated_feature_vocabulary.h>
@@ -38,11 +37,10 @@ template <class TDescriptor, class F>
 class TemplatedImageDatabase : public DBoW2::TemplatedDatabase<TDescriptor, F>, public ImageDatabase {
  public:
   TemplatedImageDatabase(const TemplatedFeatureVocabulary<TDescriptor, F>& voc, const ImageDatabaseParams& params);
-  TemplatedImageDatabase(const FeatureSets& feature_sets, const ImageDatabaseParams& params);
-  std::vector<int> Query(const cv::Mat& features, const int max_results) const override;
+  TemplatedImageDatabase(const DescriptorsSet& descriptors_set, const ImageDatabaseParams& params);
   // Return the cids of the images which are most similar to the current image in sorted order
   // beginning with the best matching cids
-  std::vector<int> Query(const FeatureSet& features, const int max_results) const override;
+  std::vector<int> Query(const Descriptors& descriptors, const int max_results) const override;
 
   // Protobuf Functions
   explicit TemplatedImageDatabase(google::protobuf::io::ZeroCopyInputStream* input);
@@ -57,21 +55,21 @@ TemplatedImageDatabase<TDescriptor, F>::TemplatedImageDatabase(
     : DBoW2::TemplatedDatabase<TDescriptor, F>(vocabulary, params.use_direct_index, params.direct_index_levels) {}
 
 template <class TDescriptor, class F>
-TemplatedImageDatabase<TDescriptor, F>::TemplatedImageDatabase(const FeatureSets& feature_sets,
+TemplatedImageDatabase<TDescriptor, F>::TemplatedImageDatabase(const DescriptorsSet& descriptors_set,
                                                                const ImageDatabaseParams& params)
     : DBoW2::TemplatedDatabase<TDescriptor, F>(params.use_direct_index, params.direct_index_levels) {
-  const TemplatedFeatureVocabulary<TDescriptor, F> vocabulary(feature_sets, params.vocabulary);
+  const TemplatedFeatureVocabulary<TDescriptor, F> vocabulary(descriptors_set, params.vocabulary);
   setVocabulary(vocabulary);
-  for (const auto& feature_set : feature_sets) {
-    add(feature_set);
+  for (const auto& descriptors : descriptors_set) {
+    add(descriptors);
   }
 }
 
 template <class TDescriptor, class F>
-std::vector<int> TemplatedImageDatabase<TDescriptor, F>::Query(const FeatureSet& features, const int max_results) {
+std::vector<int> TemplatedImageDatabase<TDescriptor, F>::Query(const Descriptors& descriptors, const int max_results) {
   std::vector<int> matching_cids;
   DBoW2::QueryResults results;
-  this->query(features, results, max_results);
+  this->query(descriptors, results, max_results);
   for (const auto& result : results) {
     matching_cids.push_back(result.Id);
   }
