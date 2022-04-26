@@ -275,7 +275,7 @@ boost::optional<Eigen::Affine3d> MatchImages(const Keypoints& keypoints_a, const
   }
 
   const auto relative_pose =
-    EstimateRelativeAffine3D(keypoints1, keypoints2, matches, camera_params, max_num_matches inlier_matches);
+    EstimateRelativeAffine3D(keypoints1, keypoints2, matches, camera_params, max_num_matches, inlier_matches);
   if (!relative_pose) return boost::none;
 
   if (static_cast<int>(inlier_matches.size()) < min_num_inliers_for_valid_match) {
