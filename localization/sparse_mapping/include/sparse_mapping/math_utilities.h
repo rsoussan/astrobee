@@ -76,9 +76,7 @@ boost::optional<Eigen::Affine3d> EstimateNormalizedRelativeAffine3D(
   const Eigen::Matrix2Xd& keypoints_a, const Eigen::Matrix2Xd& keypoints_b, const std::vector<cv::DMatch>& matches,
   const camera::CameraParameters& camera_params, const int max_num_matches, std::vector<cv::DMatch>& inlier_matches);
 
-// ICP solver that given matching 3D points, finds an affine transform that
-// best fits in to out.
-void Find3DAffineTransform(Eigen::Matrix3Xd const& in, Eigen::Matrix3Xd const& out, Eigen::Affine3d* result);
+Eigen::Affine3d Find3DAffineTransform(const std::vector<Eigen::Vector3d>& points_a, const std::vector<Eigen::Vector3d>& points_b);
 
 // Assumes each feature is seen in every camera
 ceres::Solver::Summary BundleAdjustFeatureSet(const std::vector<Keypoints>& camera_keypoints, const double focal_length,

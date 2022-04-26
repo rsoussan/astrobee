@@ -399,61 +399,55 @@ boost::optional<Eigen::Affine3d> EstimateNormalizedRelativeAffine3D(
   return cam_1_T_cam_2;
 }
 
-// Given two sets of 3D points, find the rotation + translation + scale
-// which best maps the first set to the second.
 // Source: http://en.wikipedia.org/wiki/Kabsch_algorithm
-void Find3DAffineTransform(Eigen::Matrix3Xd const& in, Eigen::Matrix3Xd const& out, Eigen::Affine3d* result) {
-  // Default output
-  result->linear() = Eigen::Matrix3d::Identity(3, 3);
-  result->translation() = Eigen::Vector3d::Zero();
+Eigen::Affine3d Find3DAffineTransform(const std::vector<Eigen::Vector3d>& points_a, const std::vector<Eigen::Vector3d>& points_b);
+  if (points_a.size() != points_b.size()) throw "Find3DAffineTransform(): points are different sizes.";
+  Eigen::Affine3d b_T_a(Eigen::Affine3d::Identity());
 
-  if (in.cols() != out.cols()) throw "Find3DAffineTransform(): input data mis-match";
-
-  // Local copies we can modify
-  Eigen::Matrix3Xd local_in = in, local_out = out;
+  Eigen::Matrix3Xd points_matrix_a = Eigen::MatrixXd(3, points_a.size());
+  Eigen::Matrix3Xd points_matrix_b = Eigen::MatrixXd(3, points_b.size());
+  for (int i = 0; i < static_cast<int>(points_a.size()); ++i) {
+    points_matrix_a.col(i) = points_a[i];
+    points_matrix_b.col(i) = points_b[i];
+  }
 
   // First find the scale, by finding the ratio of sums of some distances,
   // then bring the datasets to the same scale.
-  double dist_in = 0, dist_out = 0;
-  for (int col = 0; col < local_in.cols() - 1; col++) {
-    dist_in += (local_in.col(col + 1) - local_in.col(col)).norm();
-    dist_out += (local_out.col(col + 1) - local_out.col(col)).norm();
+  double sum_sequential_distances_a = 0, sum_sequential_distances_b = 0;
+  for (int i = 0; i < static_cast<int>(points_a.size()) - 1; ++i) {
+    sum_sequential_distances_a += (points_matrix_a.col(i+1) - points_matrix_a.col(i)).norm();
+    sum_sequential_distances_b += (points_matrix_b.col(i+1) - points_matrix_b.col(i)).norm();
   }
-  if (dist_in <= 0 || dist_out <= 0) return;
-  double scale = dist_out / dist_in;
-  local_out /= scale;
+  if (sum_sequential_distances_a <= 0 || sum_sequential_distances_b <= 0) return b_T_a;
+  const double scale = sum_sequential_distances_b / sum_sequential_distances_a;
+  points_matrix_b /= scale;
 
-  // Find the centroids then shift to the origin
-  Eigen::Vector3d in_ctr = Eigen::Vector3d::Zero();
-  Eigen::Vector3d out_ctr = Eigen::Vector3d::Zero();
-  for (int col = 0; col < local_in.cols(); col++) {
-    in_ctr += local_in.col(col);
-    out_ctr += local_out.col(col);
+  // Center points
+  Eigen::Vector3d a_centroid = Eigen::Vector3d::Zero();
+  Eigen::Vector3d b_centroid = Eigen::Vector3d::Zero();
+  for (int i = 0; i < static_cast<int>(points_a.size()); ++i) {
+    a_centroid += points_matrix_a.col(i);
+    b_centroid += points_matrix_b.col(i);
   }
-  in_ctr /= local_in.cols();
-  out_ctr /= local_out.cols();
-  for (int col = 0; col < local_in.cols(); col++) {
-    local_in.col(col) -= in_ctr;
-    local_out.col(col) -= out_ctr;
+  a_centroid /= static_cast<double>(points_a.size());
+  b_centroid /= static_cast<double>(points_b.size());
+  for (int i = 0; i < static_cast<int>(points_a.size()); ++i) {
+    points_matrix_a.col(i) -= a_centroid;
+    points_matrix_b.col(i) -= b_centroid;
   }
-
-  // SVD
-  Eigen::Matrix3d Cov = local_in * local_out.transpose();
-  Eigen::JacobiSVD<Eigen::Matrix3d> svd(Cov, Eigen::ComputeFullU | Eigen::ComputeFullV);
 
   // Find the rotation
+  const Eigen::Matrix3d Cov = points_matrix_a * points_matrix_b.transpose();
+  const Eigen::JacobiSVD<Eigen::Matrix3d> svd(Cov, Eigen::ComputeFullU | Eigen::ComputeFullV);
   double d = (svd.matrixV() * svd.matrixU().transpose()).determinant();
-  if (d > 0)
-    d = 1.0;
-  else
-    d = -1.0;
+  d = d > 0 ? 1.0 : -1.0;
   Eigen::Matrix3d I = Eigen::Matrix3d::Identity(3, 3);
   I(2, 2) = d;
-  Eigen::Matrix3d R = svd.matrixV() * I * svd.matrixU().transpose();
+  const Eigen::Matrix3d rotation = svd.matrixV() * I * svd.matrixU().transpose();
 
-  // The final transform
-  result->linear() = scale * R;
-  result->translation() = scale * (out_ctr - R * in_ctr);
+  b_T_a.linear() = scale * rotation;
+  b_T_a.translation() = scale * (b_centroid - rotation * a_centroid);
+  return b_T_a;
 }
 
 ceres::Solver::Summary BundleAdjustFeatureSet(const std::vector<Keypoints>& camera_keypoints, const double focal_length,
@@ -467,7 +461,7 @@ ceres::Solver::Summary BundleAdjustFeatureSet(const std::vector<Keypoints>& came
   CHECK(global_t_point.size() == camera_keypoints[0].size())
     << "There should be an equal amount of XYZ points as there are feature observations";
   for (int i = 1; i < static_cast<int>(camera_keypoints.size()); ++i) {
-    CHECK(camera_keypoints[0].cols() == camera_keypoints[i].cols())
+    CHECK(camera_keypoints[0].size() == camera_keypoints[i].size())
       << "The same amount of features should be seen in all cameras";
   }
 
