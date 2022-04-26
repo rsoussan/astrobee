@@ -16,13 +16,15 @@
  * under the License.
  */
 
-#include <sparse_mapping/ransac_estimate_affine_3d.h>
 #include <sparse_mapping/sparse_map_merger.h>
+#include <vision_common/ransac_estimate_affine_3d.h>
 
 #include <Eigen/Geometry>
 #include <glog/logging.h>
 
 namespace sparse_mapping {
+namespace vc = vision_common;
+
 SparseMapMerger::SparseMapMerger(const SparseMap& map_a, const SparseMap& map_b, const SparseMapMergerParams& params) {
   Initialize(map_a, map_b, params);
 }
@@ -204,9 +206,9 @@ Eigen::Affine3d SparseMapMerger::EstimateRelativePoseAndPruneOutlierMatches(cons
   }
   const double inlier_threshold = InlierThreshold(a_points);
   const int min_num_output_inliers = a_points.size() * params_.ransac_min_num_ouput_inliers_percent;
-  RansacEstimateAffine3d ransac_affine3d(num_iterations, inlier_threshold, min_num_output_inliers,
-                                         params_.ransac_reduce_min_num_output_inliers_if_no_fit,
-                                         params_.ransac_increase_threshold_if_no_fit);
+  vc::RansacEstimateAffine3d ransac_affine3d(num_iterations, inlier_threshold, min_num_output_inliers,
+                                             params_.ransac_reduce_min_num_output_inliers_if_no_fit,
+                                             params_.ransac_increase_threshold_if_no_fit);
   const auto map_a_T_map_b = ransac_affine3d(b_points, a_points);
 
   // Remove outliers from correspondences

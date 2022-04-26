@@ -23,8 +23,10 @@
 
 #include <Eigen/Geometry>
 
+#include <functional>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace sparse_mapping {
@@ -46,8 +48,8 @@ using PidFeatureTrackMap = std::vector<FeatureTrack>;
 using PidPointMap = std::vector<Eigen::Vector3d>;
 // Useful for inverse lookup of points given feature ids
 using FidPidMap = std::unordered_map<Fid, Pid>;
-// TODO(rsoussan): Rename this? CidFidPidMapMap?
 using CidFidPidMap = std::vector<FidPidMap>;
-
+using CIDPairAffineMap = std::map<std::pair<int, int>, Eigen::Affine3d, std::less<std::pair<int, int> >,
+                                  Eigen::aligned_allocator<std::pair<std::pair<int, int> const, Eigen::Affine3d> > >;
 }  // namespace sparse_mapping
 #endif  // SPARSE_MAPPING_DATATYPES_H_

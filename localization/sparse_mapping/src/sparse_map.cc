@@ -18,7 +18,6 @@
 
 #include <ff_common/thread.h>
 #include <ff_common/utils.h>
-#include <sparse_mapping/bundle_adjustment_utilities.h>
 #include <sparse_mapping/remove_invalid_points_and_detections_stats.h>
 #include <sparse_mapping/sparse_map.h>
 #include <sparse_mapping/utilities.h>
@@ -29,9 +28,6 @@
 #include <openMVG/multiview/conditioning.hpp>
 #include <openMVG/multiview/projection.hpp>
 #include <openMVG/multiview/triangulation.hpp>
-#include <openMVG/multiview/solver_essential_kernel.hpp>
-#include <openMVG/robust_estimation/robust_estimator_ACRansac.hpp>
-#include <openMVG/robust_estimation/robust_estimator_ACRansacKernelAdaptator.hpp>
 #pragma GCC diagnostic pop
 
 #include <Eigen/Geometry>

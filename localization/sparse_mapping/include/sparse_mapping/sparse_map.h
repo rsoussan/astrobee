@@ -19,18 +19,17 @@
 #ifndef SPARSE_MAPPING_SPARSE_MAP_H_
 #define SPARSE_MAPPING_SPARSE_MAP_H_
 
+#include <camera/camera_params.h>
 #include <ff_common/eigen_vectors.h>
+#include <sparse_mapping/bundle_adjustment_params.h>
 #include <sparse_mapping/image_database.h>
 #include <sparse_mapping/remove_invalid_points_and_detections_params.h>
 #include <sparse_mapping/sparse_map_database.h>
 #include <sparse_mapping/sparse_map_params.h>
-#include <sparse_mapping/sparse_mapping.h>
-#include <camera/camera_params.h>
 
 #include <Eigen/Geometry>
 #include <opencv2/core/core.hpp>
 
-#include <functional>
 #include <map>
 #include <string>
 #include <utility>
@@ -41,16 +40,9 @@ struct MatchCandidates {
   int cid;
   std::vector<int> candidate_cids;
 };
-// TODO(rsoussan): change to using
-typedef std::map<std::pair<int, int>, Eigen::Affine3d, std::less<std::pair<int, int> >,
-                 Eigen::aligned_allocator<std::pair<std::pair<int, int> const, Eigen::Affine3d> > >
-  CIDPairAffineMap;
-/**
- * A class representing a sparse map, which consists of a collection
- * of keyframes and detected features. To localize, an image's features
- * are matched to the keyframes in the map. They keyframe features have known
- * positions and the camera pose can be estimated with ransac.
- **/
+
+// Contains functions to build a sparse map from images, consisting of finding features,
+// building feature tracks, and performing bundle adjustment.
 class SparseMap : public SparseMapDatabase {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
