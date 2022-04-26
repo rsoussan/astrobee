@@ -304,35 +304,56 @@ boost::optional<Eigen::Affine3d> EstimateRelativeAffine3D(const Keypoints& keypo
   const Eigen::Matrix3d intrinsics = camera_params.GetIntrinsicMatrix<camera::UNDISTORTED_C>();
 
   Eigen::Matrix3d essential_matrix;
-  std::vector<int> inliers;
+  std::vector<int> inlier_indices;
   const double max_expected_error = 2.5;
-  double max_error = std::numeric_limits<double>::max();
+  double max_error;
   if (!EstimateEssentialMatrix(intrinsics, intrinsics, matching_keypoints_a, matching_keypoints_b, image_size,
-                               image_size, max_expected_error, essential_matrix, inliers, max_error)) {
+                               image_size, max_expected_error, essential_matrix, inlier_indices, max_error)) {
     LOG(DEBUG) << "Estimation of essential matrix failed!\n";
     return boost::none;
   }
 
-  if (inliers.size() < min_valid_inliers) {
-    LOG(DEBUG) << "Failed to get enough inliers " << inliers.size();
+  if (inlier_indices.size() < min_valid_inliers) {
+    LOG(DEBUG) << "Failed to get enough inliers " << inlier_indices.size();
     return boost::none;
   }
 
-  const auto cam_2_T_cam_1 = EstimateNormalizedPoseFromEssentialMatrix(intrinsics, intrinsics, matching_keypoints_a,
-                                                                       matching_keypoints_b, essential_matrix, inliers);
+  const auto cam_2_T_cam_1 = EstimateNormalizedPoseFromEssentialMatrix(
+    intrinsics, intrinsics, matching_keypoints_a, matching_keypoints_b, essential_matrix, inlier_indices);
   if (!cam_2_T_cam_1) {
     LOG(DEBUG) << "Failed to get pose from essential matrix.";
     return boost::none;
   }
 
-  LOG(DEBUG) << "Inliers from E: " << inliers.size() << " / " << matching_keypoints_a.size();
+  LOG(DEBUG) << "Inliers from E: " << inlier_indices.size() << " / " << matching_keypoints_a.size();
 
-  std::vector<Keypoints> inlier_keypoints_a;
-  std::vector<Keypoints> inlier_keypoints_b;
-  for (const auto inlier_index : inliers) {
-    inlier_keypoints_a.emplace_back(matching_keypoints_a[inlier_index]);
-    inlier_keypoints_b.emplace_back(matching_keypoints_b[inlier_index]);
+  // Triangulate points for matches, only save keypoints and triangulated points
+  // for valid triangulated points and inlier points
+  std::vector<Eigen::Vector3d> pid_to_cam_1_t_point;
+  std::vector<Keypoints> valid_inlier_keypoints_a;
+  std::vector<Keypoints> valid_inlier_keypoints_b;
+  std::vector<int> valid_inlier_indices;
+  int num_pts_behind_camera = 0;
+  for (const auto inlier_index : inlier_indices) {
+    std::vector<Eigen::Vector2d> keypoints;
+    const auto& keypoint_a = matching_keypoints_a[inlier_index];
+    const auto& keypoint_b = matching_keypoints_b[inlier_index];
+    keypoints.emplace_back(keypoint_a);
+    keypoints.emplace_back(keypoint_b);
+    const auto cam_1_t_point = Triangulate(intrinsics, cameras, keypoints);
+    if (!cam_1_t_point) continue;
+    pid_to_cam_1_t_point.emplace_back(*cam_1_t_point);
+    valid_inlier_keypoints_a.emplace_back(keypoint_a);
+    valid_inlier_keypoints_b.emplace_back(keypoint_b);
+    valid_inlier_indices.emplace_back(inlier_index);
+    cam_2_t_point = cam_2_T_cam_1 * (*cam_1_t_point);
+    if (cam_1_t_point->z() <= 0 || cam_2_t_point.z() <= 0) {
+      num_pts_behind_camera++;
+    }
   }
+  LOG(DEBUG) << "Pair "
+             << ": number of points behind cameras: " << num_pts_behind_camera << "/" << valid_keypoints_a.size()
+             << " (" << round((100.0 * num_pts_behind_camera) / valid_keypoints_a.size()) << "%)";
 
   // Refine the pose using bundle adjustment
   ceres::Solver::Options options;
@@ -343,76 +364,41 @@ boost::optional<Eigen::Affine3d> EstimateRelativeAffine3D(const Keypoints& keypo
   std::vector<Eigen::Affine3d> cameras;
   cameras.emplace_back(Eigen::Affine3d::Identity());
   cameras.emplace_back(*cam_2_T_cam_1);
-  std::vector<Eigen::Vector3d> pid_to_cam_1_t_point;
-  Keypoints valid_keypoints_a;
-  Keypoints valid_keypoints_b;
-  double error;
-  int num_pts_behind_camera = 0;
-  for (int i = 0; i < static_cast<int>(inlier_keypoints_a.size()); ++i) {
-    std::vector<Eigen::Vector2d> keypoints;
-    keypoints.emplace_back(inlier_keypoints_a[i]);
-    keypoints.emplace_back(inlier_keypoints_b[i]);
-    const auto cam_1_t_point = Triangulate(intrinsics, cameras, keypoints);
-    if (!cam_1_t_point) continue;
-    pid_to_cam_1_t_point.emplace_back(*cam_1_t_point);
-    valid_keypoints_a.emplace_back(inlier_keypoints_a[i]);
-    valid_keypoints_b.emplace_back(inlier_keypoints_b[i]);
-    cam_2_t_point = cam_2_T_cam_1 * (*cam_1_t_point);
-    if (cam_1_t_point->z() <= 0 || cam_2_t_point.z() <= 0) {
-      num_pts_behind_camera++;
-    }
-  }
-  LOG(DEBUG) << "Pair "
-             << ": number of points behind cameras: " << num_pts_behind_camera << "/" << valid_keypoints_a.size()
-             << " (" << round((100.0 * num_pts_behind_camera) / valid_keypoints_a.size()) << "%)";
-
-  const auto summary = BundleAdjustFeatureSet({valid_keypoints_a, valid_keypoints_b}, camera_params.GetFocalLength(),
-                                              options, cameras, pid_to_cam_1_t_point, new ceres::CauchyLoss(0.5));
+  const auto summary =
+    BundleAdjustFeatureSet({valid_inlier_keypoints_a, valid_inlier_keypoints_b}, camera_params.GetFocalLength(),
+                           options, cameras, pid_to_cam_1_t_point, new ceres::CauchyLoss(0.5));
 
   if (!summary.IsSolutionUsable()) {
-    LOG(ERROR) << " Failed to refine RT with bundle adjustment";
+    LOG(ERROR) << " Failed to refine pose with bundle adjustment";
     return boost::none;
   }
   LOG(DEBUG) << summary.BriefReport();
 
-  // Give the solution
-  Eigen::Affine3d result = cameras[1] * cameras[0].inverse();
-  result.translation().normalize();
+  Eigen::Affine3d cam_1_T_cam_2 = cameras[1].inverse();
+  cam_1_T_cam_2.translation().normalize();
 
-  // TODO(rsoussan): Clean this section up!
-  // Return valid inliers, limit number of inliers by provided max
-  cv::Mat valid = cv::Mat::zeros(num_matches, 1, CV_8UC1);
-  for (int i = 0; i < static_cast<int>(inliers.size()); ++i) {
-    valid.at<uint8_t>(inliers[i], 0) = 1;
-  }
-
+  const int num_inliers = valid_inlier_indices.size();
   // Filter inliers by distance if neccessary
-  int num_inliers = std::accumulate(valid.begin<uint8_t>(), valid.end<uint8_t>(), 0);
   if (num_inliers > max_num_matches) {
-    std::vector<double> dist;
-    for (int query_index = 0; query_index < static_cast<int>(matches.size()); ++query_index) {
-      if (valid.at<uint8_t>(query_index, 0) > 0) dist.push_back(matches[query_index].distance);
+    std::map<double, int> distance_to_index;
+    for (const auto inlier_index : inlier_indices) {
+      distance_to_index.emplace_back(matches[inlier_index].distance, inlier_index);
     }
-    std::sort(dist.begin(), dist.end());
-    const double max_dist = dist[max_num_matches - 1];
-    for (int query_index = 0; query_index < static_cast<int>(matches.size()); ++query_index) {
-      if (valid.at<uint8_t>(query_index, 0) > 0 && matches[query_index].distance > max_dist) {
-        valid.at<uint8_t>(query_index, 0) = 0;
-      }
-    }
-    num_inliers = std::accumulate(valid.begin<uint8_t>(), valid.end<uint8_t>(), 0);
-  }
-
-  // Copy the inliers only
-  inlier_matches->clear();
-  inlier_matches->reserve(num_of_inliers);
-  for (int i = 0; i < static_cast<int>(matches.size()); ++i) {
-    if (valid.at<uint8_t>(i, 0) > 0) {
-      inlier_matches->push_back(matches[i]);
+    inlier_indices.clear();
+    int count = 0;
+    for (const auto& distance_index_pair : distance_to_index) {
+      inlier_indices.emplace_back(distance_index_pair.second);
+      ++count;
+      if (count >= max_num_matches) break;
     }
   }
 
-  return result;
+  inlier_matches.reserve(inlier_indices.size());
+  for (const auto inlier_index : inlier_indices) {
+    inlier_matches.emplace_back(matches[inlier_index]);
+  }
+
+  return cam_1_T_cam_2;
 }
 
 // Given two sets of 3D points, find the rotation + translation + scale
