@@ -62,6 +62,7 @@ bool ValidProjection(const Eigen::Vector2d& centered_projected_point, const Eige
 namespace sparse_mapping {
 namespace fc = ff_common;
 namespace oc = optimization_common;
+namespace vc = vision_common;
 
 SparseMap::SparseMap(const CidFilenameMap& cid_to_filename, const SparseMapParams& params)
     : params_(params), cid_to_filename_(cid_to_filename) {
@@ -109,11 +110,11 @@ void SparseMap::DetectImageFeaturesFromFile(const std::string& filename, Descrip
                                             Keypoints& keypoints) {
   const auto image = LoadImage(filename);
   if (params_.detector_name == "surf") {
-    vision_common::SurfDynamicDetector surf_detector(params_.surf_detector);
-    DetectFeatures(image, params_.histogram_equalization, surf_detector, descriptors, keypoints);
+    vc::SurfDynamicDetector surf_detector(params_.surf_detector);
+    vc::DetectFeatures(image, params_.histogram_equalization, surf_detector, descriptors, keypoints);
   } else if (params_.detector_name == "brisk") {
-    vision_common::BriskDynamicDetector brisk_detector(params_.brisk_detector);
-    DetectFeatures(image, params_.histogram_equalization, brisk_detector, descriptors, keypoints);
+    vc::BriskDynamicDetector brisk_detector(params_.brisk_detector);
+    vc::DetectFeatures(image, params_.histogram_equalization, brisk_detector, descriptors, keypoints);
   } else {
     LOG(FATAL) << "Invalid detector: " << params_.detector_name;
   }
@@ -214,9 +215,9 @@ CIDPairAffineMap SparseMap::MatchImagesAndBuildTracks(const std::vector<MatchCan
 void MatchImages(const int cid_a, const int cid_b, CIDPairAffineMap& relative_affines,
                  openMVG::matching::PairWiseMatches& match_map, std::mutex& match_mutex) const {
   std::vector<cv::DMatch> inlier_matches;
-  const auto relative_pose =
-    MatchImages(keypoints(cid_a), keypoints(cid_b), descriptors(cid_a), descriptors(cid_b), params_.camera,
-                params_.max_num_image_pair_feature_matches, params_.min_num_inliers_for_valid_match, inlier_matches);
+  const auto relative_pose = vc::MatchImages(keypoints(cid_a), keypoints(cid_b), descriptors(cid_a), descriptors(cid_b),
+                                             params_.camera, params_.max_num_image_pair_feature_matches,
+                                             params_.min_num_inliers_for_valid_match, inlier_matches);
   if (!relative_pose) {
     LOG(DEBUG) << "Failed to match cid " << cid_a << " and cid " << cid_b;
     return;
@@ -445,7 +446,7 @@ void SparseMap::RemoveInvalidPointsAndDetections(const RemoveInvalidPointsAndDet
     const auto& feature_track = feature_track(pid);
     const auto& global_t_point = global_t_point(pid);
     const double max_angle_between_camera_rays =
-      MaxAngleBetweenCameraRays(feature_track, global_t_point, global_t_cams);
+      vc::MaxAngleBetweenCameraRays(feature_track, global_t_point, global_t_cams);
     if (max_angle_between_camera_rays < params.min_max_angle_between_camera_rays) {
       small_angle = true;
       invalid_point[pid] = true;
@@ -555,7 +556,7 @@ void SparseMap::RegisterUsingControlPoints() {
   std::cout << "Control Point errors before registration: " << std::endl;
   PrintControlPointErrors(triangulated_global_t_points);
   const auto registered_global_T_global =
-    EstimateRelativeAffine3D(triangulated_global_t_points, control_point_pid_to_global_t_point());
+    vc::EstimateRelativeAffine3D(triangulated_global_t_points, control_point_pid_to_global_t_point());
   Transform(registered_global_T_global);
 
   std::vector<Eigen::Vector3d> triangulated_registered_global_t_points;

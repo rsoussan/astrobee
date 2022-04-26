@@ -116,4 +116,48 @@ boost::optional<EstimatePoseResults> EstimatePose(const std::string& image_filen
   const auto image = vc::LoadImage(filename);
   return EstimatePose(image, params, detector, map);
 }
+
+std::vector<cv::DMatch> FindMatches(const Descriptors& descriptors_a, const Descriptors& descriptors_b,
+                                    const int brisk_hamming_distance, const double surf_goodness_ratio) {
+  if (descriptors_a.size() == 0 || descriptors_b.size() == 0) return;
+
+  CHECK(descriptors_a[0].depth() == descriptors_b[0].depth())
+    << "Mixed descriptor types. Did you mash BRISK with SIFT/SURF?";
+
+  // Binary descriptor
+  if (descriptors_a[0].depth() == CV_8U) {
+    // cv::BFMatcher matcher(cv::NORM_HAMMING, true  /* Forward & Backward matching */);
+    cv::FlannBasedMatcher matcher(cv::makePtr<cv::flann::LshIndexParams>(3, 18, 2));
+    std::vector<cv::DMatch> matches;
+    matcher.match(descriptors_a, descriptors_b, matches);
+
+    // Select only inlier matches that meet a BRISK threshold of
+    // of FLAGS_hamming_distance.
+    // TODO(oalexan1) This needs further study.
+    std::vector<cv::DMatch> inlier_matches;
+    for (const auto& match : matches) {
+      if (match.distance < brisk_hamming_distance) {
+        inlier_matches.emplace_back(match);
+      }
+    }
+    return inlier_matches;
+  } else {  // Floating point descriptor
+    cv::FlannBasedMatcher matcher;
+    std::vector<std::vector<cv::DMatch>> possible_matches;
+    matcher.knnMatch(descriptors_a, descriptors_b, possible_matches, 2);
+    std::vector<cv::DMatch> matches;
+    for (const auto& best_matches : possible_matches) {
+      if (best_matches.size() == 1) {
+        // This was the only best match, push it.
+        matches.emplace_back(best_matches[0]);
+      } else {
+        // Push back a match only if it is 25% better than the next best.
+        if (best_matches[0].distance < surf_goodness_ratio * best_matches[1].distance) {
+          matches.emplace_back(best_matches[0]);
+        }
+      }
+    }
+    return matches;
+  }
+}
 }  // namespace sparse_map_matcher

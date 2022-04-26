@@ -56,9 +56,6 @@ boost::optional<Eigen::Isometry3d> EstimateNormalizedPoseFromEssentialMatrix(
   const Eigen::Matrix3d& intrinsics_1, const Eigen::Matrix3d& intrinsics_2, const Keypoints& keypoints_1,
   const Keypoints& keypoints_2, const Eigen::Matrix3d& essential_matrix, const std::vector<int>& inliers);
 
-std::vector<cv::DMatch> FindMatches(const Descriptors& descriptors_a, const Descriptors& descriptors_b,
-                                    const int brisk_hamming_distance = 90, const double surf_goodness_ratio = 0.8);
-
 boost::optional<Eigen::Affine3d> MatchImages(const Keypoints& keypoints_a, const Keypoints& keypoints_b,
                                              const Descriptors& descriptors_a, const Descriptors& descriptors_b,
                                              const camera::CameraParameters& camera_params, const int max_num_matches,

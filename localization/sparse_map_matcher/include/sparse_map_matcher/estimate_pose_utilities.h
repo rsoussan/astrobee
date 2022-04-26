@@ -56,6 +56,9 @@ boost::optional<EstimatePoseResults> EstimatePose(const cv::Mat& image, const Es
 
 boost::optional<EstimatePoseResults> EstimatePose(const std::string& image_filename, const EstimatePoseParams& params,
                                                   vision_common::DynamicDetector& detector, SparseMap& map);
+
+std::vector<cv::DMatch> FindMatches(const Descriptors& descriptors_a, const Descriptors& descriptors_b,
+                                    const int brisk_hamming_distance = 90, const double surf_goodness_ratio = 0.8);
 }  // namespace sparse_map_matcher
 
 #endif  // SPARSE_MAP_MATCHER_ESTIMATE_POSE_UTILITIES_H_
