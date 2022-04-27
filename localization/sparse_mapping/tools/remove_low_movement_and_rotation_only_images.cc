@@ -31,17 +31,33 @@ namespace lc = localization_common;
 namespace po = boost::program_options;
 namespace vc = vision_common;
 
-bool LowMovementImageSequence(const vc::FeatureImage& current_image, const vc::FeatureImage& next_image,
-                              const double max_low_movement_mean_distance,
-                              vc::LKOpticalFlowFeatureDetectorAndMatcher& detector_and_matcher) {
+boost::optional<vc::FeatureMatches> Matches(const vc::FeatureImage& current_image, const vc::FeatureImage& next_image,
+                                            const double max_low_movement_mean_distance,
+                                            vc::LKOpticalFlowFeatureDetectorAndMatcher& detector_and_matcher) {
   const auto& matches = detector_and_matcher.Match(current_image, next_image);
   if (matches.size() < 5) {
     LogDebug("Too few matches: " << matches.size() << ", current image keypoints: " << current_image.keypoints().size()
                                  << ", next image keypoints: " << next_image.keypoints().size());
-    return false;
+    return boost::none;
   }
   LogDebug("Found matches: " << matches.size() << ", current image keypoints: " << current_image.keypoints().size()
                              << ", next image keypoints: " << next_image.keypoints().size());
+  return matches;
+}
+
+bool LowMovementImageSequence(const vc::FeatureMatches& matches, const double max_low_movement_mean_distance) {
+  lc::Averager distance_averager;
+  for (const auto& match : matches) {
+    distance_averager.Update(match.distance);
+  }
+  LogDebug("Mean distance: " << distance_averager.average());
+  if (distance_averager.average() <= max_low_movement_mean_distance) return true;
+  return false;
+}
+
+bool RotationOnlyImageSequence(const vc::FeatureMatches& matches, const double max_rotation_only_mean_error) {
+  // TODO(rsoussan): estimate normalize pose using matches!
+  // check errors!!
   lc::Averager distance_averager;
   for (const auto& match : matches) {
     distance_averager.Update(match.distance);
@@ -78,27 +94,35 @@ vc::LKOpticalFlowFeatureDetectorAndMatcherParams LoadParams() {
   return params;
 }
 
-int RemoveLowMovementImages(const std::vector<std::string>& image_names, const double max_low_movement_mean_distance) {
+int RemoveLowMovementAndRotationOnlyImages(const std::vector<std::string>& image_names,
+                                           const double max_low_movement_mean_distance,
+                                           const double max_rotation_only_mean_error) {
   const vc::LKOpticalFlowFeatureDetectorAndMatcherParams params = LoadParams();
   vc::LKOpticalFlowFeatureDetectorAndMatcher detector_and_matcher(params);
   auto& detector = *(detector_and_matcher.detector());
-  // Compare current image with subsequent image and remove subsequent image if it has low movement.
-  // If a subsequent image is removed, check the next image compared with the current image for low movement.
-  // If a subsequent image does not have low movement, advance current image and start the process over.
+  // Compare current image with subsequent image and remove subsequent image if it has low or rotation only movement.
+  // If a subsequent image is removed, check the next image compared with the current image for low or rotation only
+  // movement. If a subsequent image does not have low or rotation only movement, advance current image and start the
+  // process over.
   int current_image_index = 0;
   int next_image_index = 1;
   auto current_image = LoadImage(current_image_index, image_names, detector);
   auto next_image = LoadImage(next_image_index, image_names, detector);
   int num_removed_images = 0;
   while (current_image_index < image_names.size()) {
-    while (next_image_index < image_names.size() &&
-           LowMovementImageSequence(current_image, next_image, max_low_movement_mean_distance, detector_and_matcher)) {
-      LogDebug("Removing image index: " << next_image_index << ", current image index: " << current_image_index);
-      std::remove((image_names[next_image_index++]).c_str());
-      ++num_removed_images;
-      // Don't load next image if index is past the end of the sequence
-      if (next_image_index >= image_names.size()) break;
-      next_image = LoadImage(next_image_index, image_names, detector);
+    while (next_image_index < image_names.size()) {
+      const auto matches = Matches(current_image, next_image, detector_and_matcher);
+      if (matches && (LowMovementImageSequence(*matches, max_low_movement_mean_distance) ||
+                      RotationOnly(*matches, max_rotation_only_mean_error))) {
+        LogDebug("Removing image index: " << next_image_index << ", current image index: " << current_image_index);
+        std::remove((image_names[next_image_index++]).c_str());
+        ++num_removed_images;
+        // Don't load next image if index is past the end of the sequence
+        if (next_image_index >= image_names.size()) break;
+        next_image = LoadImage(next_image_index, image_names, detector);
+      } else {
+        break;
+      }
     }
     current_image = next_image;
     current_image_index = next_image_index;
@@ -124,13 +148,18 @@ std::vector<std::string> GetImageNames(const std::string& image_directory,
 
 int main(int argc, char** argv) {
   double max_low_movement_mean_distance;
+  double max_rotation_only_mean_error;
   po::options_description desc(
     "Removes any images with too little movement.  Computes relative movement using sequential images.");
   desc.add_options()("help,h", "produce help message")(
     "image-directory", po::value<std::string>()->required(),
     "Directory containing images. Images are assumed to be named in sequential order.")(
-    "--max-low-movement-mean-distance,m", po::value<double>(&max_low_movement_mean_distance)->default_value(0.1),
-    "Max mean distance for optical flow tracks between sequential images to be classified as a low movement pair.");
+    "--max-low-movement-mean-distance,d", po::value<double>(&max_low_movement_mean_distance)->default_value(0.1),
+    "Max mean distance in image space for optical flow tracks between sequential images to be classified as a low "
+    "movement pair.")("--max-rotation-only-mean-error,e",
+                      po::value<double>(&max_rotation_only_mean_error)->default_value(0.1),
+                      "Max mean error in image space for features described by rotation only movement between "
+                      "sequential images to be classified as a rotation only pair.");
   po::positional_options_description p;
   p.add("image-directory", 1);
   po::variables_map vm;
@@ -161,6 +190,7 @@ int main(int argc, char** argv) {
   if (image_names.empty()) LogFatal("No images found.");
 
   const int num_original_images = image_names.size();
-  const int num_removed_images = RemoveLowMovementImages(image_names, max_low_movement_mean_distance);
+  const int num_removed_images =
+    RemoveLowAndRotationOnlyMovementImages(image_names, max_low_movement_mean_distance, max_rotation_only_mean_error);
   LogInfo("Removed " << num_removed_images << " of " << num_original_images << " images.");
 }
