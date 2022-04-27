@@ -15,10 +15,13 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
+#include <camera/camera_params.h>
 #include <ff_common/init.h>
 #include <interest_point/essential.h>
 #include <localization_common/averager.h>
 #include <localization_common/logger.h>
+#include <localization_common/utilities.h>
+#include <sparse_mapping/tensor.h>
 #include <vision_common/lk_optical_flow_feature_detector_and_matcher.h>
 
 #include <opencv2/imgcodecs.hpp>
@@ -27,13 +30,15 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
+#include <mutex>
+
 namespace fs = boost::filesystem;
 namespace lc = localization_common;
 namespace po = boost::program_options;
+namespace sm = sparse_mapping;
 namespace vc = vision_common;
 
 boost::optional<vc::FeatureMatches> Matches(const vc::FeatureImage& current_image, const vc::FeatureImage& next_image,
-                                            const double max_low_movement_mean_distance,
                                             vc::LKOpticalFlowFeatureDetectorAndMatcher& detector_and_matcher) {
   const auto& matches = detector_and_matcher.Match(current_image, next_image);
   if (matches.size() < 5) {
@@ -66,20 +71,20 @@ void RelativePose(const vc::FeatureMatches& matches, const camera::CameraParamet
   std::vector<cv::DMatch> cv_matches;
   for (const auto& match : matches) {
     Eigen::Vector2d keypoint_1;
-    camera_params.Convert<camera::DISTORTED_C, camera::UNDISTORTED_C>(match.source_point, &keypoint_1);
+    camera_params.Convert<camera::DISTORTED, camera::UNDISTORTED_C>(match.source_point, &keypoint_1);
     keypoints_1.col(i) = keypoint_1;
     Eigen::Vector2d keypoint_2;
-    camera_params.Convert<camera::DISTORTED_C, camera::UNDISTORTED_C>(match.target_point, &keypoint_2);
+    camera_params.Convert<camera::DISTORTED, camera::UNDISTORTED_C>(match.target_point, &keypoint_2);
     keypoints_2.col(i) = keypoint_2;
     const cv::DMatch cv_match(i, i, match.distance);
     cv_matches.emplace_back(cv_match);
     ++i;
   }
 
-  CIDPairAffineMap relative_affines;
+  sm::CIDPairAffineMap relative_affines;
   std::mutex mutex;
-  BuildMapFindEssentialAndInliers(keypoints_1, keypoints_2, cv_matches, camera_params, true, 0, 1, &mutex,
-                                  &relative_affines, &inlier_matches, false, nullptr);
+  sm::BuildMapFindEssentialAndInliers(keypoints_1, keypoints_2, cv_matches, camera_params, true, 0, 1, &mutex,
+                                      &relative_affines, &inlier_matches, false, nullptr);
   std::pair<int, int> pose_indices(0, 1);
   relative_pose = relative_affines[pose_indices];
 }
@@ -91,13 +96,14 @@ bool RotationOnlyImageSequence(const vc::FeatureMatches& matches, const camera::
   RelativePose(matches, camera_params, relative_pose, inlier_matches);
   Eigen::Matrix3d rotation;
   Eigen::Matrix3d scale_matrix;
-  affine_3d.computeRotationScaling(&rotation, &scale_matrix);
+  relative_pose.computeRotationScaling(&rotation, &scale_matrix);
+  const Eigen::Matrix3d intrinsics = camera_params.GetIntrinsicMatrix<camera::DISTORTED>();
   Eigen::Matrix3d rotation_homography = intrinsics * rotation * intrinsics.inverse();
   rotation_homography /= rotation_homography(2, 2);
   lc::Averager error_averager;
   // TODO(rsoussan): Only use inlier matches???
   for (const auto& match : matches) {
-    const Eigen::Vector2d rotated_target_point = (rotation_homography * match.target_point.homogenous()).hnormalized();
+    const Eigen::Vector2d rotated_target_point = (rotation_homography * match.target_point.homogeneous()).hnormalized();
     const double error_norm = (match.source_point - rotated_target_point).norm();
     error_averager.Update(error_norm);
   }
@@ -227,7 +233,7 @@ int main(int argc, char** argv) {
   // are ignored when parsing gflags.
   int ff_argc = 1;
   ff_common::InitFreeFlyerApplication(&ff_argc, &argv);
-  lc::SetEnvironmentConfigs(config_path, world, robot_config_file);
+  lc::SetEnvironmentConfigs(config_path, "iss", robot_config_file);
   config_reader::ConfigReader config;
   config.AddFile("cameras.config");
   config.AddFile("geometry.config");
