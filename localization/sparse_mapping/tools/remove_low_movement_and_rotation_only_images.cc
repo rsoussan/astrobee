@@ -83,7 +83,7 @@ void RelativePose(const vc::FeatureMatches& matches, const camera::CameraParamet
 
   sm::CIDPairAffineMap relative_affines;
   std::mutex mutex;
-  sm::BuildMapFindEssentialAndInliers(keypoints_1, keypoints_2, cv_matches, camera_params, true, 0, 1, &mutex,
+  sm::BuildMapFindEssentialAndInliers(keypoints_1, keypoints_2, cv_matches, camera_params, false, 0, 1, &mutex,
                                       &relative_affines, &inlier_matches, false, nullptr);
   std::pair<int, int> pose_indices(0, 1);
   relative_pose = relative_affines[pose_indices];
