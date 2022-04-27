@@ -34,20 +34,24 @@ if (USE_ROS)
     CATKIN_DEPENDS ff_common localization_common rosbag
   )
 
-## Declare a C++ executable: extract_images
-add_executable(extract_images tools/extract_images.cc)
-add_dependencies(extract_images ${catkin_EXPORTED_TARGETS})
-target_include_directories(extract_images PRIVATE ${catkin_INCLUDE_DIRS})
-target_link_libraries(extract_images
-  glog ${catkin_LIBRARIES})
+  ## Declare a C++ executable: extract_images
+  add_executable(extract_images tools/extract_images.cc)
+  add_dependencies(extract_images ${catkin_EXPORTED_TARGETS})
+  target_include_directories(extract_images PRIVATE ${catkin_INCLUDE_DIRS})
+  target_link_libraries(extract_images
+    glog ${catkin_LIBRARIES})
 
-# Install C++ executables
-install(TARGETS extract_images DESTINATION bin)
-install(CODE "execute_process(
-  COMMAND ln -s ../../bin/extract_images share/${PROJECT_NAME}
-  WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}
-  OUTPUT_QUIET
-  ERROR_QUIET
-  )")
+  # Install C++ executables
+  install(TARGETS extract_images DESTINATION bin)
+  install(CODE "execute_process(
+    COMMAND ln -s ../../bin/extract_images share/${PROJECT_NAME}
+    WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}
+    OUTPUT_QUIET
+    ERROR_QUIET
+    )")
 
+  if (CATKIN_ENABLE_TESTING)
+    find_package(rostest REQUIRED)
+    add_rostest(test/test_fix_all.test)
+  endif()
 endif (USE_ROS)
