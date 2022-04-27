@@ -16,6 +16,7 @@
  * under the License.
  */
 #include <ff_common/init.h>
+#include <interest_point/essential.h>
 #include <localization_common/averager.h>
 #include <localization_common/logger.h>
 #include <vision_common/lk_optical_flow_feature_detector_and_matcher.h>
@@ -55,15 +56,53 @@ bool LowMovementImageSequence(const vc::FeatureMatches& matches, const double ma
   return false;
 }
 
-bool RotationOnlyImageSequence(const vc::FeatureMatches& matches, const double max_rotation_only_mean_error) {
-  // TODO(rsoussan): estimate normalize pose using matches!
-  // check errors!!
-  lc::Averager distance_averager;
+void RelativePose(const vc::FeatureMatches& matches, const camera::CameraParameters& camera_params,
+                  Eigen::Affine3d& relative_pose, std::vector<cv::DMatch>& inlier_matches) {
+  // TODO(rsoussan): Update this call when surf map branch merged into dev
+  // Function expects keypoints in undistorted centered frame
+  Eigen::Matrix2Xd keypoints_1(2, matches.size());
+  Eigen::Matrix2Xd keypoints_2(2, matches.size());
+  int i = 0;
+  std::vector<cv::DMatch> cv_matches;
   for (const auto& match : matches) {
-    distance_averager.Update(match.distance);
+    Eigen::Vector2d keypoint_1;
+    camera_params.Convert<camera::DISTORTED_C, camera::UNDISTORTED_C>(match.source_point, &keypoint_1);
+    keypoints_1.col(i) = keypoint_1;
+    Eigen::Vector2d keypoint_2;
+    camera_params.Convert<camera::DISTORTED_C, camera::UNDISTORTED_C>(match.target_point, &keypoint_2);
+    keypoints_2.col(i) = keypoint_2;
+    const cv::DMatch cv_match(i, i, match.distance);
+    cv_matches.emplace_back(cv_match);
+    ++i;
   }
-  LogDebug("Mean distance: " << distance_averager.average());
-  if (distance_averager.average() <= max_low_movement_mean_distance) return true;
+
+  CIDPairAffineMap relative_affines;
+  std::mutex mutex;
+  BuildMapFindEssentialAndInliers(keypoints_1, keypoints_2, cv_matches, camera_params, true, 0, 1, &mutex,
+                                  &relative_affines, &inlier_matches, false, nullptr);
+  std::pair<int, int> pose_indices(0, 1);
+  relative_pose = relative_affines[pose_indices];
+}
+
+bool RotationOnlyImageSequence(const vc::FeatureMatches& matches, const camera::CameraParameters& camera_params,
+                               const double max_rotation_only_mean_error) {
+  Eigen::Affine3d relative_pose;
+  std::vector<cv::DMatch> inlier_matches;
+  RelativePose(matches, camera_params, relative_pose, inlier_matches);
+  Eigen::Matrix3d rotation;
+  Eigen::Matrix3d scale_matrix;
+  affine_3d.computeRotationScaling(&rotation, &scale_matrix);
+  Eigen::Matrix3d rotation_homography = intrinsics * rotation * intrinsics.inverse();
+  rotation_homography /= rotation_homography(2, 2);
+  lc::Averager error_averager;
+  // TODO(rsoussan): Only use inlier matches???
+  for (const auto& match : matches) {
+    const Eigen::Vector2d rotated_target_point = (rotation_homography * match.target_point.homogenous()).hnormalized();
+    const double error_norm = (match.source_point - rotated_target_point).norm();
+    error_averager.Update(error_norm);
+  }
+  LogDebug("Mean error: " << error_averager.average());
+  if (error_averager.average() <= max_rotation_only_mean_error) return true;
   return false;
 }
 
@@ -95,6 +134,7 @@ vc::LKOpticalFlowFeatureDetectorAndMatcherParams LoadParams() {
 }
 
 int RemoveLowMovementAndRotationOnlyImages(const std::vector<std::string>& image_names,
+                                           const camera::CameraParameters& camera_params,
                                            const double max_low_movement_mean_distance,
                                            const double max_rotation_only_mean_error) {
   const vc::LKOpticalFlowFeatureDetectorAndMatcherParams params = LoadParams();
@@ -113,7 +153,7 @@ int RemoveLowMovementAndRotationOnlyImages(const std::vector<std::string>& image
     while (next_image_index < image_names.size()) {
       const auto matches = Matches(current_image, next_image, detector_and_matcher);
       if (matches && (LowMovementImageSequence(*matches, max_low_movement_mean_distance) ||
-                      RotationOnly(*matches, max_rotation_only_mean_error))) {
+                      RotationOnlyImageSequence(*matches, camera_params, max_rotation_only_mean_error))) {
         LogDebug("Removing image index: " << next_image_index << ", current image index: " << current_image_index);
         std::remove((image_names[next_image_index++]).c_str());
         ++num_removed_images;
@@ -149,6 +189,7 @@ std::vector<std::string> GetImageNames(const std::string& image_directory,
 int main(int argc, char** argv) {
   double max_low_movement_mean_distance;
   double max_rotation_only_mean_error;
+  std::string robot_config_file;
   po::options_description desc(
     "Removes any images with too little movement.  Computes relative movement using sequential images.");
   desc.add_options()("help,h", "produce help message")(
@@ -159,9 +200,13 @@ int main(int argc, char** argv) {
     "movement pair.")("--max-rotation-only-mean-error,e",
                       po::value<double>(&max_rotation_only_mean_error)->default_value(0.1),
                       "Max mean error in image space for features described by rotation only movement between "
-                      "sequential images to be classified as a rotation only pair.");
+                      "sequential images to be classified as a rotation only pair.")(
+    "config-path,c", po::value<std::string>()->required(), "Config path")(
+    "robot-config-file,r", po::value<std::string>(&robot_config_file)->default_value("config/robots/bumble.config"),
+    "robot config file");
   po::positional_options_description p;
   p.add("image-directory", 1);
+  p.add("config-path", 1);
   po::variables_map vm;
   try {
     po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
@@ -176,11 +221,21 @@ int main(int argc, char** argv) {
   }
 
   const std::string image_directory = vm["image-directory"].as<std::string>();
+  const std::string config_path = vm["config-path"].as<std::string>();
 
   // Only pass program name to free flyer so that boost command line options
   // are ignored when parsing gflags.
   int ff_argc = 1;
   ff_common::InitFreeFlyerApplication(&ff_argc, &argv);
+  lc::SetEnvironmentConfigs(config_path, world, robot_config_file);
+  config_reader::ConfigReader config;
+  config.AddFile("cameras.config");
+  config.AddFile("geometry.config");
+  if (!config.ReadFiles()) {
+    LogFatal("Failed to read config files.");
+  }
+  // TODO(rsoussan): Allow for other cameras?
+  const camera::CameraParameters camera_parameters(&config, "nav_cam");
 
   if (!fs::exists(image_directory) || !fs::is_directory(image_directory)) {
     LogFatal("Image directory " << image_directory << " not found.");
@@ -190,7 +245,7 @@ int main(int argc, char** argv) {
   if (image_names.empty()) LogFatal("No images found.");
 
   const int num_original_images = image_names.size();
-  const int num_removed_images =
-    RemoveLowAndRotationOnlyMovementImages(image_names, max_low_movement_mean_distance, max_rotation_only_mean_error);
+  const int num_removed_images = RemoveLowMovementAndRotationOnlyImages(
+    image_names, camera_parameters, max_low_movement_mean_distance, max_rotation_only_mean_error);
   LogInfo("Removed " << num_removed_images << " of " << num_original_images << " images.");
 }
