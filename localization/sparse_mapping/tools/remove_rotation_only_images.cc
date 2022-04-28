@@ -49,16 +49,6 @@ boost::optional<vc::FeatureMatches> Matches(const vc::FeatureImage& current_imag
   return matches;
 }
 
-bool LowMovementImageSequence(const vc::FeatureMatches& matches, const double max_low_movement_mean_distance) {
-  lc::Averager distance_averager;
-  for (const auto& match : matches) {
-    distance_averager.Update(match.distance);
-  }
-  LogDebug("Mean distance: " << distance_averager.average());
-  if (distance_averager.average() <= max_low_movement_mean_distance) return true;
-  return false;
-}
-
 Eigen::Matrix3d Rotation(const std::vector<Eigen::Vector3d>& points_a, const std::vector<Eigen::Vector3d>& points_b) {
   Eigen::Vector3d points_a_mean(Eigen::Vector3d::Zero());
   Eigen::Vector3d points_b_mean(Eigen::Vector3d::Zero());
@@ -159,36 +149,33 @@ vc::LKOpticalFlowFeatureDetectorAndMatcherParams LoadParams() {
   return params;
 }
 
-int RemoveLowMovementAndRotationOnlyImages(const std::vector<std::string>& image_names,
-                                           const camera::CameraParameters& camera_params,
-                                           const double max_low_movement_mean_distance,
-                                           const double rotation_inlier_threshold,
-                                           const double min_percent_rotation_inliers) {
+int RemoveRotationOnlyImages(const std::vector<std::string>& image_names, const camera::CameraParameters& camera_params,
+                             const double rotation_inlier_threshold, const double min_percent_rotation_inliers) {
   const vc::LKOpticalFlowFeatureDetectorAndMatcherParams params = LoadParams();
   vc::LKOpticalFlowFeatureDetectorAndMatcher detector_and_matcher(params);
   auto& detector = *(detector_and_matcher.detector());
-  // Compare current image with subsequent image and remove subsequent image if it has low or rotation only movement.
-  // If a subsequent image is removed, check the next image compared with the current image for low or rotation only
-  // movement. If a subsequent image does not have low or rotation only movement, advance current image and start the
-  // process over.
+  // Compare current image with subsequent image and mark subsequent image for removal if it displays rotation only
+  // movement. Repeat and create image directories around rotation only sequences.
   int current_image_index = 0;
   int next_image_index = 1;
   auto current_image = LoadImage(current_image_index, image_names, detector);
   auto next_image = LoadImage(next_image_index, image_names, detector);
   int num_removed_images = 0;
   while (current_image_index < image_names.size()) {
+    bool removed_rotation_sequence = false;
     while (next_image_index < image_names.size()) {
       const auto matches = Matches(current_image, next_image, detector_and_matcher);
-      if (matches && (LowMovementImageSequence(*matches, max_low_movement_mean_distance) ||
-                      RotationOnlyImageSequence(*matches, camera_params, rotation_inlier_threshold,
-                                                min_percent_rotation_inliers))) {
+      if (matches &&
+          RotationOnlyImageSequence(*matches, camera_params, rotation_inlier_threshold, min_percent_rotation_inliers)) {
         LogDebug("Removing image index: " << next_image_index << ", current image index: " << current_image_index);
-        std::remove((image_names[next_image_index++]).c_str());
-
+        std::remove((image_names[next_image_index]).c_str());
         ++num_removed_images;
+        current_image = next_image;
+        current_image_index = next_image_index;
         // Don't load next image if index is past the end of the sequence
-        if (next_image_index >= image_names.size()) break;
+        if (++next_image_index >= image_names.size()) break;
         next_image = LoadImage(next_image_index, image_names, detector);
+        removed_rotation_sequence = true;
       } else {
         break;
       }
@@ -221,18 +208,15 @@ int main(int argc, char** argv) {
   double min_percent_rotation_inliers;
   std::string robot_config_file;
   po::options_description desc(
-    "Removes any images with too little movement.  Computes relative movement using sequential images.");
+    "Removes any rotation only image sequences. Splits images into subdirectories when a sequence is removed.");
   desc.add_options()("help,h", "produce help message")(
     "image-directory", po::value<std::string>()->required(),
     "Directory containing images. Images are assumed to be named in sequential order.")(
-    "--max-low-movement-mean-distance,d", po::value<double>(&max_low_movement_mean_distance)->default_value(0.1),
-    "Max mean distance in image space for optical flow tracks between sequential images to be classified as a low "
-    "movement pair.")("--rotation-inlier-threshold,t",
-                      po::value<double>(&rotation_inlier_threshold)->default_value(0.01),
-                      "Threshold for a point to be an inlier for the RANSAC rotation estimate. Computed using the dot "
-                      "product of the rotated point and matching point, so perfect alignment yields a value of 0 and "
-                      "the worst aligment yields a value of 1."
-                      "sequential images to be classified as a rotation only pair.")(
+    "--rotation-inlier-threshold,t", po::value<double>(&rotation_inlier_threshold)->default_value(0.01),
+    "Threshold for a point to be an inlier for the RANSAC rotation estimate. Computed using the dot "
+    "product of the rotated point and matching point, so perfect alignment yields a value of 0 and "
+    "the worst aligment yields a value of 1."
+    "sequential images to be classified as a rotation only pair.")(
     "--min-rotation-only-inliers-percent,p", po::value<double>(&min_percent_rotation_inliers)->default_value(0.95),
     "Min percent of matches that are inliers to rotation only movement between "
     "sequential images to be classified as a rotation only pair.")("config-path,c",
@@ -281,7 +265,6 @@ int main(int argc, char** argv) {
 
   const int num_original_images = image_names.size();
   const int num_removed_images =
-    RemoveLowMovementAndRotationOnlyImages(image_names, camera_parameters, max_low_movement_mean_distance,
-                                           rotation_inlier_threshold, min_percent_rotation_inliers);
+    RemoveRotationOnlyImages(image_names, camera_parameters, rotation_inlier_threshold, min_percent_rotation_inliers);
   LogInfo("Removed " << num_removed_images << " of " << num_original_images << " images.");
 }
