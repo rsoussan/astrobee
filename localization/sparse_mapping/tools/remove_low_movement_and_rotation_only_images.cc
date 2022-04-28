@@ -17,19 +17,12 @@
  */
 #include <camera/camera_params.h>
 #include <ff_common/init.h>
-// #include <interest_point/essential.h>
 #include <localization_common/averager.h>
 #include <localization_common/logger.h>
 #include <localization_common/utilities.h>
-// #include <sparse_mapping/tensor.h>
 #include <sparse_mapping/ransac.h>
 #include <vision_common/lk_optical_flow_feature_detector_and_matcher.h>
 #include <vision_common/utilities.h>
-
-/*#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/core/eigen.hpp>
-#include <opencv2/highgui/highgui.hpp>*/
 
 #include <glog/logging.h>
 
@@ -65,81 +58,6 @@ bool LowMovementImageSequence(const vc::FeatureMatches& matches, const double ma
   if (distance_averager.average() <= max_low_movement_mean_distance) return true;
   return false;
 }
-
-/*void RelativePose(const vc::FeatureMatches& matches, const camera::CameraParameters& camera_params,
-                  Eigen::Affine3d& cam_2_T_cam_1, std::vector<cv::DMatch>& inlier_matches) {
-  // TODO(rsoussan): Update this call when surf map branch merged into dev
-  // Function expects keypoints in undistorted centered frame
-  Eigen::Matrix2Xd keypoints_1(2, matches.size());
-  Eigen::Matrix2Xd keypoints_2(2, matches.size());
-  int i = 0;
-  std::vector<cv::DMatch> cv_matches;
-  for (const auto& match : matches) {
-    Eigen::Vector2d keypoint_1;
-    camera_params.Convert<camera::DISTORTED, camera::UNDISTORTED_C>(match.source_point, &keypoint_1);
-    //LogError("keypoint 1: " << std::endl << keypoint_1.matrix());
-    keypoints_1.col(i) = keypoint_1;
-    Eigen::Vector2d keypoint_2;
-    camera_params.Convert<camera::DISTORTED, camera::UNDISTORTED_C>(match.target_point, &keypoint_2);
-   // LogError("keypoint 2: " << std::endl << keypoint_2.matrix());
-    keypoints_2.col(i) = keypoint_2;
-    const cv::DMatch cv_match(i, i, match.distance);
-    cv_matches.emplace_back(cv_match);
-    ++i;
-  }
-
-  sm::CIDPairAffineMap relative_affines;
-  std::mutex mutex;
-  sm::BuildMapFindEssentialAndInliers(keypoints_1, keypoints_2, cv_matches, camera_params, false, 0, 1, &mutex,
-                                      &relative_affines, &inlier_matches, false, nullptr);
-  std::pair<int, int> pose_indices(0, 1);
-  cam_2_T_cam_1 = relative_affines[pose_indices];
-}*/
-
-/*bool RotationOnlyImageSequence(const vc::FeatureMatches& matches, const camera::CameraParameters& camera_params,
-                               const double max_rotation_only_mean_error) {
-  Eigen::Affine3d cam_2_T_cam_1;
-  std::vector<cv::DMatch> inlier_matches;
-  RelativePose(matches, camera_params, cam_2_T_cam_1, inlier_matches);
-  LogError("relative pose: " << std::endl << cam_2_T_cam_1.matrix());
-  Eigen::Matrix3d cam_2_R_cam_1;
-  Eigen::Matrix3d scale_matrix;
-  cam_2_T_cam_1.computeRotationScaling(&cam_2_R_cam_1, &scale_matrix);
-  LogError("rotation: " << std::endl << cam_2_R_cam_1.matrix());
-  const Eigen::Matrix3d intrinsics = camera_params.GetIntrinsicMatrix<camera::DISTORTED>();
-  LogError("intrinsics: " << std::endl << intrinsics.matrix());
-  //Eigen::Matrix3d rotation_homography = intrinsics * cam_2_R_cam_1.transpose() * intrinsics.inverse();
-  cam_2_R_cam_1 = cam_2_R_cam_1.transpose();
-  for (int i = 0; i < 10; ++i){
-    cam_2_R_cam_1 *= cam_2_R_cam_1;
-  }
-  Eigen::Matrix3d rotation_homography = intrinsics * cam_2_R_cam_1 * intrinsics.inverse();
-  rotation_homography /= rotation_homography(2, 2);
-  cv::eigen2cv(rotation_homography, global_homography);
-  rotation_homography = rotation_homography.inverse();
-
-  {
- lc::Averager error_averager;
-  // TODO(rsoussan): Only use inlier matches???
-  for (const auto& match : matches) {
-    const double error_norm = (match.source_point - match.target_point).norm();
-   // LogError("error norm: " << error_norm);
-    error_averager.Update(error_norm);
-  }
-  LogError("Original Mean error: " << error_averager.average());
-  }
-  lc::Averager error_averager;
-  // TODO(rsoussan): Only use inlier matches???
-  for (const auto& match : matches) {
-    const Eigen::Vector2d rotated_target_point = (rotation_homography * match.target_point.homogeneous()).hnormalized();
-    const double error_norm = (match.source_point - rotated_target_point).norm();
-   // LogError("error norm: " << error_norm);
-    error_averager.Update(error_norm);
-  }
-  LogError("Rotated Mean error: " << error_averager.average());
-  if (error_averager.average() <= max_rotation_only_mean_error) return true;
-  return false;
-}*/
 
 Eigen::Matrix3d Rotation(const std::vector<Eigen::Vector3d>& points_a, const std::vector<Eigen::Vector3d>& points_b) {
   Eigen::Vector3d points_a_mean(Eigen::Vector3d::Zero());
