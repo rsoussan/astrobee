@@ -185,7 +185,7 @@ struct RotationError {
 using RansacEstimateRotation = sparse_mapping::RandomSampleConsensus<RotationFittingFunctor, RotationError>;
 
 bool RotationOnlyImageSequence(const vc::FeatureMatches& matches, const camera::CameraParameters& camera_params,
-                               const double min_percent_rotation_inliers) {
+                               const double rotation_inlier_threshold, const double min_percent_rotation_inliers) {
   // Backproject with unit depth
   std::vector<Eigen::Vector3d> backprojected_points_a;
   std::vector<Eigen::Vector3d> backprojected_points_b;
@@ -201,16 +201,16 @@ bool RotationOnlyImageSequence(const vc::FeatureMatches& matches, const camera::
 
   const int num_iterations = 1000;
   const int min_num_output_inliers = matches.size() / 2;
-  const bool reduce_min_num_output_inliers_if_no_fit = true;
-  const bool increase_threshold_if_no_fit = true;
-  // TODO(rsoussan): make this a param?
-  double inlier_threshold = 0.1;
-  RansacEstimateRotation ransac(RotationFittingFunctor(), RotationError(), num_iterations, inlier_threshold,
+  const bool reduce_min_num_output_inliers_if_no_fit = false;
+  const bool increase_threshold_if_no_fit = false;
+  RansacEstimateRotation ransac(RotationFittingFunctor(), RotationError(), num_iterations, rotation_inlier_threshold,
                                 min_num_output_inliers, reduce_min_num_output_inliers_if_no_fit,
                                 increase_threshold_if_no_fit);
   const Eigen::Matrix3d rotation = ransac(backprojected_points_a, backprojected_points_b);
+  LogError("rotation: " << rotation.matrix());
   const auto inlier_indices = ransac.inlier_indices(rotation, backprojected_points_a, backprojected_points_b);
   const double percent_inliers = static_cast<double>(inlier_indices.size()) / static_cast<double>(matches.size());
+  LogError("percent inliers: " << percent_inliers);
   return percent_inliers >= min_percent_rotation_inliers;
 }
 
@@ -244,6 +244,7 @@ vc::LKOpticalFlowFeatureDetectorAndMatcherParams LoadParams() {
 int RemoveLowMovementAndRotationOnlyImages(const std::vector<std::string>& image_names,
                                            const camera::CameraParameters& camera_params,
                                            const double max_low_movement_mean_distance,
+                                           const double rotation_inlier_threshold,
                                            const double min_percent_rotation_inliers) {
   const vc::LKOpticalFlowFeatureDetectorAndMatcherParams params = LoadParams();
   vc::LKOpticalFlowFeatureDetectorAndMatcher detector_and_matcher(params);
@@ -260,9 +261,9 @@ int RemoveLowMovementAndRotationOnlyImages(const std::vector<std::string>& image
   while (current_image_index < image_names.size()) {
     while (next_image_index < image_names.size()) {
       const auto matches = Matches(current_image, next_image, detector_and_matcher);
-      if (!matches) LogError("no matches!");
       if (matches && (LowMovementImageSequence(*matches, max_low_movement_mean_distance) ||
-                      RotationOnlyImageSequence(*matches, camera_params, min_percent_rotation_inliers))) {
+                      RotationOnlyImageSequence(*matches, camera_params, rotation_inlier_threshold,
+                                                min_percent_rotation_inliers))) {
         LogDebug("Removing image index: " << next_image_index << ", current image index: " << current_image_index);
         std::remove((image_names[next_image_index++]).c_str());
 
@@ -298,6 +299,7 @@ std::vector<std::string> GetImageNames(const std::string& image_directory,
 
 int main(int argc, char** argv) {
   double max_low_movement_mean_distance;
+  double rotation_inlier_threshold;
   double min_percent_rotation_inliers;
   std::string robot_config_file;
   po::options_description desc(
@@ -307,11 +309,16 @@ int main(int argc, char** argv) {
     "Directory containing images. Images are assumed to be named in sequential order.")(
     "--max-low-movement-mean-distance,d", po::value<double>(&max_low_movement_mean_distance)->default_value(0.1),
     "Max mean distance in image space for optical flow tracks between sequential images to be classified as a low "
-    "movement pair.")("--min-rotation-only-inliers-percent,i",
-                      po::value<double>(&min_percent_rotation_inliers)->default_value(0.9),
-                      "Min percent of matches that are inliers to rotation only movement between "
+    "movement pair.")("--rotation-inlier-threshold,t",
+                      po::value<double>(&rotation_inlier_threshold)->default_value(0.01),
+                      "Threshold for a point to be an inlier for the RANSAC rotation estimate. Computed using the dot "
+                      "product of the rotated point and matching point, so perfect alignment yields a value of 0 and "
+                      "the worst aligment yields a value of 1."
                       "sequential images to be classified as a rotation only pair.")(
-    "config-path,c", po::value<std::string>()->required(), "Config path")(
+    "--min-rotation-only-inliers-percent,p", po::value<double>(&min_percent_rotation_inliers)->default_value(0.95),
+    "Min percent of matches that are inliers to rotation only movement between "
+    "sequential images to be classified as a rotation only pair.")("config-path,c",
+                                                                   po::value<std::string>()->required(), "Config path")(
     "robot-config-file,r", po::value<std::string>(&robot_config_file)->default_value("config/robots/bumble.config"),
     "robot config file");
   po::positional_options_description p;
@@ -355,7 +362,8 @@ int main(int argc, char** argv) {
   if (image_names.empty()) LogFatal("No images found.");
 
   const int num_original_images = image_names.size();
-  const int num_removed_images = RemoveLowMovementAndRotationOnlyImages(
-    image_names, camera_parameters, max_low_movement_mean_distance, min_percent_rotation_inliers);
+  const int num_removed_images =
+    RemoveLowMovementAndRotationOnlyImages(image_names, camera_parameters, max_low_movement_mean_distance,
+                                           rotation_inlier_threshold, min_percent_rotation_inliers);
   LogInfo("Removed " << num_removed_images << " of " << num_original_images << " images.");
 }
