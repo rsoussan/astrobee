@@ -176,7 +176,7 @@ target_link_libraries(parse_cam
 add_executable(remove_low_movement_and_rotation_only_images tools/remove_low_movement_and_rotation_only_images.cc)
 add_dependencies(remove_low_movement_and_rotation_only_images ${catkin_EXPORTED_TARGETS})
 target_link_libraries(remove_low_movement_and_rotation_only_images
-  sparse_mapping ${catkin_LIBRARIES})
+  sparse_mapping glog ${catkin_LIBRARIES})
 
 ## Declare a C++ executable: select_images
 add_executable(select_images tools/select_images.cc)

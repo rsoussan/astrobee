@@ -17,15 +17,21 @@
  */
 #include <camera/camera_params.h>
 #include <ff_common/init.h>
-#include <interest_point/essential.h>
+// #include <interest_point/essential.h>
 #include <localization_common/averager.h>
 #include <localization_common/logger.h>
 #include <localization_common/utilities.h>
-#include <sparse_mapping/tensor.h>
+// #include <sparse_mapping/tensor.h>
+#include <sparse_mapping/ransac.h>
 #include <vision_common/lk_optical_flow_feature_detector_and_matcher.h>
+#include <vision_common/utilities.h>
 
-#include <opencv2/imgcodecs.hpp>
+/*#include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/core/eigen.hpp>
+#include <opencv2/highgui/highgui.hpp>*/
+
+#include <glog/logging.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
@@ -35,14 +41,13 @@
 namespace fs = boost::filesystem;
 namespace lc = localization_common;
 namespace po = boost::program_options;
-namespace sm = sparse_mapping;
 namespace vc = vision_common;
 
 boost::optional<vc::FeatureMatches> Matches(const vc::FeatureImage& current_image, const vc::FeatureImage& next_image,
                                             vc::LKOpticalFlowFeatureDetectorAndMatcher& detector_and_matcher) {
   const auto& matches = detector_and_matcher.Match(current_image, next_image);
   if (matches.size() < 5) {
-    LogDebug("Too few matches: " << matches.size() << ", current image keypoints: " << current_image.keypoints().size()
+    LogError("Too few matches: " << matches.size() << ", current image keypoints: " << current_image.keypoints().size()
                                  << ", next image keypoints: " << next_image.keypoints().size());
     return boost::none;
   }
@@ -61,8 +66,8 @@ bool LowMovementImageSequence(const vc::FeatureMatches& matches, const double ma
   return false;
 }
 
-void RelativePose(const vc::FeatureMatches& matches, const camera::CameraParameters& camera_params,
-                  Eigen::Affine3d& relative_pose, std::vector<cv::DMatch>& inlier_matches) {
+/*void RelativePose(const vc::FeatureMatches& matches, const camera::CameraParameters& camera_params,
+                  Eigen::Affine3d& cam_2_T_cam_1, std::vector<cv::DMatch>& inlier_matches) {
   // TODO(rsoussan): Update this call when surf map branch merged into dev
   // Function expects keypoints in undistorted centered frame
   Eigen::Matrix2Xd keypoints_1(2, matches.size());
@@ -72,9 +77,11 @@ void RelativePose(const vc::FeatureMatches& matches, const camera::CameraParamet
   for (const auto& match : matches) {
     Eigen::Vector2d keypoint_1;
     camera_params.Convert<camera::DISTORTED, camera::UNDISTORTED_C>(match.source_point, &keypoint_1);
+    //LogError("keypoint 1: " << std::endl << keypoint_1.matrix());
     keypoints_1.col(i) = keypoint_1;
     Eigen::Vector2d keypoint_2;
     camera_params.Convert<camera::DISTORTED, camera::UNDISTORTED_C>(match.target_point, &keypoint_2);
+   // LogError("keypoint 2: " << std::endl << keypoint_2.matrix());
     keypoints_2.col(i) = keypoint_2;
     const cv::DMatch cv_match(i, i, match.distance);
     cv_matches.emplace_back(cv_match);
@@ -86,30 +93,125 @@ void RelativePose(const vc::FeatureMatches& matches, const camera::CameraParamet
   sm::BuildMapFindEssentialAndInliers(keypoints_1, keypoints_2, cv_matches, camera_params, false, 0, 1, &mutex,
                                       &relative_affines, &inlier_matches, false, nullptr);
   std::pair<int, int> pose_indices(0, 1);
-  relative_pose = relative_affines[pose_indices];
-}
+  cam_2_T_cam_1 = relative_affines[pose_indices];
+}*/
 
-bool RotationOnlyImageSequence(const vc::FeatureMatches& matches, const camera::CameraParameters& camera_params,
+/*bool RotationOnlyImageSequence(const vc::FeatureMatches& matches, const camera::CameraParameters& camera_params,
                                const double max_rotation_only_mean_error) {
-  Eigen::Affine3d relative_pose;
+  Eigen::Affine3d cam_2_T_cam_1;
   std::vector<cv::DMatch> inlier_matches;
-  RelativePose(matches, camera_params, relative_pose, inlier_matches);
-  Eigen::Matrix3d rotation;
+  RelativePose(matches, camera_params, cam_2_T_cam_1, inlier_matches);
+  LogError("relative pose: " << std::endl << cam_2_T_cam_1.matrix());
+  Eigen::Matrix3d cam_2_R_cam_1;
   Eigen::Matrix3d scale_matrix;
-  relative_pose.computeRotationScaling(&rotation, &scale_matrix);
+  cam_2_T_cam_1.computeRotationScaling(&cam_2_R_cam_1, &scale_matrix);
+  LogError("rotation: " << std::endl << cam_2_R_cam_1.matrix());
   const Eigen::Matrix3d intrinsics = camera_params.GetIntrinsicMatrix<camera::DISTORTED>();
-  Eigen::Matrix3d rotation_homography = intrinsics * rotation * intrinsics.inverse();
+  LogError("intrinsics: " << std::endl << intrinsics.matrix());
+  //Eigen::Matrix3d rotation_homography = intrinsics * cam_2_R_cam_1.transpose() * intrinsics.inverse();
+  cam_2_R_cam_1 = cam_2_R_cam_1.transpose();
+  for (int i = 0; i < 10; ++i){
+    cam_2_R_cam_1 *= cam_2_R_cam_1;
+  }
+  Eigen::Matrix3d rotation_homography = intrinsics * cam_2_R_cam_1 * intrinsics.inverse();
   rotation_homography /= rotation_homography(2, 2);
+  cv::eigen2cv(rotation_homography, global_homography);
+  rotation_homography = rotation_homography.inverse();
+
+  {
+ lc::Averager error_averager;
+  // TODO(rsoussan): Only use inlier matches???
+  for (const auto& match : matches) {
+    const double error_norm = (match.source_point - match.target_point).norm();
+   // LogError("error norm: " << error_norm);
+    error_averager.Update(error_norm);
+  }
+  LogError("Original Mean error: " << error_averager.average());
+  }
   lc::Averager error_averager;
   // TODO(rsoussan): Only use inlier matches???
   for (const auto& match : matches) {
     const Eigen::Vector2d rotated_target_point = (rotation_homography * match.target_point.homogeneous()).hnormalized();
     const double error_norm = (match.source_point - rotated_target_point).norm();
+   // LogError("error norm: " << error_norm);
     error_averager.Update(error_norm);
   }
-  LogDebug("Mean error: " << error_averager.average());
+  LogError("Rotated Mean error: " << error_averager.average());
   if (error_averager.average() <= max_rotation_only_mean_error) return true;
   return false;
+}*/
+
+Eigen::Matrix3d Rotation(const std::vector<Eigen::Vector3d>& points_a, const std::vector<Eigen::Vector3d>& points_b) {
+  Eigen::Vector3d points_a_mean(Eigen::Vector3d::Zero());
+  Eigen::Vector3d points_b_mean(Eigen::Vector3d::Zero());
+  for (int i = 0; i < static_cast<int>(points_a.size()); ++i) {
+    points_a_mean += points_a[i];
+    points_b_mean += points_b[i];
+  }
+  points_a_mean /= static_cast<double>(points_a.size());
+  points_b_mean /= static_cast<double>(points_b.size());
+
+  Eigen::Matrix3d covariance(Eigen::Matrix3d::Zero());
+  for (int i = 0; i < static_cast<int>(points_a.size()); ++i) {
+    const Eigen::Vector3d point_a_mean_centered = points_a[i] - points_a_mean;
+    const Eigen::Vector3d point_b_mean_centered = points_b[i] - points_b_mean;
+    covariance += point_a_mean_centered * point_b_mean_centered.transpose();
+  }
+
+  Eigen::JacobiSVD<Eigen::Matrix3d> svd(covariance, Eigen::ComputeFullU | Eigen::ComputeFullV);
+  Eigen::Matrix3d rotation = svd.matrixU() * svd.matrixV().transpose();
+  if (rotation.determinant() < 0) rotation *= -1.0;
+  return rotation;
+}
+
+struct RotationFittingFunctor {
+  using result_type = Eigen::Matrix3d;
+  size_t min_elements_needed_for_fit() const { return 3; }
+  result_type operator()(const std::vector<Eigen::Vector3d>& points_a,
+                         const std::vector<Eigen::Vector3d>& points_b) const {
+    // TODO(rsoussan): Transpose here??
+    return Rotation(points_a, points_b).transpose();
+  }
+};
+
+struct RotationError {
+  double operator()(const Eigen::Matrix3d& rotation, const Eigen::Vector3d& point_a,
+                    const Eigen::Vector3d& point_b) const {
+    // TODO(rsoussan): is rotation frame correct here?
+    return (1.0 - (rotation * point_a).dot(point_b));
+  }
+};
+
+using RansacEstimateRotation = sparse_mapping::RandomSampleConsensus<RotationFittingFunctor, RotationError>;
+
+bool RotationOnlyImageSequence(const vc::FeatureMatches& matches, const camera::CameraParameters& camera_params,
+                               const double min_percent_rotation_inliers) {
+  // Backproject with unit depth
+  std::vector<Eigen::Vector3d> backprojected_points_a;
+  std::vector<Eigen::Vector3d> backprojected_points_b;
+  const Eigen::Matrix3d intrinsics = camera_params.GetIntrinsicMatrix<camera::DISTORTED>();
+  for (const auto& match : matches) {
+    Eigen::Vector2d undistorted_source_point;
+    Eigen::Vector2d undistorted_target_point;
+    camera_params.Convert<camera::DISTORTED, camera::UNDISTORTED>(match.source_point, &undistorted_source_point);
+    camera_params.Convert<camera::DISTORTED, camera::UNDISTORTED>(match.target_point, &undistorted_target_point);
+    backprojected_points_a.emplace_back(vc::Backproject(undistorted_source_point, intrinsics, 1.0));
+    backprojected_points_b.emplace_back(vc::Backproject(undistorted_target_point, intrinsics, 1.0));
+  }
+
+  const int num_iterations = 1000;
+  const int min_num_output_inliers = matches.size() / 2;
+  const bool reduce_min_num_output_inliers_if_no_fit = true;
+  const bool increase_threshold_if_no_fit = true;
+  // TODO(rsoussan): make this a param?
+  double inlier_threshold = 0.1;
+  RansacEstimateRotation ransac(RotationFittingFunctor(), RotationError(), num_iterations, inlier_threshold,
+                                min_num_output_inliers, reduce_min_num_output_inliers_if_no_fit,
+                                increase_threshold_if_no_fit);
+  const Eigen::Matrix3d rotation = ransac(backprojected_points_a, backprojected_points_b);
+  const auto inlier_indices = ransac.inlier_indices(rotation, backprojected_points_a, backprojected_points_b);
+  const double percent_inliers = static_cast<double>(inlier_indices.size()) / static_cast<double>(matches.size());
+  return percent_inliers >= min_percent_rotation_inliers;
 }
 
 vc::FeatureImage LoadImage(const int index, const std::vector<std::string>& image_names, cv::Feature2D& detector) {
@@ -142,7 +244,7 @@ vc::LKOpticalFlowFeatureDetectorAndMatcherParams LoadParams() {
 int RemoveLowMovementAndRotationOnlyImages(const std::vector<std::string>& image_names,
                                            const camera::CameraParameters& camera_params,
                                            const double max_low_movement_mean_distance,
-                                           const double max_rotation_only_mean_error) {
+                                           const double min_percent_rotation_inliers) {
   const vc::LKOpticalFlowFeatureDetectorAndMatcherParams params = LoadParams();
   vc::LKOpticalFlowFeatureDetectorAndMatcher detector_and_matcher(params);
   auto& detector = *(detector_and_matcher.detector());
@@ -158,10 +260,12 @@ int RemoveLowMovementAndRotationOnlyImages(const std::vector<std::string>& image
   while (current_image_index < image_names.size()) {
     while (next_image_index < image_names.size()) {
       const auto matches = Matches(current_image, next_image, detector_and_matcher);
+      if (!matches) LogError("no matches!");
       if (matches && (LowMovementImageSequence(*matches, max_low_movement_mean_distance) ||
-                      RotationOnlyImageSequence(*matches, camera_params, max_rotation_only_mean_error))) {
+                      RotationOnlyImageSequence(*matches, camera_params, min_percent_rotation_inliers))) {
         LogDebug("Removing image index: " << next_image_index << ", current image index: " << current_image_index);
         std::remove((image_names[next_image_index++]).c_str());
+
         ++num_removed_images;
         // Don't load next image if index is past the end of the sequence
         if (next_image_index >= image_names.size()) break;
@@ -194,7 +298,7 @@ std::vector<std::string> GetImageNames(const std::string& image_directory,
 
 int main(int argc, char** argv) {
   double max_low_movement_mean_distance;
-  double max_rotation_only_mean_error;
+  double min_percent_rotation_inliers;
   std::string robot_config_file;
   po::options_description desc(
     "Removes any images with too little movement.  Computes relative movement using sequential images.");
@@ -203,9 +307,9 @@ int main(int argc, char** argv) {
     "Directory containing images. Images are assumed to be named in sequential order.")(
     "--max-low-movement-mean-distance,d", po::value<double>(&max_low_movement_mean_distance)->default_value(0.1),
     "Max mean distance in image space for optical flow tracks between sequential images to be classified as a low "
-    "movement pair.")("--max-rotation-only-mean-error,e",
-                      po::value<double>(&max_rotation_only_mean_error)->default_value(0.1),
-                      "Max mean error in image space for features described by rotation only movement between "
+    "movement pair.")("--min-rotation-only-inliers-percent,i",
+                      po::value<double>(&min_percent_rotation_inliers)->default_value(0.9),
+                      "Min percent of matches that are inliers to rotation only movement between "
                       "sequential images to be classified as a rotation only pair.")(
     "config-path,c", po::value<std::string>()->required(), "Config path")(
     "robot-config-file,r", po::value<std::string>(&robot_config_file)->default_value("config/robots/bumble.config"),
@@ -252,6 +356,6 @@ int main(int argc, char** argv) {
 
   const int num_original_images = image_names.size();
   const int num_removed_images = RemoveLowMovementAndRotationOnlyImages(
-    image_names, camera_parameters, max_low_movement_mean_distance, max_rotation_only_mean_error);
+    image_names, camera_parameters, max_low_movement_mean_distance, min_percent_rotation_inliers);
   LogInfo("Removed " << num_removed_images << " of " << num_original_images << " images.");
 }
