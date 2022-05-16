@@ -1203,9 +1203,21 @@ void MergeMaps(sparse_mapping::SparseMap * A_in,
   C.cid_fid_to_pid_.clear();
   C.db_to_cid_map_.clear();
   C.cid_to_cid_.clear();
-  C.user_cid_to_keypoint_map_.clear();
-  C.user_pid_to_cid_fid_.clear();
-  C.user_pid_to_xyz_.clear();
+  // Copy registration points from Map B to Map C, which already contains Map A registration points
+  const int num_A_user_cids = C.user_cid_to_keypoints_map_.size();
+  // Since C already contains map A cids, this adds each B cid as B cid + num_A_cids
+  for (const auto& keypoints : B.user_cid_to_keypoint_map_) {
+    C.user_cid_to_keypoint_map_.emplace_back(keypoints);
+  }
+  // Since C already contains map A pids, this adds each B pid as B pid + num_A_pids
+  for (const auto& point : B.user_pid_to_xyz_) {
+    C.user_pid_to_xyz_.emplace_back(point);
+  }
+  for (const auto& cid_fid : B.user_pid_to_cid_fid_) {
+    // Update each B cid to B cid + num_A_cids
+    std::map<int, int> updated_cid_fid{cid_fid.first + num_A_user_cids, cid_fid.second};
+    C.user_pid_to_cid_fid_.emplace_back(updated_cid_fid);
+  }
 
   // Merge things that make sense to merge and are easy to do
   int num_acid = A.cid_to_filename_.size();
