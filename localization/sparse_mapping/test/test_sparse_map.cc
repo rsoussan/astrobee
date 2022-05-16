@@ -293,6 +293,59 @@ TEST_P(SparseMapTest, MapExtractMerge) {
   EXPECT_EQ(merged_map.GetNumFrames(), 3);
 }
 
+// Test that control points are copied after merging two maps
+TEST_P(SparseMapTest, ControlPointMerge) {
+  sparse_mapping::SparseMap map1(image_filenames, GetParam().detector, *params);
+  sparse_mapping::SparseMap map2(image_filenames, GetParam().detector, *params);
+  // Add control points to map 1
+  for (int i = 0; i < 3; ++i) {
+    map1.user_cid_to_keypoint_map_.emplace_back(Eigen::Matrix2Xd::Random(2, 3));
+    map1.user_pid_to_xyz_.emplace_back(Eigen::Vector3d::Random());
+    std::map<int, int> cid_fid;
+    cid_fid.emplace(0, i);
+    cid_fid.emplace(1, i);
+    cid_fid.emplace(2, i);
+    map1.user_pid_to_cid_fid_.emplace_back(cid_fid);
+  }
+
+  // Add control points to map 2
+  for (int i = 0; i < 2; ++i) {
+    map2.user_cid_to_keypoint_map_.emplace_back(Eigen::Matrix2Xd::Random(2, 2));
+    map2.user_pid_to_xyz_.emplace_back(Eigen::Vector3d::Random());
+    std::map<int, int> cid_fid;
+    cid_fid.emplace(0, 1 - i);
+    cid_fid.emplace(1, 1 - i);
+    map2.user_pid_to_cid_fid_.emplace_back(cid_fid);
+  }
+
+  const std::string merged_map_name = "merged_map_merge_test";
+  const std::string map2_name = "map2_merge_test";
+  map1.Save(merged_map_name);
+  map2.Save(map2_name);
+
+  // Merge map1 and map2
+  bool skip_bundle_adjustment = true;
+  int num_image_overlaps_at_endpoints = 0;
+  double outlier_factor = 0;
+  bool fix_first_map = false;
+  sparse_mapping::AppendMapFile(merged_map_name, map2_name,
+                                num_image_overlaps_at_endpoints, outlier_factor,
+                                !skip_bundle_adjustment, fix_first_map);
+
+  LOG(INFO) << "Reading: " << merged_map_name << std::endl;
+  sparse_mapping::SparseMap merged_map(merged_map_name);
+  for (int i = 0; i < 3; ++i) {
+    EXPECT_TRUE(merged_map.user_cid_to_keypoint_map_[i].isApprox(map1.user_cid_to_keypoint_map_[i]));
+    EXPECT_TRUE(merged_map.user_pid_to_xyz_[i].isApprox(map1.user_pid_to_xyz_[i]));
+    EXPECT_EQ(merged_map.user_pid_to_cid_fid_[i], map1.user_pid_to_cid_fid_[i]);
+  }
+  for (int i = 0; i < 2; ++i) {
+    EXPECT_TRUE(merged_map.user_cid_to_keypoint_map_[i + 2].isApprox(map2.user_cid_to_keypoint_map_[i]));
+    EXPECT_TRUE(merged_map.user_pid_to_xyz_[i + 2].isApprox(map2.user_pid_to_xyz_[i]));
+    EXPECT_EQ(merged_map.user_pid_to_cid_fid_[i + 2], map2.user_pid_to_cid_fid_[i]);
+  }
+}
+
 const Parameters test_parameters[] = {
   // Detector,  not used,       closeLoop
   {"SURF",     "ORGBRISK",      false},
