@@ -17,6 +17,7 @@
  */
 
 #include <localization_node/localization.h>
+#include <opencv2/highgui.hpp>
 
 #include <sparse_mapping/sparse_map.h>
 #include <ff_msgs/VisualLandmarks.h>
@@ -93,6 +94,22 @@ bool Localizer::Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLa
   vl->header.frame_id = "world";
 
   map_->DetectFeatures(image_ptr->image, multithreaded, &image_descriptors, image_keypoints);
+  LOG(INFO) << "Features: " << image_keypoints->cols();
+  LOG(INFO) << "Descriptors: " << image_descriptors.size();
+  {
+    const cv::Mat descriptor_image = image_ptr->image;
+    for (int i = 0; i < image_keypoints->cols(); i++) {
+      Eigen::Vector2d undistorted, distorted;
+      undistorted[0] = image_keypoints->col(i)[0];
+      undistorted[1] = image_keypoints->col(i)[1];
+      (map_->GetCameraParameters()).Convert<camera::UNDISTORTED_C, camera::DISTORTED>(undistorted, &distorted);
+      cv::circle(descriptor_image, cv::Point(distorted[0], distorted[1]), 10, CV_RGB(255, 255, 255), 3, 8);
+      cv::circle(descriptor_image, cv::Point(distorted[0], distorted[1]), 6, CV_RGB(0, 0, 0), 2, 8);
+    }
+      cv::imshow("detected features", descriptor_image);
+      // cv::waitKey(0);
+  }
+
   camera::CameraModel camera(Eigen::Vector3d(),
                              Eigen::Matrix3d::Identity(),
                              map_->GetCameraParameters());
@@ -100,7 +117,7 @@ bool Localizer::Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLa
   std::vector<Eigen::Vector2d> observations;
   if (!map_->Localize(image_descriptors, *image_keypoints,
                                &camera, &landmarks, &observations)) {
-    // LOG(INFO) << "Failed to localize image.";
+    LOG(INFO) << "Failed to localize image.";
     return false;
   }
 

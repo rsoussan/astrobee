@@ -624,6 +624,9 @@ void SparseMap::DetectFeatures(const cv::Mat& image,
     double min_thresh, default_thresh, max_thresh;
     detector_.GetDetectorParams(min_features, max_features, max_retries,
                                 min_thresh, default_thresh, max_thresh);
+    LOG(INFO) << "min features: " << min_features << ", max features: " << max_features
+              << ", min thresh: " << min_thresh << ", default thresh: " << default_thresh
+              << ", max thresh: " << max_thresh << ", max retries: " << max_retries;
     interest_point::FeatureDetector local_detector(detector_.GetDetectorName(),
                                                    min_features, max_features, max_retries,
                                                    min_thresh, default_thresh, max_thresh);
@@ -697,6 +700,10 @@ bool Localize(cv::Mat const& test_descriptors,
   std::vector<int> similarity_rank(indices.size(), 0);
   std::vector<std::vector<cv::DMatch> > all_matches(indices.size());
   int total = 0;
+  int best_matches_count = -1;
+  std::string best_match_name;
+  int best_similarity_rank = 0;
+  std::cout << "Matching images: " << indices.size() << std::endl;
   // TODO(oalexan1): Use multiple threads here?
   for (size_t i = 0; i < indices.size(); i++) {
     int cid = indices[i];
@@ -715,17 +722,30 @@ bool Localize(cv::Mat const& test_descriptors,
                 << all_matches[i].size() << " "
                 << similarity_rank[i] << "\n";
     total += similarity_rank[i];
+    {
+      if (static_cast<int>(all_matches[i].size()) > best_matches_count) {
+        best_matches_count = all_matches[i].size();
+        best_match_name = cid_to_filename[cid];
+        best_similarity_rank = similarity_rank[i];
+      }
+    }
     if (total >= early_break_landmarks)
       break;
   }
+
+      std::cout << "Best match: "
+                << best_match_name << ": "
+                << best_matches_count << " "
+                << best_similarity_rank << "\n";
+
 
   std::vector<Eigen::Vector2d> observations;
   std::vector<Eigen::Vector3d> landmarks;
   std::vector<int> highly_ranked = ff_common::rv_order(similarity_rank);
   int end = std::min(static_cast<int>(highly_ranked.size()), num_similar);
   std::set<int> seen_landmarks;
-  if (FLAGS_verbose_localization)
-    std::cout << "Similar images: ";
+  // if (FLAGS_verbose_localization)
+  std::cout << "Similar images: ";
   for (int i = 0; i < end; i++) {
     int cid = indices[highly_ranked[i]];
     std::vector<cv::DMatch>* matches = &all_matches[highly_ranked[i]];

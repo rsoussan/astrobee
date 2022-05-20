@@ -24,6 +24,8 @@ add_compile_options(-std=c++14)
 ## Find catkin macros and libraries
 find_package(catkin2 REQUIRED COMPONENTS
   roscpp
+  rosbag
+  cv_bridge
   ff_msgs
   ff_common
   camera
@@ -48,8 +50,8 @@ find_package(OpenCV331 REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES sparse_mapping
-  CATKIN_DEPENDS ff_msgs ff_common camera interest_point config_reader localization_common vision_common
+  LIBRARIES sparse_mapping 
+  CATKIN_DEPENDS ff_msgs ff_common camera interest_point config_reader localization_common vision_common cv_bridge rosbag
 )
 
 ###########
@@ -152,6 +154,12 @@ target_link_libraries(localize_cams
 add_executable(localize tools/localize.cc)
 add_dependencies(localize ${catkin_EXPORTED_TARGETS})
 target_link_libraries(localize
+  sparse_mapping gflags glog ${catkin_LIBRARIES})
+
+## Declare a C++ executable: match_images 
+add_executable(match_images tools/match_images.cc)
+add_dependencies(match_images ${catkin_EXPORTED_TARGETS})
+target_link_libraries(match_images
   sparse_mapping gflags glog ${catkin_LIBRARIES})
 
 ## Declare a C++ executable: merge_maps 

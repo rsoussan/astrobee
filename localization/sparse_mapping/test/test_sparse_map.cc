@@ -295,8 +295,10 @@ TEST_P(SparseMapTest, MapExtractMerge) {
 
 // Test that control points are copied after merging two maps
 TEST_P(SparseMapTest, ControlPointMerge) {
-  sparse_mapping::SparseMap map1(image_filenames, GetParam().detector, *params);
-  sparse_mapping::SparseMap map2(image_filenames, GetParam().detector, *params);
+  std::string mapfile1, mapfile2;
+  mapFiles(GetParam().detector, GetParam().close_loop, &mapfile1, &mapfile2);
+  sparse_mapping::SparseMap map1(mapfile1);
+  sparse_mapping::SparseMap map2(mapfile2);
   // Add control points to map 1
   for (int i = 0; i < 3; ++i) {
     map1.user_cid_to_keypoint_map_.emplace_back(Eigen::Matrix2Xd::Random(2, 3));
@@ -318,15 +320,19 @@ TEST_P(SparseMapTest, ControlPointMerge) {
     map2.user_pid_to_cid_fid_.emplace_back(cid_fid);
   }
 
-  const std::string merged_map_name = "merged_map_merge_test";
-  const std::string map2_name = "map2_merge_test";
+  const std::string merged_map_name = "merged_map_merge_test.map";
+  const std::string map2_name = "map2_merge_test.map";
+  // This is necessary to actually build the maps
+  // sparse_mapping::ExtractSubmap(&image_filenames, &map1);
+  // return;
+  // sparse_mapping::ExtractSubmap(&image_filenames, &map2);
   map1.Save(merged_map_name);
   map2.Save(map2_name);
 
   // Merge map1 and map2
   bool skip_bundle_adjustment = true;
-  int num_image_overlaps_at_endpoints = 0;
-  double outlier_factor = 0;
+  int num_image_overlaps_at_endpoints = 100000;
+  double outlier_factor = 3;
   bool fix_first_map = false;
   sparse_mapping::AppendMapFile(merged_map_name, map2_name,
                                 num_image_overlaps_at_endpoints, outlier_factor,

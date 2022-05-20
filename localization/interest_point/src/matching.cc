@@ -99,6 +99,11 @@ namespace interest_point {
       else
         break;
     }
+    LOG(INFO) << "min features: " << min_features_ << ", max features: " << max_features_
+              << ", min thresh: " << min_thresh_ << ", default thresh: " << default_thresh_
+              << ", max thresh: " << max_thresh_ << ", max retries: " << max_retries_;
+    LOG(INFO) << "dynamic thresh: " << dynamic_thresh_;
+
     ComputeImpl(image, keypoints, keypoints_description);
   }
 
