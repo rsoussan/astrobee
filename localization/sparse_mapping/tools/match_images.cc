@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
                                                        "Input bagfile")(
     "map-images-directory", po::value<std::string>()->required(), "Map images directory")(
     "config-path,c", po::value<std::string>()->required(), "Config path")(
-    "image-topic,i", po::value<std::string>(&image_topic)->default_value("mgt/img_sampler/nav_cam/image_record"),
+    "image-topic,i", po::value<std::string>(&image_topic)->default_value("/mgt/img_sampler/nav_cam/image_record"),
     "Image topic")("robot-config-file,r",
                    po::value<std::string>(&robot_config_file)->default_value("config/robots/bumble.config"),
                    "Robot config file")("world,w", po::value<std::string>(&world)->default_value("iss"), "World name");
@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
 
   // TODO(rsoussan): optionally add histogram equaliation , load other params (AAAAA)
   // TODO(rsoussan): set detector params!
-  interest_point::FeatureDetector detector("brisk");
+  interest_point::FeatureDetector detector("ORGBRISK");
   std::vector<cv::Mat> map_image_descriptors_vec;
   std::vector<std::string> map_image_names;
   for (const auto& file : boost::filesystem::recursive_directory_iterator(map_images_directory)) {
@@ -99,14 +99,28 @@ int main(int argc, char** argv) {
       std::vector<cv::KeyPoint> keypoints;
       cv::Mat descriptors;
       detector.Detect(map_image, &keypoints, &descriptors);
+      LogError("Map image keypoints: " << keypoints.size());
       map_image_descriptors_vec.emplace_back(descriptors);
       map_image_names.emplace_back(file.path().string());
     }
   }
+  LogError("Loaded " << map_image_names.size() << " map images.");
 
-  rosbag::View view(rosbag::Bag(input_bag), rosbag::TopicQuery({image_topic}));
+  rosbag::Bag bag(input_bag);
+  std::vector<std::string> topics;
+  topics.emplace_back(image_topic);
+  rosbag::View view(bag, rosbag::TopicQuery(topics));
+  LogError("Bag contains " << view.size() << " images.");
+
+  int image_num = 0;
   for (const rosbag::MessageInstance msg : view) {
     const sensor_msgs::ImageConstPtr& image_msg = msg.instantiate<sensor_msgs::Image>();
+    if (!image_msg) {
+      LogError("Failed to load image msg.");
+      continue;
+    }
+
+    LogError("Converting image msg.");
     cv_bridge::CvImagePtr cv_image;
     try {
       cv_image = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::MONO8);
@@ -114,17 +128,23 @@ int main(int argc, char** argv) {
       LogError("cv_bridge exception: " << e.what());
       return 0;
     }
+
     const auto& image = cv_image->image;
+    LogError("Checking matches for bag image " << image_num++);
 
     std::vector<cv::KeyPoint> keypoints;
     cv::Mat descriptors;
     detector.Detect(image, &keypoints, &descriptors);
+    LogError("Bag image keypoints: " << keypoints.size());
+    int map_image_index = 0;
     for (const auto& map_image_descriptors : map_image_descriptors_vec) {
       std::vector<cv::DMatch> matches;
       interest_point::FindMatches(descriptors, map_image_descriptors, &matches);
       if (matches.size() != 0) {
-        std::cout << "Found " << matches.size() << " matches." << std::endl;
+        std::cout << "Found " << matches.size() << " matches with image " << map_image_names[map_image_index]
+                  << std::endl;
       }
+      ++map_image_index;
     }
   }
 }
