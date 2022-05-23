@@ -18,6 +18,7 @@
 
 #include <ff_common/init.h>
 #include <interest_point/matching.h>
+#include <localization_common/averager.h>
 #include <localization_common/logger.h>
 #include <localization_common/utilities.h>
 
@@ -40,6 +41,7 @@ int main(int argc, char** argv) {
   std::string robot_config_file;
   std::string world;
   std::string config_path_prefix;
+  bool no_histogram_equalization;
   po::options_description desc("Test image matching with BRISK features for a bagfile and set of map images.");
   desc.add_options()("help,h", "produce help message")("bagfile", po::value<std::string>()->required(),
                                                        "Input bagfile")(
@@ -48,7 +50,9 @@ int main(int argc, char** argv) {
     "image-topic,i", po::value<std::string>(&image_topic)->default_value("/mgt/img_sampler/nav_cam/image_record"),
     "Image topic")("robot-config-file,r",
                    po::value<std::string>(&robot_config_file)->default_value("config/robots/bumble.config"),
-                   "Robot config file")("world,w", po::value<std::string>(&world)->default_value("iss"), "World name");
+                   "Robot config file")("world,w", po::value<std::string>(&world)->default_value("iss"), "World name")(
+    "no-histogram-equalization,n", po::bool_switch(&no_histogram_equalization),
+    "Do not apply histogram equalization before matching images. Default behavior applies histogram equalization.");
   po::positional_options_description p;
   p.add("bagfile", 1);
   p.add("map-images-directory", 1);
@@ -87,15 +91,17 @@ int main(int argc, char** argv) {
   lc::SetEnvironmentConfigs(config_path, world, robot_config_file);
   config_reader::ConfigReader config;
 
-  // TODO(rsoussan): optionally add histogram equaliation , load other params (AAAAA)
-  // TODO(rsoussan): set detector params!
+  // TODO(rsoussan): load/set detector params! -> get from localization node!!!
   interest_point::FeatureDetector detector("ORGBRISK");
   std::vector<cv::Mat> map_image_descriptors_vec;
   std::vector<std::string> map_image_names;
   for (const auto& file : boost::filesystem::recursive_directory_iterator(map_images_directory)) {
     if (boost::filesystem::is_regular_file(file) && file.path().extension() == ".jpg") {
       const std::string map_image_name = file.path().string();
-      const cv::Mat map_image = cv::imread(map_image_name, cv::IMREAD_GRAYSCALE);
+      cv::Mat map_image = cv::imread(map_image_name, cv::IMREAD_GRAYSCALE);
+      if (!no_histogram_equalization) {
+        cv::equalizeHist(map_image, map_image);
+      }
       std::vector<cv::KeyPoint> keypoints;
       cv::Mat descriptors;
       detector.Detect(map_image, &keypoints, &descriptors);
@@ -113,6 +119,7 @@ int main(int argc, char** argv) {
   LogError("Bag contains " << view.size() << " images.");
 
   int image_num = 0;
+  lc::Averager match_count_averager("Match count");
   for (const rosbag::MessageInstance msg : view) {
     const sensor_msgs::ImageConstPtr& image_msg = msg.instantiate<sensor_msgs::Image>();
     if (!image_msg) {
@@ -129,7 +136,11 @@ int main(int argc, char** argv) {
       return 0;
     }
 
-    const auto& image = cv_image->image;
+    cv::Mat image = cv_image->image;
+    if (!no_histogram_equalization) {
+      cv::equalizeHist(image, image);
+    }
+
     LogError("Checking matches for bag image " << image_num++);
 
     std::vector<cv::KeyPoint> keypoints;
@@ -137,14 +148,23 @@ int main(int argc, char** argv) {
     detector.Detect(image, &keypoints, &descriptors);
     LogError("Bag image keypoints: " << keypoints.size());
     int map_image_index = 0;
+    int best_match_count = -1;
+    std::string best_match_image;
     for (const auto& map_image_descriptors : map_image_descriptors_vec) {
       std::vector<cv::DMatch> matches;
       interest_point::FindMatches(descriptors, map_image_descriptors, &matches);
       if (matches.size() != 0) {
         std::cout << "Found " << matches.size() << " matches with image " << map_image_names[map_image_index]
                   << std::endl;
+        if (static_cast<int>(matches.size()) > best_match_count) {
+          best_match_count = matches.size();
+          best_match_image = map_image_names[map_image_index];
+        }
       }
       ++map_image_index;
     }
+    std::cout << "Best Match: " << best_match_count << " matches with image " << best_match_image << std::endl;
+    match_count_averager.Update(best_match_count);
   }
+  match_count_averager.Log();
 }
