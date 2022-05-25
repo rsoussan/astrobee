@@ -362,8 +362,10 @@ int RansacEstimateCamera(const std::vector<Eigen::Vector3d> & landmarks,
   camera::CameraParameters params = camera_estimate->GetParameters();
 
   // Need the minimum number of observations
-  if (observations.size() < 4)
+  if (observations.size() < 4) {
+    std::cout << "Too few observations." << std::endl;
     return 1;
+  }
 
   // RANSAC to find the best camera with P3P
   std::vector<cv::Point3d> subset_landmarks;
@@ -392,13 +394,14 @@ int RansacEstimateCamera(const std::vector<Eigen::Vector3d> & landmarks,
     }
   }
 
-  if (verbose)
-    std::cout << observations.size() << " Ransac observations "
-              << best_inliers << " inliers\n";
+  // if (verbose)
+  std::cout << observations.size() << " Ransac observations " << best_inliers << " inliers\n";
 
   // TODO(bcoltin): Return some sort of confidence?
-  if (best_inliers < FLAGS_num_min_localization_inliers)
+  if (best_inliers < FLAGS_num_min_localization_inliers) {
+    std::cout << "Too few inliers pre optimization" << std::endl;
     return 2;
+  }
 
   std::vector<size_t> inliers;
   CountInliers(landmarks, observations, *camera_estimate, inlier_tolerance, &inliers);
@@ -427,8 +430,10 @@ int RansacEstimateCamera(const std::vector<Eigen::Vector3d> & landmarks,
   if (verbose)
     std::cout << "Number of inliers with refined camera: " << best_inliers << "\n";
 
-  if (best_inliers < FLAGS_num_min_localization_inliers)
+  if (best_inliers < FLAGS_num_min_localization_inliers) {
+    std::cout << "Too few inliers post optimization" << std::endl;
     return 2;
+  }
 
   inlier_landmarks.clear();
   inlier_observations.clear();
@@ -449,6 +454,7 @@ int RansacEstimateCamera(const std::vector<Eigen::Vector3d> & landmarks,
         std::back_inserter(*inlier_observations_out));
   }
 
+  std::cout << "Success: Localized image." << std::endl;
   return 0;
 }
 

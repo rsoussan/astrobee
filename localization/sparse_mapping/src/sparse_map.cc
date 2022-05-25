@@ -24,6 +24,8 @@
 #include <sparse_mapping/reprojection.h>
 #include <sparse_mapping/sparse_mapping.h>
 #include <sparse_mapping/tensor.h>
+#include <localization_common/averager.h>
+
 
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <opencv2/highgui/highgui.hpp>
@@ -268,6 +270,7 @@ void SparseMap::DetectFeatures() {
 }
 
 void SparseMap::Load(const std::string & protobuf_file, bool localization) {
+  localization = false;
   sparse_mapping_protobuf::Map map;
   int input_fd = open(protobuf_file.c_str(), O_RDONLY);
   if (input_fd < 0)
@@ -666,10 +669,10 @@ bool Localize(cv::Mat const& test_descriptors,
               std::vector<Eigen::Vector3d> const& pid_to_xyz,
               int num_ransac_iterations, int ransac_inlier_tolerance,
               int early_break_landmarks, int histogram_equalization,
-              std::vector<int> * cid_list) {
+              std::vector<int> * cid_list, const cv::Mat& image) {
   std::vector<int> indices;
   // Query the vocab tree.
-  if (cid_list == NULL)
+  if (false)
     sparse_mapping::QueryDB(detector_name,
                             vocab_db,
                             // Notice that we request more similar
@@ -678,8 +681,8 @@ bool Localize(cv::Mat const& test_descriptors,
                             num_similar + FLAGS_num_extra_localization_db_images,
                             test_descriptors,
                             &indices);
-  else
-    indices = *cid_list;
+  // else
+  //  indices = *cid_list;
   if (indices.empty()) {
     LOG(WARNING) << "Localizing against all keyframes as the vocab database is missing.";
     // Use all images, as no tree is available.
@@ -704,6 +707,8 @@ bool Localize(cv::Mat const& test_descriptors,
   std::string best_match_name;
   int best_similarity_rank = 0;
   std::cout << "Matching images: " << indices.size() << std::endl;
+  static localization_common::Averager valid_matches_averager("Valid Matches");
+  static localization_common::Averager best_match_averager("Best Match Count");
   // TODO(oalexan1): Use multiple threads here?
   for (size_t i = 0; i < indices.size(); i++) {
     int cid = indices[i];
@@ -716,11 +721,44 @@ bool Localize(cv::Mat const& test_descriptors,
         continue;
       similarity_rank[i]++;
     }
-    if (FLAGS_verbose_localization)
-      std::cout << "Overall matches and validated matches to: "
-                << cid_to_filename[cid] << ": "
-                << all_matches[i].size() << " "
-                << similarity_rank[i] << "\n";
+    // if (FLAGS_verbose_localization)
+    std::cout << "Overall matches and validated matches to: " << cid_to_filename[cid] << ": " << all_matches[i].size()
+              << " " << similarity_rank[i] << "\n";
+    if (true && all_matches[i].size() > 6) {
+      std::cout << "Map image: " << cid_to_filename[cid] << std::endl;
+      cv::Mat descriptor_image = cv::imread(cid_to_filename[cid], cv::IMREAD_COLOR);
+      if (descriptor_image.empty()) std::cout << "Failed to read image." << std::endl;
+      cv::Mat bag_image = image.clone();
+      for (int k = 0; k < all_matches[i].size(); k++) {
+        Eigen::Vector2d undistorted, distorted;
+        const int fid = all_matches[i][k].queryIdx;
+        undistorted[0] = test_keypoints.col(fid)[0];
+        undistorted[1] = test_keypoints.col(fid)[1];
+        camera_params.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(undistorted, &distorted);
+        cv::circle(bag_image, cv::Point(distorted[0], distorted[1]), 10, CV_RGB(0, 255, 0), 3, 8);
+        cv::circle(bag_image, cv::Point(distorted[0], distorted[1]), 6, CV_RGB(0, 0, 0), 2, 8);
+      }
+    for (int k = 0; k < all_matches[i].size(); k++) {
+      Eigen::Vector2d undistorted, distorted;
+      const int fid = all_matches[i][k].trainIdx;
+      const auto& image_keypoints = cid_to_keypoint_map[cid];
+      undistorted[0] = image_keypoints.col(fid)[0];
+      undistorted[1] = image_keypoints.col(fid)[1];
+      camera_params.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(undistorted, &distorted);
+      cv::circle(descriptor_image, cv::Point(distorted[0], distorted[1]), 10, CV_RGB(0, 255, 0), 3, 8);
+      cv::circle(descriptor_image, cv::Point(distorted[0], distorted[1]), 6, CV_RGB(0, 0, 0), 2, 8);
+    }
+    cv::Mat combined_image(cv::Size(image.cols * 2, image.rows), image.type(), cv::Scalar::all(0));
+    const cv::Mat left_image = combined_image(cv::Rect(0, 0, image.cols, image.rows));
+    bag_image.copyTo(left_image);
+    const cv::Mat right_image = combined_image(cv::Rect(image.cols, 0, image.cols, image.rows));
+    descriptor_image.copyTo(right_image);
+    cv::Mat resized_combined_image;
+    cv::resize(combined_image, resized_combined_image, cv::Size(image.cols * 1.5, image.rows));
+    cv::imshow("bag vs map image", resized_combined_image);
+    cv::waitKey(0);
+    }
+
     total += similarity_rank[i];
     {
       if (static_cast<int>(all_matches[i].size()) > best_matches_count) {
@@ -738,6 +776,7 @@ bool Localize(cv::Mat const& test_descriptors,
                 << best_matches_count << " "
                 << best_similarity_rank << "\n";
 
+best_match_averager.UpdateAndLog(best_matches_count);
 
   std::vector<Eigen::Vector2d> observations;
   std::vector<Eigen::Vector3d> landmarks;
@@ -746,13 +785,17 @@ bool Localize(cv::Mat const& test_descriptors,
   std::set<int> seen_landmarks;
   // if (FLAGS_verbose_localization)
   std::cout << "Similar images: ";
+  int num_invalid_matches = 0;
+  int num_valid_matches = 0;
   for (int i = 0; i < end; i++) {
     int cid = indices[highly_ranked[i]];
     std::vector<cv::DMatch>* matches = &all_matches[highly_ranked[i]];
     int num_matches = 0;
     for (size_t j = 0; j < matches->size(); j++) {
-      if (cid_fid_to_pid[cid].count(matches->at(j).trainIdx) == 0)
+      if (cid_fid_to_pid[cid].count(matches->at(j).trainIdx) == 0) {
+        ++num_invalid_matches;
         continue;
+      }
       const int landmark_id = cid_fid_to_pid.at(cid).at(matches->at(j).trainIdx);
       if (seen_landmarks.count(landmark_id) > 0)
         continue;
@@ -762,10 +805,15 @@ bool Localize(cv::Mat const& test_descriptors,
       landmarks.push_back(pid_to_xyz[landmark_id]);
       seen_landmarks.insert(landmark_id);
       num_matches++;
+      ++num_valid_matches;
     }
     if (FLAGS_verbose_localization && num_matches > 0)
       std::cout << " " << cid_to_filename[cid];
   }
+  std::cout << "Num valid matches: " << num_valid_matches << ", invalid: " << num_invalid_matches << std::endl;
+  std::cout << "Percent valid matches: "
+            << num_valid_matches / static_cast<double>(num_valid_matches + num_invalid_matches) << std::endl;
+  valid_matches_averager.UpdateAndLog(num_valid_matches);
   if (FLAGS_verbose_localization) std::cout << std::endl;
 
   int ret = RansacEstimateCamera(landmarks, observations,
@@ -773,6 +821,10 @@ bool Localize(cv::Mat const& test_descriptors,
                                  ransac_inlier_tolerance, pose,
                                  inlier_landmarks, inlier_observations,
                                  FLAGS_verbose_localization);
+  static localization_common::Averager success("Localization Success");
+  if (ret == 0) success.UpdateAndLog(1);
+  else
+    success.UpdateAndLog(0);
   return (ret == 0);
 }
 
@@ -1001,7 +1053,7 @@ bool SparseMap::Localize(const cv::Mat & test_descriptors, const Eigen::Matrix2X
                          camera::CameraModel* pose,
                          std::vector<Eigen::Vector3d>* inlier_landmarks,
                          std::vector<Eigen::Vector2d>* inlier_observations,
-                         std::vector<int> * cid_list) {
+                         std::vector<int> * cid_list, const cv::Mat& image) {
   return sparse_mapping::Localize(test_descriptors, test_keypoints,
                                   std::cref(camera_params_),
                                   pose,
@@ -1019,7 +1071,7 @@ bool SparseMap::Localize(const cv::Mat & test_descriptors, const Eigen::Matrix2X
                                   ransac_inlier_tolerance_,
                                   early_break_landmarks_,
                                   histogram_equalization_,
-                                  cid_list);
+                                  cid_list, image);
 }
 
 }  // namespace sparse_mapping

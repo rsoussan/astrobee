@@ -96,8 +96,10 @@ bool Localizer::Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLa
   map_->DetectFeatures(image_ptr->image, multithreaded, &image_descriptors, image_keypoints);
   LOG(INFO) << "Features: " << image_keypoints->cols();
   LOG(INFO) << "Descriptors: " << image_descriptors.size();
-  {
     const cv::Mat descriptor_image = image_ptr->image;
+    cv::Mat original_image;
+      cv::cvtColor(descriptor_image, original_image, CV_GRAY2RGB);
+  {
     for (int i = 0; i < image_keypoints->cols(); i++) {
       Eigen::Vector2d undistorted, distorted;
       undistorted[0] = image_keypoints->col(i)[0];
@@ -106,8 +108,8 @@ bool Localizer::Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLa
       cv::circle(descriptor_image, cv::Point(distorted[0], distorted[1]), 10, CV_RGB(255, 255, 255), 3, 8);
       cv::circle(descriptor_image, cv::Point(distorted[0], distorted[1]), 6, CV_RGB(0, 0, 0), 2, 8);
     }
-      cv::imshow("detected features", descriptor_image);
-      // cv::waitKey(0);
+    // cv::imshow("detected features", descriptor_image);
+    // cv::waitKey(0);
   }
 
   camera::CameraModel camera(Eigen::Vector3d(),
@@ -116,7 +118,7 @@ bool Localizer::Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLa
   std::vector<Eigen::Vector3d> landmarks;
   std::vector<Eigen::Vector2d> observations;
   if (!map_->Localize(image_descriptors, *image_keypoints,
-                               &camera, &landmarks, &observations)) {
+                               &camera, &landmarks, &observations, NULL, original_image)) {
     LOG(INFO) << "Failed to localize image.";
     return false;
   }

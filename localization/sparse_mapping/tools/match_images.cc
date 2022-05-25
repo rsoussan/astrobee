@@ -26,6 +26,7 @@
 #include <boost/program_options.hpp>
 
 #include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 
 #include <rosbag/bag.h>
@@ -138,7 +139,17 @@ int main(int argc, char** argv) {
 
     cv::Mat image = cv_image->image;
     if (!no_histogram_equalization) {
+      const cv::Mat original_image = image.clone();
       cv::equalizeHist(image, image);
+      cv::Mat combined_image(cv::Size(image.cols * 2, image.rows), image.type(), cv::Scalar::all(0));
+      const cv::Mat left_image = combined_image(cv::Rect(0, 0, image.cols, image.rows));
+      original_image.copyTo(left_image);
+      const cv::Mat right_image = combined_image(cv::Rect(image.cols, 0, image.cols, image.rows));
+image.copyTo(right_image);
+      cv::Mat resized_combined_image;
+      cv::resize(combined_image, resized_combined_image, cv::Size(image.cols*1.5, image.rows));
+      cv::imshow("Equalized Image", resized_combined_image);
+      cv::waitKey(0);
     }
 
     LogError("Checking matches for bag image " << image_num++);
