@@ -17,6 +17,7 @@
  */
 
 #include <localization_node/localization.h>
+#include <localization_common/averager.h>
 #include <opencv2/highgui.hpp>
 
 #include <sparse_mapping/sparse_map.h>
@@ -77,6 +78,14 @@ void Localizer::ReadParams(config_reader::ConfigReader* config) {
   map_->SetHistogramEqualization(histogram_equalization);
   map_->SetDetectorParams(min_features, max_features, detection_retries,
                           min_brisk_threshold, default_brisk_threshold, max_brisk_threshold);
+
+  std::cout << "map num features per cid: " << std::endl;
+  localization_common::Averager descriptors_averager("Descriptors per CID");
+  for (int i = 0; i < map_->cid_fid_to_pid_.size(); ++i) {
+    std::cout << "cid: " << i << ", num features: " << map_->cid_fid_to_pid_[i].size() << std::endl;
+    descriptors_averager.Update(map_->cid_fid_to_pid_[i].size());
+  }
+  descriptors_averager.Log();
 }
 
 bool Localizer::Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLandmarks* vl,

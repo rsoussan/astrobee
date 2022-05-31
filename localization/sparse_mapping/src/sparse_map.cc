@@ -25,6 +25,7 @@
 #include <sparse_mapping/sparse_mapping.h>
 #include <sparse_mapping/tensor.h>
 #include <localization_common/averager.h>
+#include <localization_common/timer.h>
 
 
 #include <google/protobuf/io/zero_copy_stream_impl.h>
@@ -598,6 +599,18 @@ void SparseMap::DetectFeatures(const cv::Mat& image,
   cv::Mat * image_ptr = const_cast<cv::Mat*>(&image);
   cv::Mat hist_image;
   if (histogram_equalization_) {
+   /* static localization_common::Timer clahe_timer("Clahe"); 
+    static cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+    clahe_timer.Start();
+    clahe->apply(image, hist_image);
+    clahe_timer.StopAndLog();
+    {
+      cv::Mat test;
+    static localization_common::Timer hist_timer("Hist"); 
+      hist_timer.Start();
+      cv::equalizeHist(image, test);
+      hist_timer.StopAndLog();
+    }*/
     cv::equalizeHist(image, hist_image);
     image_ptr = &hist_image;
   }
@@ -672,7 +685,9 @@ bool Localize(cv::Mat const& test_descriptors,
               std::vector<int> * cid_list, const cv::Mat& image) {
   std::vector<int> indices;
   // Query the vocab tree.
-  if (false)
+    static localization_common::Timer db_timer("DB Query");
+    db_timer.Start();
+  if (true)
     sparse_mapping::QueryDB(detector_name,
                             vocab_db,
                             // Notice that we request more similar
@@ -716,6 +731,9 @@ bool Localize(cv::Mat const& test_descriptors,
                                 cid_to_descriptor_map[cid],
                                 &all_matches[i]);
 
+    // TODO(rsoussan): Make this a param!
+    // if (all_matches[i].size() < 2) continue;
+
     for (size_t j = 0; j < all_matches[i].size(); j++) {
       if (cid_fid_to_pid[cid].count(all_matches[i][j].trainIdx) == 0)
         continue;
@@ -724,7 +742,7 @@ bool Localize(cv::Mat const& test_descriptors,
     // if (FLAGS_verbose_localization)
     std::cout << "Overall matches and validated matches to: " << cid_to_filename[cid] << ": " << all_matches[i].size()
               << " " << similarity_rank[i] << "\n";
-    if (true && all_matches[i].size() > 6) {
+    if (false && all_matches[i].size() > 6) {
       std::cout << "Map image: " << cid_to_filename[cid] << std::endl;
       cv::Mat descriptor_image = cv::imread(cid_to_filename[cid], cv::IMREAD_COLOR);
       if (descriptor_image.empty()) std::cout << "Failed to read image." << std::endl;
@@ -770,6 +788,8 @@ bool Localize(cv::Mat const& test_descriptors,
     if (total >= early_break_landmarks)
       break;
   }
+
+    db_timer.StopAndLog();
 
       std::cout << "Best match: "
                 << best_match_name << ": "

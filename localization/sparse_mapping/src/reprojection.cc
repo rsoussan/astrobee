@@ -18,6 +18,7 @@
 
 #include <sparse_mapping/reprojection.h>
 #include <sparse_mapping/sparse_mapping.h>
+#include <localization_common/timer.h>
 
 #include <ff_common/thread.h>
 #include <camera/camera_model.h>
@@ -370,6 +371,8 @@ int RansacEstimateCamera(const std::vector<Eigen::Vector3d> & landmarks,
   // RANSAC to find the best camera with P3P
   std::vector<cv::Point3d> subset_landmarks;
   std::vector<cv::Point2d> subset_observations;
+  localization_common::Timer ransac_timer("Ransac");
+  // ransac_timer.Start();
   // TODO(oalexan1): Use multiple threads here?
   for (int i = 0; i < num_tries; i++) {
     subset_landmarks.clear();
@@ -393,6 +396,7 @@ int RansacEstimateCamera(const std::vector<Eigen::Vector3d> & landmarks,
       *camera_estimate = guess;
     }
   }
+  // ransac_timer.StopAndLog();
 
   // if (verbose)
   std::cout << observations.size() << " Ransac observations " << best_inliers << " inliers\n";
@@ -421,7 +425,10 @@ int RansacEstimateCamera(const std::vector<Eigen::Vector3d> & landmarks,
   options.minimizer_progress_to_stdout = false;
   ceres::Solver::Summary summary;
   // improve estimate with CERES solver
+  localization_common::Timer ceres_timer("Ceres");
+  // ceres_timer.Start();
   EstimateCamera(camera_estimate, &inlier_landmarks, inlier_observations, options, &summary);
+  // ceres_timer.StopAndLog();
 
   // find inliers again with refined estimate
   inliers.clear();
