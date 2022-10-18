@@ -83,6 +83,7 @@ bool Localize(cv::Mat const& test_descriptors,
  **/
 struct SparseMap {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   /**
    * Constructs a new sparse map from a list of image files and their
    * associate keypoint and descriptor files. If use_cached_features
@@ -297,12 +298,17 @@ struct SparseMap {
   std::vector<Eigen::Matrix2Xd> user_cid_to_keypoint_map_;
   std::vector<std::map<int, int> > user_pid_to_cid_fid_;
   std::vector<Eigen::Vector3d> user_pid_to_xyz_;
+  std::mutex mutex_detector_;
 
  private:
+  // Create an empty map. It is strongly recommended to not use this function,
+  // as it requires carefully initializing many members. Hence this is made
+  // private. Consider using the other constructors.
+  SparseMap();
+
   // I found out the hard way that sparse maps cannot be copied
   // correctly, hence prohibit this. The only good way seems to be to
   // load a copy from disk. (oalexan1)
-  SparseMap();
   SparseMap(SparseMap &);
   SparseMap& operator=(const SparseMap&);
 
