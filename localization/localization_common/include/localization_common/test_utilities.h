@@ -112,13 +112,6 @@ Eigen::Matrix<double, Dim, 1> RandomVector() {
   return RandomDouble() * Eigen::Matrix<double, Dim, 1>::Random();
 }
 
-// Implementation
-template <int Dim>
-Eigen::Matrix<double, Dim, 1> RandomVector() {
-  // Eigen::Matrix::Random() is constrained to [-1, 1]
-  return RandomDouble() * Eigen::Matrix<double, Dim, 1>::Random();
-}
-
 template <int N>
 Eigen::Matrix<double, N, 1> AddNoiseToVector(const Eigen::Matrix<double, N, 1>& vector, const double noise_stddev) {
   Eigen::Matrix<double, N, 1> noisy_vector = vector;
