@@ -42,7 +42,13 @@ def merge_image_directories(image_directory_a, image_directory_b):
     os.symlink(image_directory_a, merged_image_directory_a)
     os.symlink(image_directory_b, merged_image_directory_b)
     return merged_directory
-    
+
+def copy_import_path(output_directory, import_path_a): 
+    ## Colmap saves results to a '0' directory
+    merged_import_path = os.path.join(output_directory, "merged_mapping_results")
+    merged_import_path_with_0 = os.path.join(merged_import_path, "0")
+    shutil.copytree(import_path_a, merged_import_path_with_0)
+    return merged_import_path_with_0
  
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -107,12 +113,8 @@ if __name__ == "__main__":
     merged_database = merged_database_name(database_path_a, database_path_b)
     ut.merge_databases(database_path_a, database_path_b, merged_database)
     merged_image_directory = merge_image_directories(image_directory_a, image_directory_b)
-    ut.vocab_match_features(merged_image_directory, merged_database, args.config_path)
+    ut.vocab_match_features(merged_image_directory, os.path.abspath(merged_database), args.config_path)
 
     # Grow map
-    # TODO: put the following in a function! (C)
-    ## Colmap saves results to a '0' directory
-    #merged_import_path = os.path.join(args.output_directory, "merged_mapping_results")
-    #merged_import_path_with_0 = os.path.join(merged_import_path, "0")
-    #shutil.copytree(import_path_a, merged_import_path_with_0)
-    ##ut.grow_map(merged_import_path_with_0, merged_image_directory, merged_database, args.config_path)
+    merged_import_path = copy_import_path(args.output_directory, import_path_a) 
+    ut.grow_map(merged_import_path, merged_image_directory, os.path.abspath(merged_database), args.config_path)

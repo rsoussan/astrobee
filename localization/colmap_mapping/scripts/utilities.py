@@ -76,8 +76,9 @@ def extract_features(image_directory, database_path, config_path):
 def sequential_match_features(image_directory, database_path, config_path):
    base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_sequential_matcher.ini") 
    project_file = image_directory + "_sequential_matcher.ini"
-   value_names = ["database_path", "image_path"]
-   values = [database_path, image_directory]
+    # TODO: add vocab file here!!!
+   value_names = ["database_path"]
+   values = [database_path]
    make_config(values, value_names, base_project_file, project_file, "=")
    command = "colmap sequential_matcher --project_path " + project_file
    lu.run_command_and_save_output(command, "sequential_matcher.txt")
@@ -85,8 +86,9 @@ def sequential_match_features(image_directory, database_path, config_path):
 def vocab_match_features(image_directory, database_path, config_path):
    base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_vocab_matcher.ini") 
    project_file = image_directory + "_vocab_matcher.ini"
-   value_names = ["database_path", "image_path"]
-   values = [database_path, image_directory]
+    # TODO: add vocab file here!!!
+   value_names = ["database_path"]
+   values = [database_path]
    make_config(values, value_names, base_project_file, project_file, "=")
    command = "colmap vocab_tree_matcher --project_path " + project_file
    lu.run_command_and_save_output(command, "vocab_matcher.txt")
