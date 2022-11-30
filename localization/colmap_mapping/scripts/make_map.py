@@ -63,20 +63,27 @@ def make_config(values, value_names, original_config, new_config, separator):
     value_map = make_value_map(values, value_names)
     fill_in_values(original_config, value_map, new_config, separator)
 
-def create_project_file(images_directory, config_path):
+def create_project_file(image_directory, database_path, config_path):
    base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_project.ini") 
-   project_file = images_directory + "_project.ini"
-   database_path = images_directory + ".db"
+   project_file = image_directory + "_project.ini"
    value_names = ["database_path", "image_path"]
-   values = [database_path, images_directory]
+   values = [database_path, image_directory]
    make_config(values, value_names, base_project_file, project_file, "=")
    return project_file
   
-def create_database(project_file):
-    command = "colmap database_creator --project_path " + project_file
-    subprocess.call(command, shell=True)
-      
+def create_database(database_path):
+    command = "colmap database_creator --database_path " + database_path
+    lu.run_command_and_save_output(command, "database_creation.txt")
 
+def extract_features(image_directory, database_path, config_path):
+   base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_feature_extractor.ini") 
+   project_file = image_directory + "_feature_extractor.ini"
+   value_names = ["database_path", "image_path"]
+   values = [database_path, image_directory]
+   make_config(values, value_names, base_project_file, project_file, "=")
+   command = "colmap feature_extractor --project_path " + project_file
+   lu.run_command_and_save_output(command, "feature_extraction.txt")
+      
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -96,8 +103,9 @@ if __name__ == "__main__":
         sys.exit()
 
     image_directory = os.path.abspath(args.image_directory)
-    project_file = create_project_file(image_directory, args.config_path)
-    create_database(project_file)
-    #extract_features(project_file)
+    database_path = image_directory + ".db"
+    #project_file = create_project_file(image_directory, database_path, args.config_path)
+    create_database(database_path)
+    extract_features(image_directory, database_path, args.config_path)
     #match_features(project_file)
     #build_sparse_map(project_file)
