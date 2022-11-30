@@ -28,7 +28,22 @@ import sys
 
 import utilities as ut
 
-     
+def merged_database_name(database_path_a, database_path_b):
+    database_a_name = os.path.splitext(os.path.basename(database_path_a))[0]
+    database_b_name = os.path.splitext(os.path.basename(database_path_b))[0]
+    merged_database_name = database_a_name + "." + database_b_name + ".db" 
+    return merged_database_name 
+
+def merge_image_directories(image_directory_a, image_directory_b):
+    merged_directory = "merged_images"
+    os.mkdir(merged_directory)
+    merged_image_directory_a = os.path.join(merged_directory, os.path.basename(image_directory_a))  
+    merged_image_directory_b = os.path.join(merged_directory, os.path.basename(image_directory_b))  
+    os.symlink(image_directory_a, merged_image_directory_a)
+    os.symlink(image_directory_b, merged_image_directory_b)
+    return merged_directory
+    
+ 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -68,6 +83,12 @@ if __name__ == "__main__":
         print("Failed to read database a path.")
         sys.exit()
 
+    image_directory_a = ut.read_value(args.mapper_ini_file, "image_path")
+    if not image_directory_a:
+        print("Failed to read image a path.")
+        sys.exit()
+
+
     import_path_a = ut.read_value(args.mapper_ini_file, "output_path")
     if not import_path_a:
         print("Failed to read import a path.")
@@ -75,18 +96,23 @@ if __name__ == "__main__":
     # Colmap saves to a directory "0" in the output directory
     import_path_a = os.path.join(import_path_a, "0")
 
+    # Get sequential matches for new images
     image_directory_b = os.path.abspath(args.image_directory)
     database_path_b = image_directory_b + ".db"
     ut.create_database(database_path_b)
     ut.extract_features(image_directory_b, database_path_b, args.config_path)
     ut.sequential_match_features(image_directory_b, database_path_b, args.config_path)
-    # TODO: fill this in! use output directory! combine a and b names! (C)
-    merged_database = "test" 
+
+    # Merge database and images with existing map, match new images to existing map
+    merged_database = merged_database_name(database_path_a, database_path_b)
     ut.merge_databases(database_path_a, database_path_b, merged_database)
-    ut.vocab_match_features(image_directory, database_path, args.config_path)
-    #TODO: add function to merge images (use symlinks???)! fill this in! (B)
-    merged_image_directory = "merged_images" 
-    # TODO: copy import path to output path, make output path first! (A)
-        # TODO: add function to do this!!!
-    merged_import_path = "..."
-    ut.grow_map(merged_import_path, merged_image_directory, merged_database, args.config_path)
+    merged_image_directory = merge_image_directories(image_directory_a, image_directory_b)
+    ut.vocab_match_features(merged_image_directory, merged_database, args.config_path)
+
+    # Grow map
+    # TODO: put the following in a function! (C)
+    ## Colmap saves results to a '0' directory
+    #merged_import_path = os.path.join(args.output_directory, "merged_mapping_results")
+    #merged_import_path_with_0 = os.path.join(merged_import_path, "0")
+    #shutil.copytree(import_path_a, merged_import_path_with_0)
+    ##ut.grow_map(merged_import_path_with_0, merged_image_directory, merged_database, args.config_path)
