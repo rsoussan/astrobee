@@ -90,8 +90,8 @@ def build_sparse_map(image_directory, database_path, config_path):
    project_file = image_directory + "_mapper.ini"
    results_directory = "mapping_results"
    os.mkdir(results_directory)
-   value_names = ["database_path", "image_path", results_directory]
-   values = [database_path, image_directory, "."]
+   value_names = ["database_path", "image_path", "output_path"]
+   values = [database_path, image_directory, results_directory] 
    make_config(values, value_names, base_project_file, project_file, "=")
    command = "colmap mapper --project_path " + project_file
    lu.run_command_and_save_output(command, "mapper.txt")
@@ -113,6 +113,10 @@ if __name__ == "__main__":
 
     if not os.path.isdir(args.image_directory):
         print("Image directory " + args.image_directory + " does not exist.")
+        sys.exit()
+
+    if os.path.isdir("mapping_results"):
+        print("Directory mapping_results already exists.")
         sys.exit()
 
     image_directory = os.path.abspath(args.image_directory)
