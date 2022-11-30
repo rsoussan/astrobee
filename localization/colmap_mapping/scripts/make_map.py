@@ -63,14 +63,6 @@ def make_config(values, value_names, original_config, new_config, separator):
     value_map = make_value_map(values, value_names)
     fill_in_values(original_config, value_map, new_config, separator)
 
-def create_project_file(image_directory, database_path, config_path):
-   base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_project.ini") 
-   project_file = image_directory + "_project.ini"
-   value_names = ["database_path", "image_path"]
-   values = [database_path, image_directory]
-   make_config(values, value_names, base_project_file, project_file, "=")
-   return project_file
-  
 def create_database(database_path):
     command = "colmap database_creator --database_path " + database_path
     lu.run_command_and_save_output(command, "database_creation.txt")
@@ -92,6 +84,17 @@ def match_features(image_directory, database_path, config_path):
    make_config(values, value_names, base_project_file, project_file, "=")
    command = "colmap sequential_matcher --project_path " + project_file
    lu.run_command_and_save_output(command, "sequential_matcher.txt")
+
+def build_sparse_map(image_directory, database_path, config_path):
+   base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_mapper.ini") 
+   project_file = image_directory + "_mapper.ini"
+   results_directory = "mapping_results"
+   os.mkdir(results_directory)
+   value_names = ["database_path", "image_path", results_directory]
+   values = [database_path, image_directory, "."]
+   make_config(values, value_names, base_project_file, project_file, "=")
+   command = "colmap mapper --project_path " + project_file
+   lu.run_command_and_save_output(command, "mapper.txt")
  
       
 if __name__ == "__main__":
@@ -114,8 +117,7 @@ if __name__ == "__main__":
 
     image_directory = os.path.abspath(args.image_directory)
     database_path = image_directory + ".db"
-    #project_file = create_project_file(image_directory, database_path, args.config_path)
     create_database(database_path)
     extract_features(image_directory, database_path, args.config_path)
     match_features(image_directory, database_path, args.config_path)
-    #build_sparse_map(project_file)
+    build_sparse_map(image_directory, database_path, args.config_path)
