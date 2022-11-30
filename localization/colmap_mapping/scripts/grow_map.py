@@ -35,7 +35,15 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "image_directory",
-        help="Directory containing images. Images are assumed to be named in sequential order.",
+        help="Directory containing new images to add. Images are assumed to be named in sequential order.",
+    )
+    parser.add_argument(
+        "output_directory",
+        help="Output directory to save merged mapping results to.",
+    )
+    parser.add_argument(
+        "mapper_ini_file",
+        help="Mapper.ini file for existing map.",
     )
     parser.add_argument(
         "config_path",
@@ -47,18 +55,38 @@ if __name__ == "__main__":
         print("Image directory " + args.image_directory + " does not exist.")
         sys.exit()
 
-    if os.path.isdir("mapping_results"):
-        print("Directory mapping_results already exists.")
+    if not os.path.isfile(args.mapper_ini_file):
+        print("Mapper.ini file " + args.mapper_ini_file + " does not exist.")
         sys.exit()
 
-    image_directory = os.path.abspath(args.image_directory)
-    database_path = image_directory + ".db"
-    ut.create_database(database_path)
-    ut.extract_features(image_directory, database_path, args.config_path)
-    ut.sequential_match_features(image_directory, database_path, args.config_path)
-    # TODO: add merge database to utils! (A)
+    if os.path.isdir(args.output_directory):
+        print("Output directory already exists.")
+        sys.exit()
+
+    database_path_a = ut.read_value(args.mapper_ini_file, "database_path")
+    if not database_path_a:
+        print("Failed to read database a path.")
+        sys.exit()
+
+    import_path_a = ut.read_value(args.mapper_ini_file, "output_path")
+    if not import_path_a:
+        print("Failed to read import a path.")
+        sys.exit()
+    # Colmap saves to a directory "0" in the output directory
+    import_path_a = os.path.join(import_path_a, "0")
+
+    image_directory_b = os.path.abspath(args.image_directory)
+    database_path_b = image_directory_b + ".db"
+    ut.create_database(database_path_b)
+    ut.extract_features(image_directory_b, database_path_b, args.config_path)
+    ut.sequential_match_features(image_directory_b, database_path_b, args.config_path)
+    # TODO: fill this in! use output directory! combine a and b names! (C)
+    merged_database = "test" 
+    ut.merge_databases(database_path_a, database_path_b, merged_database)
     ut.vocab_match_features(image_directory, database_path, args.config_path)
-    #TODO: add function to merge images (use symlinks???)! (B)
-    # TODO: add grow map function that also takes existing map files! (C)
-        #TODO: pass merged images directory and merged database!
-    #build_sparse_map(image_directory, database_path, args.config_path)
+    #TODO: add function to merge images (use symlinks???)! fill this in! (B)
+    merged_image_directory = "merged_images" 
+    # TODO: copy import path to output path, make output path first! (A)
+        # TODO: add function to do this!!!
+    merged_import_path = "..."
+    ut.grow_map(merged_import_path, merged_image_directory, merged_database, args.config_path)

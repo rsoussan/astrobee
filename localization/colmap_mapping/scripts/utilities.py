@@ -60,6 +60,10 @@ def create_database(database_path):
     command = "colmap database_creator --database_path " + database_path
     lu.run_command_and_save_output(command, "database_creation.txt")
 
+def merge_databases(database_a, database_b, merged_database):
+    command = "colmap database_merger --database_path1 " + database_a + " --database_path2 " + database_b + " --merged_database_path " + merged_database
+    lu.run_command_and_save_output(command, "database_merge.txt")
+
 def extract_features(image_directory, database_path, config_path):
    base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_feature_extractor.ini") 
    project_file = image_directory + "_feature_extractor.ini"
@@ -97,3 +101,24 @@ def build_sparse_map(image_directory, database_path, config_path):
    make_config(values, value_names, base_project_file, project_file, "=")
    command = "colmap mapper --project_path " + project_file
    lu.run_command_and_save_output(command, "mapper.txt")
+
+def grow_map(merged_import_path, merged_image_directory, merged_database_path, config_path):
+   base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_mapper.ini") 
+   project_file = image_directory + "_merged_mapper.ini"
+   value_names = ["database_path", "image_path", "output_path"]
+   values = [database_path, image_directory, merged_import_path] 
+   make_config(values, value_names, base_project_file, project_file, "=")
+   command = "colmap mapper --project_path " + project_file
+   lu.run_command_and_save_output(command, "merged_mapper.txt")
+
+# TODO: move this to loc common!
+def read_value(config_filename, value_name):
+    config_file = open(config_filename, "r")
+    value = None
+    for config_file_line in config_file:
+        line_strings = config_file_line.split("=")
+        if len(line_strings) > 0 and line_strings[0] == value_name:
+            # Remove trailing newline character if it exists
+            value = line_strings[1].rstrip("\n")
+
+    return value
