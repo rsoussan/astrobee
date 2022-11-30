@@ -25,12 +25,14 @@ import os
 import subprocess
 import sys
 
-def read_value(value_name, config_file):
+def read_value(config_filename, value_name):
+    config_file = open(config_filename, "r")
     value = None
     for config_file_line in config_file:
         line_strings = config_file_line.split("=")
         if len(line_strings) > 0 and line_strings[0] == value_name:
-            value = line_strings[1]
+            # Remove trailing newline character if it exists
+            value = line_strings[1].rstrip("\n")
 
     return value
 
@@ -48,19 +50,20 @@ if __name__ == "__main__":
         print("Mapping project file " + args.mapping_project_file + " does not exist.")
         sys.exit()
     
-    project_file = open(args.mapping_project_file, "r")
 
-    import_path = read_value(project_file, "output_path")
+    import_path = read_value(args.mapping_project_file, "output_path")
     if not import_path:
         print("Failed to read import path.")
         sys.exit()
+    # Colmap saves to a directory "0" in the output directory
+    import_path = os.path.join(import_path, "0")
 
-    database_path = read_value(project_file, "database_path")
+    database_path = read_value(args.mapping_project_file, "database_path")
     if not database_path:
         print("Failed to read database path.")
         sys.exit()
  
-    image_path = read_value(project_file, "image_path")
+    image_path = read_value(args.mapping_project_file, "image_path")
     if not image_path:
         print("Failed to read image path.")
         sys.exit()
