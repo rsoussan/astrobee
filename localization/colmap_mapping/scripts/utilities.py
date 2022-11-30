@@ -78,6 +78,15 @@ def sequential_match_features(image_directory, database_path, config_path):
    command = "colmap sequential_matcher --project_path " + project_file
    lu.run_command_and_save_output(command, "sequential_matcher.txt")
 
+def vocab_match_features(image_directory, database_path, config_path):
+   base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_vocab_matcher.ini") 
+   project_file = image_directory + "_vocab_matcher.ini"
+   value_names = ["database_path", "image_path"]
+   values = [database_path, image_directory]
+   make_config(values, value_names, base_project_file, project_file, "=")
+   command = "colmap vocab_tree_matcher --project_path " + project_file
+   lu.run_command_and_save_output(command, "vocab_matcher.txt")
+
 def build_sparse_map(image_directory, database_path, config_path):
    base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_mapper.ini") 
    project_file = image_directory + "_mapper.ini"
