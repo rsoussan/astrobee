@@ -17,8 +17,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 """
-Extracts features, applies sequential mapping with loop closures, and creates a sparse map using colmap
-given a set of sequential images. 
+Adds more images to an existing map file.
 """
 
 import argparse
@@ -29,6 +28,16 @@ import sys
 
 import utilities as ut
 
+#TODO: move to utils?
+def vocab_match_features(image_directory, database_path, config_path):
+   base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_vocab_matcher.ini") 
+   project_file = image_directory + "_vocab_matcher.ini"
+   value_names = ["database_path", "image_path"]
+   values = [database_path, image_directory]
+   make_config(values, value_names, base_project_file, project_file, "=")
+   command = "colmap vocab_tree_matcher --project_path " + project_file
+   lu.run_command_and_save_output(command, "vocab_matcher.txt")
+      
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -56,4 +65,9 @@ if __name__ == "__main__":
     ut.create_database(database_path)
     ut.extract_features(image_directory, database_path, args.config_path)
     ut.sequential_match_features(image_directory, database_path, args.config_path)
-    ut.build_sparse_map(image_directory, database_path, args.config_path)
+    # TODO: add merge database to utils!
+    vocab_match_features(image_directory, database_path, args.config_path)
+    #TODO: add option to merge images!
+    #TODO: pass merged images directory and merged database!
+    # TODO: add grow map function that also takes existing map files!
+    #build_sparse_map(image_directory, database_path, args.config_path)
