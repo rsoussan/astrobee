@@ -83,6 +83,16 @@ def extract_features(image_directory, database_path, config_path):
    make_config(values, value_names, base_project_file, project_file, "=")
    command = "colmap feature_extractor --project_path " + project_file
    lu.run_command_and_save_output(command, "feature_extraction.txt")
+
+def match_features(image_directory, database_path, config_path):
+   base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_sequential_matcher.ini") 
+   project_file = image_directory + "_sequential_matcher.ini"
+   value_names = ["database_path", "image_path"]
+   values = [database_path, image_directory]
+   make_config(values, value_names, base_project_file, project_file, "=")
+   command = "colmap sequential_matcher --project_path " + project_file
+   lu.run_command_and_save_output(command, "sequential_matcher.txt")
+ 
       
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -107,5 +117,5 @@ if __name__ == "__main__":
     #project_file = create_project_file(image_directory, database_path, args.config_path)
     create_database(database_path)
     extract_features(image_directory, database_path, args.config_path)
-    #match_features(project_file)
+    match_features(image_directory, database_path, args.config_path)
     #build_sparse_map(project_file)
