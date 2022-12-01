@@ -103,6 +103,10 @@ def build_sparse_map(image_directory, database_path, config_path):
    make_config(values, value_names, base_project_file, project_file, "=")
    command = "colmap mapper --project_path " + project_file
    lu.run_command_and_save_output(command, "mapper.txt")
+   # Colmap exports map files to a dirctory 0/, move to map 
+   shutil.move("map/0", "tmp_map")
+   shutil.rmtree("map")
+   os.rename("tmp_map", "map")
 
 def grow_map(merged_import_path, merged_image_directory, merged_database_path, config_path):
    base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_mapper.ini") 

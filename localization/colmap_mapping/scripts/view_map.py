@@ -43,8 +43,7 @@ if __name__ == "__main__":
 
     mapping_directory_absolute_path = os.path.abspath(args.mapping_directory)
 
-    # Colmap saves to a directory "0" in the output directory
-    map_path = os.path.join(mapping_directory_absolute_path, "map/0") 
+    map_path = os.path.join(mapping_directory_absolute_path, "map") 
 
     database_path = os.path.join(mapping_directory_absolute_path, os.path.basename(args.mapping_directory) + ".db") 
  
