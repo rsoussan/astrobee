@@ -72,7 +72,8 @@ if __name__ == "__main__":
                 print("Sequence number " + sequence_number + " subdirectory does not exist.")
                 sys.exit()
 
-    
+   
+    # Get subdirectories 
     output_directory = os.path.basename(args.image_directory) 
     if not args.sequence_numbers:
         subdirs = subdirectories(args.image_directory)
@@ -80,9 +81,11 @@ if __name__ == "__main__":
             if subdirectory.isdigit():
                 args.sequence_numbers.append(subdirectory)
 
+    # Output directory should for example be image_directory.0.1.3_mapping, when runs 0, 1, and 3 are included 
     args.sequence_numbers.sort(key=int)
     for sequence_number in args.sequence_numbers:
         output_directory += "." + sequence_number
+    output_directory += "_mapping"
 
     if os.path.isdir(output_directory):
         print("Output directory " + output_directory + " already exists.")
