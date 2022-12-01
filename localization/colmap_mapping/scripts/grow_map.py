@@ -107,13 +107,13 @@ if __name__ == "__main__":
     database_path_b = image_directory_b + ".db"
     ut.create_database(database_path_b)
     ut.extract_features(image_directory_b, database_path_b, args.config_path)
-    ut.sequential_match_features(image_directory_b, database_path_b, args.config_path)
+    ut.sequential_match_features(database_path_b, args.config_path)
 
     # Merge database and images with existing map, match new images to existing map
     merged_database = merged_database_name(database_path_a, database_path_b)
     ut.merge_databases(database_path_a, database_path_b, merged_database)
     merged_image_directory = merge_image_directories(image_directory_a, image_directory_b)
-    ut.vocab_match_features(merged_image_directory, os.path.abspath(merged_database), args.config_path)
+    ut.vocab_match_features(os.path.abspath(merged_database), args.config_path)
 
     # Grow map
     merged_import_path = copy_import_path(args.output_directory, import_path_a) 

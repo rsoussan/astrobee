@@ -66,16 +66,16 @@ def merge_databases(database_a, database_b, merged_database):
 
 def extract_features(image_directory, database_path, config_path):
    base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_feature_extractor.ini") 
-   project_file = image_directory + "_feature_extractor.ini"
+   project_file = "feature_extractor.ini"
    value_names = ["database_path", "image_path"]
    values = [database_path, image_directory]
    make_config(values, value_names, base_project_file, project_file, "=")
    command = "colmap feature_extractor --project_path " + project_file
    lu.run_command_and_save_output(command, "feature_extraction.txt")
 
-def sequential_match_features(image_directory, database_path, config_path):
+def sequential_match_features(database_path, config_path):
    base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_sequential_matcher.ini") 
-   project_file = image_directory + "_sequential_matcher.ini"
+   project_file = "sequential_matcher.ini"
     # TODO: add vocab file here!!!
    value_names = ["database_path"]
    values = [database_path]
@@ -83,9 +83,9 @@ def sequential_match_features(image_directory, database_path, config_path):
    command = "colmap sequential_matcher --project_path " + project_file
    lu.run_command_and_save_output(command, "sequential_matcher.txt")
 
-def vocab_match_features(image_directory, database_path, config_path):
+def vocab_match_features(database_path, config_path):
    base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_vocab_matcher.ini") 
-   project_file = image_directory + "_vocab_matcher.ini"
+   project_file = "vocab_matcher.ini"
     # TODO: add vocab file here!!!
    value_names = ["database_path"]
    values = [database_path]
@@ -95,8 +95,8 @@ def vocab_match_features(image_directory, database_path, config_path):
 
 def build_sparse_map(image_directory, database_path, config_path):
    base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_mapper.ini") 
-   project_file = image_directory + "_mapper.ini"
-   results_directory = "mapping_results"
+   project_file = "mapper.ini"
+   results_directory = "map"
    os.mkdir(results_directory)
    value_names = ["database_path", "image_path", "output_path"]
    values = [database_path, image_directory, results_directory] 
@@ -106,9 +106,9 @@ def build_sparse_map(image_directory, database_path, config_path):
 
 def grow_map(merged_import_path, merged_image_directory, merged_database_path, config_path):
    base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_mapper.ini") 
-   project_file = image_directory + "_merged_mapper.ini"
+   project_file = "merged_mapper.ini"
    value_names = ["database_path", "image_path", "output_path"]
-   values = [database_path, image_directory, merged_import_path] 
+   values = [merged_database_path, merged_image_directory, merged_import_path] 
    make_config(values, value_names, base_project_file, project_file, "=")
    command = "colmap mapper --project_path " + project_file
    lu.run_command_and_save_output(command, "merged_mapper.txt")

@@ -17,7 +17,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 """
-View the sparse map using the colmap gui. 
+View the sparse map using the colmap gui.
 """
 
 import argparse
@@ -32,32 +32,23 @@ if __name__ == "__main__":
         description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
-        "mapping_project_file",
-        help="Mapping project file used to create the sparse map, typically ending in mapping.ini.",
+        "mapping_directory",
+        help="Mapping directory used to create the sparse map. Assumes a directory structure of /path/to/parent/map_dir/ containing a database file map_dir.db and map directory map/ and that image directories are contained in /path/to/parent.",
     )
     args = parser.parse_args()
 
-    if not os.path.isfile(args.mapping_project_file):
-        print("Mapping project file " + args.mapping_project_file + " does not exist.")
+    if not os.path.isdir(args.mapping_directory):
+        print("Mapping directory " + args.mapping_directory + " does not exist.")
         sys.exit()
-    
 
-    import_path = ut.read_value(args.mapping_project_file, "output_path")
-    if not import_path:
-        print("Failed to read import path.")
-        sys.exit()
+    mapping_directory_absolute_path = os.path.abspath(args.mapping_directory)
+
     # Colmap saves to a directory "0" in the output directory
-    import_path = os.path.join(import_path, "0")
+    map_path = os.path.join(mapping_directory_absolute_path, "map/0") 
 
-    database_path = ut.read_value(args.mapping_project_file, "database_path")
-    if not database_path:
-        print("Failed to read database path.")
-        sys.exit()
+    database_path = os.path.join(mapping_directory_absolute_path, os.path.basename(args.mapping_directory) + ".db") 
  
-    image_path = ut.read_value(args.mapping_project_file, "image_path")
-    if not image_path:
-        print("Failed to read image path.")
-        sys.exit()
+    image_path = os.path.dirname(mapping_directory_absolute_path)
  
-    command = 'colmap gui --import_path ' + import_path + ' --database_path ' + database_path + ' --image_path ' + image_path
+    command = 'colmap gui --import_path ' + map_path + ' --database_path ' + database_path + ' --image_path ' + image_path
     subprocess.call(command, shell=True)
