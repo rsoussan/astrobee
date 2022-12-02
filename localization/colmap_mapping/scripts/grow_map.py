@@ -130,16 +130,14 @@ if __name__ == "__main__":
     cu.vocab_match_features(os.path.abspath(merged_database), args.config_path)
 
     # Remove tmp new database
-    shutil.rm(new_database_path)
+    os.remove(new_database_path)
     
     # Copy and start from existing map
     merged_import_path = "map"
     shutil.copytree(mapping_import_path, merged_import_path)
 
-    sys.exit()
-#    # Grow map
-        # TODO: what should image dir be??
-#    ut.grow_map(merged_import_path, merged_image_directory, os.path.abspath(merged_database), args.config_path)
+    # Grow map
+    cu.grow_map(merged_import_path, tmp_parent_image_directory, merged_database, args.config_path)
 
     # Remove temporary directory used for map creation
-#    shutil.rmtree(tmp_parent_image_directory)
+    shutil.rmtree(tmp_parent_image_directory)
