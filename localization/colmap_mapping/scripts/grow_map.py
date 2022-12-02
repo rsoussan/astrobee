@@ -29,14 +29,6 @@ import sys
 import colmap_utilities as cu 
 import file_utilities as fu
 
-#
-#def copy_import_path(output_directory, import_path_a): 
-#    ## Colmap saves results to a '0' directory
-#    merged_import_path = os.path.join(output_directory, "merged_mapping_results")
-#    merged_import_path_with_0 = os.path.join(merged_import_path, "0")
-#    shutil.copytree(import_path_a, merged_import_path_with_0)
-#    return merged_import_path_with_0
- 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -136,11 +128,16 @@ if __name__ == "__main__":
     merged_database = merged_basename + ".db" 
     cu.merge_databases(mapping_database_path, new_database_path, merged_database)
     cu.vocab_match_features(os.path.abspath(merged_database), args.config_path)
-    
-    sys.exit()
 
+    # Remove tmp new database
+    shutil.rm(new_database_path)
+    
+    # Copy and start from existing map
+    merged_import_path = "map"
+    shutil.copytree(mapping_import_path, merged_import_path)
+
+    sys.exit()
 #    # Grow map
-#    merged_import_path = copy_import_path(args.output_directory, mapping_import_path) 
         # TODO: what should image dir be??
 #    ut.grow_map(merged_import_path, merged_image_directory, os.path.abspath(merged_database), args.config_path)
 
