@@ -100,6 +100,7 @@ if __name__ == "__main__":
     # Merge image directory and sequence number lists
     image_directories = mapping_image_directories[:]
     image_directories.append(args.image_directory)
+    image_directory_absolute_paths = [os.path.abspath(image_directory) for image_directory in image_directories]
     sequence_numbers_list = mapping_sequence_numbers_list[:]
     sequence_numbers_list.append(args.sequence_numbers)
     # TODO: add function to combine same imag directories and sort image sequences!!!!
@@ -117,31 +118,27 @@ if __name__ == "__main__":
     # Colmap checks for all images recursively, so need to avoid adding mapping image directories here
     tmp_parent_image_directory = fu.setup_mapping_images_directory_structure(output_directory, [image_directory_absolute_path], [args.sequence_numbers])
 
-    sys.exit()
     # Get sequential matches for new images
-    new_image_directory = os.path.abspath(args.image_directory)
-    new_database_path = new_image_directory + ".db"
-    ut.create_database(new_database_path)
-    ut.extract_features(new_image_directory, new_database_path, args.config_path)
-    ut.sequential_match_features(new_database_path, args.config_path)
+    new_database_path = "tmp_new.db"
+    cu.create_database(new_database_path)
+    cu.extract_features(tmp_parent_image_directory, new_database_path, args.config_path)
+    cu.sequential_match_features(new_database_path, args.config_path)
 
     # Remove temporary directory used for new image extraction/mapping
     shutil.rmtree(tmp_parent_image_directory)
 
-#    # Setup merged mapping directory structure
-#    image_directory_absolute_paths = [os.path.abspath(image_directory) for image_directory in image_directories]
-#    tmp_parent_image_directory = fu.setup_mapping_images_directory_structure(output_directory, image_directory_absolute_paths, sequence_numbers_list)
-#    fu.save_image_directories_to_sequence_numbers(image_directories, sequence_numbers_list, "image_sequences.txt")
-#
+    # Setup merged mapping directory structure
+    tmp_parent_image_directory = fu.setup_mapping_images_directory_structure(output_directory, image_directory_absolute_paths, sequence_numbers_list)
+    fu.save_image_directories_to_sequence_numbers(image_directories, sequence_numbers_list, "image_sequences.txt")
 
-    # TODO: put these back! (C)
+    # Merge database and images with existing map and match new images to existing map
+    merged_basename = os.path.basename(output_directory)
+    merged_database = merged_basename + ".db" 
+    cu.merge_databases(mapping_database_path, new_database_path, merged_database)
+    cu.vocab_match_features(os.path.abspath(merged_database), args.config_path)
+    
+    sys.exit()
 
-#    # Merge database and images with existing map, match new images to existing map
-#    merged_basename = os.path.basename(output_directory)
-#    merged_database = merged_basename + ".db" 
-#    ut.merge_databases(mapping_database_path, new_database_path, merged_database)
-#    ut.vocab_match_features(os.path.abspath(merged_database), args.config_path)
-#
 #    # Grow map
 #    merged_import_path = copy_import_path(args.output_directory, mapping_import_path) 
         # TODO: what should image dir be??
