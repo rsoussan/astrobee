@@ -62,21 +62,10 @@ if __name__ == "__main__":
     else:
         args.sequence_numbers = fu.get_sequence_numbers(args.image_directory)
 
+    # Setup mapping directory structure
     output_directory = fu.get_mapping_directory_name([args.image_directory], [args.sequence_numbers])
-
-    if os.path.isdir(output_directory):
-        print("Output directory " + output_directory + " already exists.")
-        sys.exit()
-    os.mkdir(output_directory)
-    os.chdir(output_directory)
-
-    # Setup directories necessary for mapping, maintain directory structure of image_directory/sequence_number/*jpg
-    # TODO(rsoussan): Avoid copying images and use simlinks if issue in colmap fixed (doesn't find simlinks)
-    tmp_parent_image_directory = os.path.basename(os.path.dirname(image_directory_absolute_path))
-    os.mkdir(tmp_parent_image_directory)
-    fu.copy_image_directories(tmp_parent_image_directory, [image_directory_absolute_path], [args.sequence_numbers])
+    tmp_parent_image_directory = fu.setup_mapping_images_directory_structure(output_directory, [image_directory_absolute_path], [args.sequence_numbers])
     fu.save_image_directories_to_sequence_numbers([os.path.basename(args.image_directory)], [args.sequence_numbers], "image_sequences.txt")
-
 
     # Run mapping relative to parent_image_directory, so each project file saves the image path relative to parent_image_directory
     database_path = output_directory + ".db"

@@ -105,8 +105,8 @@ def get_mapping_directory_name(image_directories, sequence_numbers_list):
     name += "mapping"
     return name
 
-def copy_image_directories(parent_directory, image_directories_absolute_paths, sequence_numbers_list):
-    for image_directory_absolute_path, sequence_numbers in zip(image_directories_absolute_paths, sequence_numbers_list):
+def copy_image_directories(parent_directory, image_directory_absolute_paths, sequence_numbers_list):
+    for image_directory_absolute_path, sequence_numbers in zip(image_directory_absolute_paths, sequence_numbers_list):
         copy_image_directory(parent_directory, image_directory_absolute_path, sequence_numbers)
 
 def copy_image_directory(parent_directory, image_directory_absolute_path, sequence_numbers):
@@ -131,4 +131,19 @@ def image_sequences(image_sequences_file):
             image_directories.append(row[0])
             sequence_numbers_list.append(row[1:])
     return image_directories, sequence_numbers_list
-            
+          
+def setup_mapping_images_directory_structure(output_directory, image_directory_absolute_paths, sequence_numbers_list):
+   if os.path.isdir(output_directory):
+        print("Output directory " + output_directory + " already exists.")
+        sys.exit()
+   os.mkdir(output_directory)
+   os.chdir(output_directory)
+
+    # Setup directories necessary for mapping, maintain directory structure of image_directory/sequence_number/*jpg
+    # TODO(rsoussan): Avoid copying images and use simlinks if issue in colmap fixed (doesn't find simlinks)
+   tmp_parent_image_directory = os.path.basename(os.path.dirname(image_directory_absolute_paths[0]))
+   os.mkdir(tmp_parent_image_directory)
+   copy_image_directories(tmp_parent_image_directory, image_directory_absolute_paths, sequence_numbers_list)
+   return tmp_parent_image_directory
+ 
+  

@@ -114,12 +114,15 @@ if __name__ == "__main__":
     image_directories.append(args.image_directory)
     sequence_numbers_list = mapping_sequence_numbers_list[:]
     sequence_numbers_list.append(args.sequence_numbers)
+    # TODO: add function to combine same imag directories and sort image sequences!!!!
     output_directory = fu.get_mapping_directory_name(image_directories, sequence_numbers_list)
-    print(output_directory)
+
+    # Setup mapping directory structure
+    image_directory_absolute_paths = [os.path.abspath(image_directory) for image_directory in image_directories]
+    tmp_parent_image_directory = fu.setup_mapping_images_directory_structure(output_directory, image_directory_absolute_paths, sequence_numbers_list)
+    fu.save_image_directories_to_sequence_numbers(image_directories, sequence_numbers_list, "image_sequences.txt")
+
     sys.exit()
-
-    # TODO: setup directory hierachy! copy/share code with make_maps.py!! (C)
-
 
     # TODO: put these back! (C)
 #    # Get sequential matches for new images
