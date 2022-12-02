@@ -55,6 +55,7 @@ if __name__ == "__main__":
     if not os.path.isdir(args.image_directory):
         print("Image directory " + args.image_directory + " does not exist.")
         sys.exit()
+    image_directory_absolute_path = os.path.abspath(args.image_directory)
    
     if args.sequence_numbers:
         fu.check_sequence_numbers(args.image_directory, args.sequence_numbers)
@@ -71,7 +72,6 @@ if __name__ == "__main__":
 
     # Setup directories necessary for mapping, maintain directory structure of image_directory/sequence_number/*jpg
     # TODO(rsoussan): Avoid copying images and use simlinks if issue in colmap fixed (doesn't find simlinks)
-    image_directory_absolute_path = os.path.abspath(args.image_directory)
     tmp_parent_image_directory = os.path.basename(os.path.dirname(image_directory_absolute_path))
     os.mkdir(tmp_parent_image_directory)
     fu.copy_image_directories(tmp_parent_image_directory, [image_directory_absolute_path], [args.sequence_numbers])

@@ -25,8 +25,6 @@ import os
 import subprocess
 import sys
 
-import utilities as ut
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter

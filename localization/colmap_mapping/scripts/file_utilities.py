@@ -16,9 +16,9 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import csv
 import os
 import shutil
-import subprocess
 import sys
 
 # TODO: unify these with loc analysis, move to loc utils! (added separator, test param sweep)
