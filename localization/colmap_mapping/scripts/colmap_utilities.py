@@ -17,44 +17,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import argparse
+import csv
 import os
 import shutil
 import subprocess
 import sys
 
+import file_utilities as fu
 import localization_common.utilities as lu
-
-# TODO: unify these with loc analysis, move to loc utils! (added separator, test param sweep)
-def check_and_fill_line(value_map, config_file_line, separator):
-    line_strings = config_file_line.split(separator)
-    # Overwrite val if config variable is in value map
-    if len(line_strings) > 0 and line_strings[0] in value_map:
-        return line_strings[0] + separator + str(value_map[line_strings[0]]) + "\n"
-    return config_file_line
-
-
-def fill_in_values(original_config, value_map, new_config, separator):
-    original_config_file = open(original_config, "r")
-    new_config_file = open(new_config, "w")
-    for config_file_line in original_config_file:
-        new_config_file.write(check_and_fill_line(value_map, config_file_line, separator))
-
-
-def make_value_map(values, value_names):
-    value_map = {}
-    if len(values) != len(value_names):
-        print("values and value_names not same length!")
-        exit()
-
-    for index, value_name in enumerate(value_names):
-        value_map[value_name] = values[index]
-
-    return value_map
-
-
-def make_config(values, value_names, original_config, new_config, separator):
-    value_map = make_value_map(values, value_names)
-    fill_in_values(original_config, value_map, new_config, separator)
 
 def create_database(database_path):
     command = "colmap database_creator --database_path " + database_path
@@ -69,7 +39,7 @@ def extract_features(image_directory, database_path, config_path):
    project_file = "feature_extractor.ini"
    value_names = ["database_path", "image_path"]
    values = [database_path, image_directory]
-   make_config(values, value_names, base_project_file, project_file, "=")
+   fu.make_config(values, value_names, base_project_file, project_file, "=")
    command = "colmap feature_extractor --project_path " + project_file
    lu.run_command_and_save_output(command, "feature_extraction.txt")
 
@@ -79,7 +49,7 @@ def sequential_match_features(database_path, config_path):
     # TODO: add vocab file here!!!
    value_names = ["database_path"]
    values = [database_path]
-   make_config(values, value_names, base_project_file, project_file, "=")
+   fu.make_config(values, value_names, base_project_file, project_file, "=")
    command = "colmap sequential_matcher --project_path " + project_file
    lu.run_command_and_save_output(command, "sequential_matcher.txt")
 
@@ -89,7 +59,7 @@ def vocab_match_features(database_path, config_path):
     # TODO: add vocab file here!!!
    value_names = ["database_path"]
    values = [database_path]
-   make_config(values, value_names, base_project_file, project_file, "=")
+   fu.make_config(values, value_names, base_project_file, project_file, "=")
    command = "colmap vocab_tree_matcher --project_path " + project_file
    lu.run_command_and_save_output(command, "vocab_matcher.txt")
 
@@ -100,7 +70,7 @@ def build_sparse_map(image_directory, database_path, config_path):
    os.mkdir(results_directory)
    value_names = ["database_path", "image_path", "output_path"]
    values = [database_path, image_directory, results_directory] 
-   make_config(values, value_names, base_project_file, project_file, "=")
+   fu.make_config(values, value_names, base_project_file, project_file, "=")
    command = "colmap mapper --project_path " + project_file
    lu.run_command_and_save_output(command, "mapper.txt")
    # Colmap exports map files to a dirctory 0/, move to map 
@@ -113,18 +83,6 @@ def grow_map(merged_import_path, merged_image_directory, merged_database_path, c
    project_file = "merged_mapper.ini"
    value_names = ["database_path", "image_path", "output_path"]
    values = [merged_database_path, merged_image_directory, merged_import_path] 
-   make_config(values, value_names, base_project_file, project_file, "=")
+   fu.make_config(values, value_names, base_project_file, project_file, "=")
    command = "colmap mapper --project_path " + project_file
    lu.run_command_and_save_output(command, "merged_mapper.txt")
-
-# TODO: move this to loc common!
-def read_value(config_filename, value_name):
-    config_file = open(config_filename, "r")
-    value = None
-    for config_file_line in config_file:
-        line_strings = config_file_line.split("=")
-        if len(line_strings) > 0 and line_strings[0] == value_name:
-            # Remove trailing newline character if it exists
-            value = line_strings[1].rstrip("\n")
-
-    return value

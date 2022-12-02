@@ -27,18 +27,8 @@ import shutil
 import subprocess
 import sys
 
-import utilities as ut
-
-# TODO: unify with prune_partioned_directories, move to loc common utils!!!
-def subdirectories(directory):
-    subdirectories = []
-    try:
-        _, subdirectories, _ = next(os.walk(directory))
-    except:
-        pass
-    return subdirectories
-
-
+import colmap_utilities as cu 
+import file_utilities as fu
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -46,7 +36,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "image_directory",
-        help="Directory containing images. Images are assumed to be named in sequential order and stored as /path/to/image_directory/sequence_number/*jpg. By default each sequence_number subdirectory will be use for mapping. If only certain sequences should be used, pass the sequence_numbers explicity using the --sequence_number option.",
+        help="Directory containing images. Images are assumed to be named in sequential order and stored as /path/to/image_directory/sequence_number/*jpg. By default each sequence_number subdirectory will be used for mapping. If only certain sequences should be used, pass the sequence_numbers explicity using the --sequence_number option.",
     )
     parser.add_argument(
         "config_path",
@@ -65,50 +55,35 @@ if __name__ == "__main__":
     if not os.path.isdir(args.image_directory):
         print("Image directory " + args.image_directory + " does not exist.")
         sys.exit()
-    
-    if args.sequence_numbers:
-        for sequence_number in args.sequence_numbers:
-            if not os.path.isdir(os.path.join(args.image_directory, sequence_number)):
-                print("Sequence number " + sequence_number + " subdirectory does not exist.")
-                sys.exit()
-
    
-    # Get subdirectories 
-    output_directory = os.path.basename(args.image_directory) 
-    if not args.sequence_numbers:
-        subdirs = subdirectories(args.image_directory)
-        for subdirectory in subdirs:
-            if subdirectory.isdigit():
-                args.sequence_numbers.append(subdirectory)
+    if args.sequence_numbers:
+        fu.check_sequence_numbers(args.image_directory, args.sequence_numbers)
+    else:
+        args.sequence_numbers = fu.get_sequence_numbers(args.image_directory)
 
-    # Output directory should for example be image_directory.0.1.3_mapping, when runs 0, 1, and 3 are included 
-    args.sequence_numbers.sort(key=int)
-    for sequence_number in args.sequence_numbers:
-        output_directory += "." + sequence_number
-    output_directory += "_mapping"
+    output_directory = fu.get_mapping_directory_name([args.image_directory], [args.sequence_numbers])
 
     if os.path.isdir(output_directory):
         print("Output directory " + output_directory + " already exists.")
         sys.exit()
-    image_directory_absolute_path = os.path.abspath(args.image_directory)
     os.mkdir(output_directory)
     os.chdir(output_directory)
+
     # Setup directories necessary for mapping, maintain directory structure of image_directory/sequence_number/*jpg
     # TODO(rsoussan): Avoid copying images and use simlinks if issue in colmap fixed (doesn't find simlinks)
+    image_directory_absolute_path = os.path.abspath(args.image_directory)
     tmp_parent_image_directory = os.path.basename(os.path.dirname(image_directory_absolute_path))
-    tmp_image_directory = os.path.join(tmp_parent_image_directory, os.path.basename(args.image_directory))
     os.mkdir(tmp_parent_image_directory)
-    os.mkdir(tmp_image_directory)
-    for sequence_number in args.sequence_numbers:
-        shutil.copytree(os.path.join(image_directory_absolute_path, sequence_number), os.path.join(tmp_image_directory, sequence_number))
+    fu.copy_image_directories(tmp_parent_image_directory, [image_directory_absolute_path], [args.sequence_numbers])
+    fu.save_image_directories_to_sequence_numbers([os.path.basename(args.image_directory)], [args.sequence_numbers], "image_sequences.txt")
 
 
     # Run mapping relative to parent_image_directory, so each project file saves the image path relative to parent_image_directory
     database_path = output_directory + ".db"
-    ut.create_database(database_path)
-    ut.extract_features(tmp_parent_image_directory, database_path, args.config_path)
-    ut.sequential_match_features(database_path, args.config_path)
-    ut.build_sparse_map(tmp_parent_image_directory, database_path, args.config_path)
+    cu.create_database(database_path)
+    cu.extract_features(tmp_parent_image_directory, database_path, args.config_path)
+    cu.sequential_match_features(database_path, args.config_path)
+    cu.build_sparse_map(tmp_parent_image_directory, database_path, args.config_path)
 
     # Remove temporary directory used for map creation
     shutil.rmtree(tmp_parent_image_directory)
