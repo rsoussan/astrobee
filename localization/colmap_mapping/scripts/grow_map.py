@@ -135,9 +135,11 @@ if __name__ == "__main__":
     # Copy and start from existing map
     merged_import_path = "map"
     shutil.copytree(mapping_import_path, merged_import_path)
-
+    
+    # TODO: this won't start from existing map, rebuilds from scratch, need to use gui :(
+        # Figure this out!!!! enable usage with script!
     # Grow map
-    cu.grow_map(merged_import_path, tmp_parent_image_directory, merged_database, args.config_path)
+    #cu.grow_map(merged_import_path, tmp_parent_image_directory, merged_database, args.config_path)
 
     # Remove temporary directory used for map creation
-    shutil.rmtree(tmp_parent_image_directory)
+    #shutil.rmtree(tmp_parent_image_directory)
