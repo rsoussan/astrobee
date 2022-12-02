@@ -62,6 +62,13 @@ if __name__ == "__main__":
     else:
         args.sequence_numbers = fu.get_sequence_numbers(args.image_directory)
 
+    # Move to output directory
+    if os.path.isdir(output_directory):
+         print("Output directory " + output_directory + " already exists.")
+         sys.exit()
+    os.mkdir(output_directory)
+    os.chdir(output_directory)
+
     # Setup mapping directory structure
     output_directory = fu.get_mapping_directory_name([args.image_directory], [args.sequence_numbers])
     tmp_parent_image_directory = fu.setup_mapping_images_directory_structure(output_directory, [image_directory_absolute_path], [args.sequence_numbers])

@@ -29,20 +29,6 @@ import sys
 import colmap_utilities as cu 
 import file_utilities as fu
 
-#def merged_database_name(database_path_a, database_path_b):
-#    database_a_name = os.path.splitext(os.path.basename(database_path_a))[0]
-#    database_b_name = os.path.splitext(os.path.basename(database_path_b))[0]
-#    merged_database_name = database_a_name + "." + database_b_name + ".db" 
-#    return merged_database_name 
-#
-#def merge_image_directories(image_directory_a, image_directory_b):
-#    merged_directory = "merged_images"
-#    os.mkdir(merged_directory)
-#    merged_image_directory_a = os.path.join(merged_directory, os.path.basename(image_directory_a))  
-#    merged_image_directory_b = os.path.join(merged_directory, os.path.basename(image_directory_b))  
-#    os.symlink(image_directory_a, merged_image_directory_a)
-#    os.symlink(image_directory_b, merged_image_directory_b)
-#    return merged_directory
 #
 #def copy_import_path(output_directory, import_path_a): 
 #    ## Colmap saves results to a '0' directory
@@ -80,6 +66,7 @@ if __name__ == "__main__":
     if not os.path.isdir(args.image_directory):
         print("Image directory " + args.image_directory + " does not exist.")
         sys.exit()
+    image_directory_absolute_path = os.path.abspath(args.image_directory)
 
     if not os.path.isdir(args.mapping_directory):
         print("Mapping directory " + args.mapping_directory + " does not exist.")
@@ -110,6 +97,7 @@ if __name__ == "__main__":
     mapping_image_directories, mapping_sequence_numbers_list = fu.image_sequences(mapping_image_sequences_file)
     fu.check_multiple_sequence_numbers(mapping_image_directories, mapping_sequence_numbers_list)
 
+    # Merge image directory and sequence number lists
     image_directories = mapping_image_directories[:]
     image_directories.append(args.image_directory)
     sequence_numbers_list = mapping_sequence_numbers_list[:]
@@ -117,29 +105,46 @@ if __name__ == "__main__":
     # TODO: add function to combine same imag directories and sort image sequences!!!!
     output_directory = fu.get_mapping_directory_name(image_directories, sequence_numbers_list)
 
-    # Setup mapping directory structure
-    image_directory_absolute_paths = [os.path.abspath(image_directory) for image_directory in image_directories]
-    tmp_parent_image_directory = fu.setup_mapping_images_directory_structure(output_directory, image_directory_absolute_paths, sequence_numbers_list)
-    fu.save_image_directories_to_sequence_numbers(image_directories, sequence_numbers_list, "image_sequences.txt")
+    # Move to output directory
+    if os.path.isdir(output_directory):
+         print("Output directory " + output_directory + " already exists.")
+         sys.exit()
+    os.mkdir(output_directory)
+    os.chdir(output_directory)
+
+    # Setup new mapping directory structure
+    # Temporary, only to extract and match features for new images
+    # Colmap checks for all images recursively, so need to avoid adding mapping image directories here
+    tmp_parent_image_directory = fu.setup_mapping_images_directory_structure(output_directory, [image_directory_absolute_path], [args.sequence_numbers])
 
     sys.exit()
+    # Get sequential matches for new images
+    new_image_directory = os.path.abspath(args.image_directory)
+    new_database_path = new_image_directory + ".db"
+    ut.create_database(new_database_path)
+    ut.extract_features(new_image_directory, new_database_path, args.config_path)
+    ut.sequential_match_features(new_database_path, args.config_path)
+
+    # Remove temporary directory used for new image extraction/mapping
+    shutil.rmtree(tmp_parent_image_directory)
+
+#    # Setup merged mapping directory structure
+#    image_directory_absolute_paths = [os.path.abspath(image_directory) for image_directory in image_directories]
+#    tmp_parent_image_directory = fu.setup_mapping_images_directory_structure(output_directory, image_directory_absolute_paths, sequence_numbers_list)
+#    fu.save_image_directories_to_sequence_numbers(image_directories, sequence_numbers_list, "image_sequences.txt")
+#
 
     # TODO: put these back! (C)
-#    # Get sequential matches for new images
-#    image_directory_b = os.path.abspath(args.image_directory)
-#    database_path_b = image_directory_b + ".db"
-#    ut.create_database(database_path_b)
-#    ut.extract_features(image_directory_b, database_path_b, args.config_path)
-#    ut.sequential_match_features(database_path_b, args.config_path)
-#
+
 #    # Merge database and images with existing map, match new images to existing map
-#    merged_database = merged_database_name(mapping_database_path, database_path_b)
-#    ut.merge_databases(mapping_database_path, database_path_b, merged_database)
-#    merged_image_directory = merge_image_directories(image_directory_a, image_directory_b)
+#    merged_basename = os.path.basename(output_directory)
+#    merged_database = merged_basename + ".db" 
+#    ut.merge_databases(mapping_database_path, new_database_path, merged_database)
 #    ut.vocab_match_features(os.path.abspath(merged_database), args.config_path)
 #
 #    # Grow map
 #    merged_import_path = copy_import_path(args.output_directory, mapping_import_path) 
+        # TODO: what should image dir be??
 #    ut.grow_map(merged_import_path, merged_image_directory, os.path.abspath(merged_database), args.config_path)
 
     # Remove temporary directory used for map creation
