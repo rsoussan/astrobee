@@ -74,13 +74,16 @@ def subdirectories(directory):
         pass
     return subdirectories
 
-def check_sequence_numbers(image_directory, seqeuence_numbers):
+def check_multiple_sequence_numbers(image_directories, sequence_numbers_list):
+    for image_directory, sequence_numbers in zip(image_directories, sequence_numbers_list):
+        check_sequence_numbers(image_directory, sequence_numbers)
+
+def check_sequence_numbers(image_directory, sequence_numbers):
     for sequence_number in sequence_numbers:
         if not os.path.isdir(os.path.join(image_directory, sequence_number)):
             print("Sequence number " + sequence_number + " subdirectory does not exist.")
             sys.exit()
 
-   
 def get_sequence_numbers(image_directory):
     subdirs = subdirectories(image_directory)
     sequence_numbers = []
@@ -118,3 +121,14 @@ def save_image_directories_to_sequence_numbers(image_directories_list, sequence_
         for image_directory, sequence_numbers in zip(image_directories_list, sequence_numbers_list):
             image_directory_to_sequence_numbers = [image_directory] + sequence_numbers
             csv_writer.writerow(image_directory_to_sequence_numbers)
+
+def image_sequences(image_sequences_file):
+    image_directories = []
+    sequence_numbers_list = []
+    with open(image_sequences_file, 'r') as csvfile:
+        csv_reader = csv.reader(csvfile, delimiter=' ')
+        for row in csv_reader:
+            image_directories.append(row[0])
+            sequence_numbers_list.append(row[1:])
+    return image_directories, sequence_numbers_list
+            

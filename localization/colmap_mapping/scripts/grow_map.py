@@ -26,10 +26,8 @@ import shutil
 import subprocess
 import sys
 
-import utilities as ut
-
-def image_directories_to_sequences(mapping_directory_name):
-    
+import colmap_utilities as cu 
+import file_utilities as fu
 
 #def merged_database_name(database_path_a, database_path_b):
 #    database_a_name = os.path.splitext(os.path.basename(database_path_a))[0]
@@ -88,80 +86,42 @@ if __name__ == "__main__":
         sys.exit()
 
     if args.sequence_numbers:
-        for sequence_number in args.sequence_numbers:
-            if not os.path.isdir(os.path.join(args.image_directory, sequence_number)):
-                print("Sequence number " + sequence_number + " subdirectory does not exist.")
-                sys.exit()
+        fu.check_sequence_numbers(args.image_directory, args.sequence_numbers)
+    else:
+        args.sequence_numbers = fu.get_sequence_numbers(args.image_directory)
 
     # Get mapping files from mapping directory
     mapping_directory_basename = os.path.basename(args.mapping_directory)
-    database_path_a = os.path.join(args.mapping_directory, mapping_directory_basename + ".db") 
-    print(database_path_a)
-    if not os.path.isfile(database_path_a):
-        print("Failed to find database path a.")
+    mapping_database_path = os.path.abspath(os.path.join(args.mapping_directory, mapping_directory_basename + ".db")) 
+    if not os.path.isfile(mapping_database_path):
+        print("Failed to find mapping database path.")
         sys.exit()
 
-    import_path_a = os.path.join(args.mapping_directory, "map") 
-    print(import_path_a)
-    if not os.path.isdir(import_path_a):
-        print("Failed to find import path a.")
+    mapping_import_path = os.path.abspath(os.path.join(args.mapping_directory, "map")) 
+    if not os.path.isdir(mapping_import_path):
+        print("Failed to find mapping import path.")
         sys.exit()
 
-    sys.exit() 
+    mapping_image_sequences_file = os.path.abspath(os.path.join(args.mapping_directory, "image_sequences.txt"))
+    if not os.path.isfile(mapping_image_sequences_file):
+        print("Failed to find mapping images sequence file.")
+        sys.exit()
 
-    # TODO: create this function!
-    mapping_image_directories_to_sequences = image_directories_to_sequences(mapping_directory_basename)
-    # TODO: create this function! unify with make_map.py!
-    verify_sequences_exist(mapping_image_directories_to_sequences)
+    mapping_image_directories, mapping_sequence_numbers_list = fu.image_sequences(mapping_image_sequences_file)
+    fu.check_multiple_sequence_numbers(mapping_image_directories, mapping_sequence_numbers_list)
 
+    image_directories = mapping_image_directories[:]
+    image_directories.append(args.image_directory)
+    sequence_numbers_list = mapping_sequence_numbers_list[:]
+    sequence_numbers_list.append(args.sequence_numbers)
+    output_directory = fu.get_mapping_directory_name(image_directories, sequence_numbers_list)
+    print(output_directory)
+    sys.exit()
 
-    # TODO: get image directory for each sequence using mapping dir name!!!
-    # TODO: save mapping name with sequences, etc elsewhere???
-    #image_directory_a = ... 
-    #if not os.path.isfile(image_directory_a):
-    #    print("Failed to find image directory a.")
-    #    sys.exit()
-
-
-
-
-#    output_directory = os.path.basename(args.image_directory) 
-#    if not args.sequence_numbers:
-#        # TODO: add function that does this, unify with make_map.py
-#        subdirs = subdirectories(args.image_directory)
-#        for subdirectory in subdirs:
-#            if subdirectory.isdigit():
-#                args.sequence_numbers.append(subdirectory)
-#
-#    # TODO: combine with make_map.py!
-#    # Output directory should for example be image_directory.0.1.3_mapping, when runs 0, 1, and 3 are included 
-#    args.sequence_numbers.sort(key=int)
-#    for sequence_number in args.sequence_numbers:
-#        output_directory += "." + sequence_number
-#    output_directory += "_mapping"
-#
-#    # TODO: combine with make_map.py??
-#    if os.path.isdir(output_directory):
-#        print("Output directory " + output_directory + " already exists.")
-#        sys.exit()
-#    image_directory_absolute_path = os.path.abspath(args.image_directory)
-#    os.mkdir(output_directory)
-#    os.chdir(output_directory)
-
-    # TODO: combine with make_map.py?
-   # Setup directories necessary for mapping, maintain directory structure of image_directory/sequence_number/*jpg
-    # TODO(rsoussan): Avoid copying images and use simlinks if issue in colmap fixed (doesn't find simlinks)
-    tmp_parent_image_directory = os.path.basename(os.path.dirname(image_directory_absolute_path))
-    tmp_image_directory = os.path.join(tmp_parent_image_directory, os.path.basename(args.image_directory))
-    os.mkdir(tmp_parent_image_directory)
-    os.mkdir(tmp_image_directory)
-    for sequence_number in args.sequence_numbers:
-        shutil.copytree(os.path.join(image_directory_absolute_path, sequence_number), os.path.join(tmp_image_directory, sequence_number))
+    # TODO: setup directory hierachy! copy/share code with make_maps.py!! (C)
 
 
-    # TODO: make new directory using combined names! share code with make_map???
-        # Add function to create name using a unordered map from image dirs to list of sorted sequences!
-
+    # TODO: put these back! (C)
 #    # Get sequential matches for new images
 #    image_directory_b = os.path.abspath(args.image_directory)
 #    database_path_b = image_directory_b + ".db"
@@ -170,13 +130,13 @@ if __name__ == "__main__":
 #    ut.sequential_match_features(database_path_b, args.config_path)
 #
 #    # Merge database and images with existing map, match new images to existing map
-#    merged_database = merged_database_name(database_path_a, database_path_b)
-#    ut.merge_databases(database_path_a, database_path_b, merged_database)
+#    merged_database = merged_database_name(mapping_database_path, database_path_b)
+#    ut.merge_databases(mapping_database_path, database_path_b, merged_database)
 #    merged_image_directory = merge_image_directories(image_directory_a, image_directory_b)
 #    ut.vocab_match_features(os.path.abspath(merged_database), args.config_path)
 #
 #    # Grow map
-#    merged_import_path = copy_import_path(args.output_directory, import_path_a) 
+#    merged_import_path = copy_import_path(args.output_directory, mapping_import_path) 
 #    ut.grow_map(merged_import_path, merged_image_directory, os.path.abspath(merged_database), args.config_path)
 
     # Remove temporary directory used for map creation
