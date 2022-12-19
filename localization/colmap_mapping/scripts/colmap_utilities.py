@@ -74,11 +74,11 @@ def build_sparse_map(image_directory, database_path, config_path):
    shutil.rmtree("map")
    os.rename("tmp_map", "map")
 
-def grow_map(merged_import_path, merged_image_directory, merged_database_path, config_path):
+def grow_map(merged_import_path, merged_image_directory, merged_database_path, output_map, config_path):
    base_project_file = os.path.join(os.path.dirname(config_path), "localization/colmap_mapping/files/base_mapper.ini") 
    project_file = "merged_mapper.ini"
-   value_names = ["database_path", "image_path", "output_path"]
-   values = [merged_database_path, merged_image_directory, merged_import_path] 
+   value_names = ["database_path", "image_path", "output_path", "input_path"]
+   values = [merged_database_path, merged_image_directory, output_map, merged_import_path] 
    fu.make_config(values, value_names, base_project_file, project_file, "=")
    command = "colmap mapper --project_path " + project_file
    lu.run_command_and_save_output(command, "merged_mapper.txt")

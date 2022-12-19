@@ -19,6 +19,8 @@
 """
 Adds more images to an existing map file. Extracts then sequentially matches features in new images before matching to existing map using vocab_tree matching. The new images are then combined with the existing map using a reconstruction process and a new map is saved.
 """
+#TODO: support merging sequences from the same activity! fix paths to things!
+#TODO: why isn't database viewable?
 
 import argparse
 import os
@@ -132,14 +134,12 @@ if __name__ == "__main__":
     # Remove tmp new database
     os.remove(new_database_path)
     
-    # Copy and start from existing map
-    merged_import_path = "map"
-    shutil.copytree(mapping_import_path, merged_import_path)
+    # Create location for new map
+    output_map_directory = "map"
+    os.mkdir(output_map_directory)
     
-    # TODO: this won't start from existing map, rebuilds from scratch, need to use gui :(
-        # Figure this out!!!! enable usage with script!
     # Grow map
-    #cu.grow_map(merged_import_path, tmp_parent_image_directory, merged_database, args.config_path)
+    cu.grow_map(mapping_import_path, tmp_parent_image_directory, merged_database, output_map_directory, args.config_path)
 
-    # Remove temporary directory used for map creation
-    #shutil.rmtree(tmp_parent_image_directory)
+    # Remove temporary image directories used for map creation
+    shutil.rmtree(tmp_parent_image_directory)

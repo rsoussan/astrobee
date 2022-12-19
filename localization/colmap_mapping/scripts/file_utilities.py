@@ -79,6 +79,9 @@ def check_multiple_sequence_numbers(image_directories, sequence_numbers_list):
         check_sequence_numbers(image_directory, sequence_numbers)
 
 def check_sequence_numbers(image_directory, sequence_numbers):
+    if not os.path.isdir(image_directory):
+        print("Image directory " + image_directory + " does not exist.")
+        sys.exit()
     for sequence_number in sequence_numbers:
         if not os.path.isdir(os.path.join(image_directory, sequence_number)):
             print("Sequence number " + sequence_number + " subdirectory does not exist.")
