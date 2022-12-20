@@ -16,6 +16,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import collections
 import csv
 import os
 import shutil
@@ -98,11 +99,15 @@ def get_sequence_numbers(image_directory):
 
 # Mapping directory name should for example be images_a.0.1.3.images_b.2.4.mapping, for images_a sequences 0,1,3 and images_b sequences 2,4. 
 def get_mapping_directory_name(image_directories, sequence_numbers_list):
-    name = ""
+    # Combine same image_directory names to avoid repeating image_directories when multiple sequences in the directory exist
+    image_directories_to_sequences = collections.defaultdict(set)
     for image_directory, sequence_numbers in zip(image_directories, sequence_numbers_list):
+        image_directories_to_sequences[image_directory].update(sequence_numbers)
+    name = ""
+    for image_directory, sequence_numbers in image_directories_to_sequences.iteritems():
         name += image_directory
-        sequence_numbers.sort(key=int)
-        for sequence_number in sequence_numbers:
+        sorted_sequence_numbers = sorted(sequence_numbers, key=int)
+        for sequence_number in sorted_sequence_numbers:
             name += "." + sequence_number 
         name += "."
     name += "mapping"

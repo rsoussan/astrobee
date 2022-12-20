@@ -19,7 +19,6 @@
 """
 Adds more images to an existing map file. Extracts then sequentially matches features in new images before matching to existing map using vocab_tree matching. The new images are then combined with the existing map using a reconstruction process and a new map is saved.
 """
-#TODO: support merging sequences from the same activity! fix paths to things!
 #TODO: why isn't database viewable?
 
 import argparse
@@ -97,7 +96,6 @@ if __name__ == "__main__":
     image_directory_absolute_paths = [os.path.abspath(image_directory) for image_directory in image_directories]
     sequence_numbers_list = mapping_sequence_numbers_list[:]
     sequence_numbers_list.append(args.sequence_numbers)
-    # TODO: add function to combine same imag directories and sort image sequences!!!!
     output_directory = fu.get_mapping_directory_name(image_directories, sequence_numbers_list)
 
     # Move to output directory
