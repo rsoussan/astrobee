@@ -114,9 +114,12 @@ def copy_image_directories(parent_directory, image_directory_absolute_paths, seq
 
 def copy_image_directory(parent_directory, image_directory_absolute_path, sequence_numbers):
     image_directory = os.path.join(parent_directory, os.path.basename(image_directory_absolute_path))
-    os.mkdir(image_directory)
+    if not os.path.isdir(image_directory):
+        os.mkdir(image_directory)
     for sequence_number in sequence_numbers:
-        shutil.copytree(os.path.join(image_directory_absolute_path, sequence_number), os.path.join(image_directory, sequence_number))
+        new_image_sequence_directory = os.path.join(image_directory, sequence_number)
+        if not os.path.isdir(new_image_sequence_directory):
+            shutil.copytree(os.path.join(image_directory_absolute_path, sequence_number), new_image_sequence_directory)
 
 def save_image_directories_to_sequence_numbers(image_directories_list, sequence_numbers_list, output_file):
     with open(output_file, 'w') as csvfile:
@@ -139,7 +142,9 @@ def setup_mapping_images_directory_structure(output_directory, image_directory_a
     # Setup directories necessary for mapping, maintain directory structure of image_directory/sequence_number/*jpg
     # TODO(rsoussan): Avoid copying images and use simlinks if issue in colmap fixed (doesn't find simlinks)
    tmp_parent_image_directory = os.path.basename(os.path.dirname(image_directory_absolute_paths[0]))
-   os.mkdir(tmp_parent_image_directory)
+
+   if not os.path.isdir(tmp_parent_image_directory):
+    os.mkdir(tmp_parent_image_directory)
    copy_image_directories(tmp_parent_image_directory, image_directory_absolute_paths, sequence_numbers_list)
    return tmp_parent_image_directory
  
