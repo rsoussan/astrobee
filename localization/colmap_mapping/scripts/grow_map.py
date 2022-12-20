@@ -19,7 +19,6 @@
 """
 Adds more images to an existing map file. Extracts then sequentially matches features in new images before matching to existing map using vocab_tree matching. The new images are then combined with the existing map using a reconstruction process and a new map is saved.
 """
-#TODO: why isn't database viewable?
 
 import argparse
 import os

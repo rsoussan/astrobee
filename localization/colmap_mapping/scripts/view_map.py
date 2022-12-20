@@ -42,8 +42,7 @@ if __name__ == "__main__":
     mapping_directory_absolute_path = os.path.abspath(args.mapping_directory)
 
     map_path = os.path.join(mapping_directory_absolute_path, "map") 
-
-    database_path = os.path.join(mapping_directory_absolute_path, os.path.basename(args.mapping_directory) + ".db") 
+    database_path = os.path.join(mapping_directory_absolute_path, os.path.basename(mapping_directory_absolute_path) + ".db") 
  
     image_path = os.path.dirname(mapping_directory_absolute_path)
  
