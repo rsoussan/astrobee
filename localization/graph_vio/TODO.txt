@@ -203,7 +203,7 @@
                                   - publish world_T_dock as identity
                                   - add ar measurements in dock frame
                                   - don't add sparse map measurements
-                                  - test in sim!!!
+                                  - test in sim!!! (AAAA)
 
                           - Clean up branch! (BBB)
                             - clean up code

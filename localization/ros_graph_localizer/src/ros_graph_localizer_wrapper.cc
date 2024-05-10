@@ -58,6 +58,11 @@ void RosGraphLocalizerWrapper::SparseMapVisualLandmarksCallback(const ff_msgs::V
     return;
   }
 
+  // Don't add sparse map estimates when in docking mode
+  if (world_T_dock_) {
+    return;
+  }
+
   const auto msg_time = lc::TimeFromHeader(visual_landmarks_msg.header);
   // Initialize with pose estimate if not initialized yet.
   // Ensure vio data exists before msg time so no gaps occur between first
@@ -103,7 +108,7 @@ void RosGraphLocalizerWrapper::ARVisualLandmarksCallback(const ff_msgs::VisualLa
   // since the dock pose in the message is relative to the dock frame
   // and not the global frame
   if (!world_T_dock_) {
-    const auto world_T_latest_graph_body = LatestPose();
+    /*const auto world_T_latest_graph_body = LatestPose();
     const auto latest_graph_timestamp = LatestTimestamp();
     if (!world_T_latest_graph_body || !latest_graph_timestamp) {
       LogError("ARVisualLandmarksCallback: Failed to get latest pose and timestamp.");
@@ -154,7 +159,14 @@ void RosGraphLocalizerWrapper::ARVisualLandmarksCallback(const ff_msgs::VisualLa
       const auto world_T_body = *world_T_latest_graph_body *latest_graph_body_T_dock_body;
   const auto dock_T_body = lc::PoseFromMsgWithExtrinsics(
       visual_landmarks_msg.pose, params_.ar_tag_loc_factor_adder.body_T_cam.inverse());
-    world_T_dock_ = world_T_body * dock_T_body.inverse();
+    world_T_dock_ = world_T_body * dock_T_body.inverse();*/
+
+    const auto dock_time = lc::TimeFromHeader(visual_landmarks_msg.header);
+    world_T_dock_ = gtsam::Pose3::identity();
+    params_.pose_node_adder.start_node = *world_T_dock_;
+    params_.pose_node_adder.starting_time = dock_time;
+    LogInfo("ARTagVisualLandmarksCallback: Initializing localizer with vl msg.");
+    graph_localizer_.reset(new gl::GraphLocalizer(params_));
   }
   if (Initialized()) {
     // Frame change the ar tag measurement from the dock to world frame before
