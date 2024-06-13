@@ -73,7 +73,7 @@ bool Localize(cv::Mat const& test_descriptors,
               std::vector<Eigen::Vector3d> const& pid_to_xyz,
               int num_ransac_iterations, int ransac_inlier_tolerance,
               int early_break_landmarks, int histogram_equalization,
-              std::vector<int> * cid_list);
+              std::vector<int> * cid_list, cv::Mat image = cv::Mat());
 
 /**
  * A class representing a sparse map, which consists of a collection
@@ -140,7 +140,7 @@ struct SparseMap {
                 camera::CameraModel* pose,
                 std::vector<Eigen::Vector3d>* inlier_landmarks,
                 std::vector<Eigen::Vector2d>* inlier_observations,
-                std::vector<int> * cid_list = NULL);
+                std::vector<int> * cid_list = NULL, cv::Mat image = cv::Mat());
   // access map frames
   /**
    * Get the number of keyframes in the map.

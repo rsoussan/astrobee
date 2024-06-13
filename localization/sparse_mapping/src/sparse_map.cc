@@ -59,7 +59,7 @@ DEFINE_bool(histogram_equalization, false,
             "If true, equalize the histogram for images to improve robustness to illumination conditions.");
 DEFINE_int32(num_extra_localization_db_images, 0,
              "Match this many extra images from the Vocab DB, only keep num_similar.");
-DEFINE_bool(verbose_localization, false,
+DEFINE_bool(verbose_localization, true,
             "If true, list the images most similar to the one being localized.");
 
 namespace sparse_mapping {
@@ -270,6 +270,7 @@ void SparseMap::DetectFeatures() {
 }
 
 void SparseMap::Load(const std::string & protobuf_file, bool localization) {
+  localization = false;
   sparse_mapping_protobuf::Map map;
   int input_fd = open(protobuf_file.c_str(), O_RDONLY);
   if (input_fd < 0)
@@ -326,8 +327,8 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
       cid_to_filename_[cid] = "";
 
     // load keypoints
-    if (!localization)
-      cid_to_keypoint_map_[cid].resize(Eigen::NoChange_t(), frame.feature_size());
+    // if (!localization)
+    cid_to_keypoint_map_[cid].resize(Eigen::NoChange_t(), frame.feature_size());
 
     // Poke the first frame's first descriptor to see how long the
     // descriptor is.
@@ -665,7 +666,7 @@ bool Localize(cv::Mat const& test_descriptors,
               std::vector<Eigen::Vector3d> const& pid_to_xyz,
               int num_ransac_iterations, int ransac_inlier_tolerance,
               int early_break_landmarks, int histogram_equalization,
-              std::vector<int> * cid_list) {
+              std::vector<int> * cid_list, cv::Mat image) {
   std::vector<int> indices;
   // Query the vocab tree.
   if (cid_list == NULL)
@@ -702,6 +703,7 @@ bool Localize(cv::Mat const& test_descriptors,
   // TODO(oalexan1): Use multiple threads here?
   for (size_t i = 0; i < indices.size(); i++) {
     int cid = indices[i];
+    if (cid_to_filename[cid].rfind("2023", 0) == 0) continue;
     interest_point::FindMatches(test_descriptors,
                                 cid_to_descriptor_map[cid],
                                 &all_matches[i]);
@@ -716,6 +718,36 @@ bool Localize(cv::Mat const& test_descriptors,
                 << cid_to_filename[cid] << ": "
                 << all_matches[i].size() << " "
                 << similarity_rank[i] << "\n";
+    const auto map_image = cv::imread(cid_to_filename[cid]);
+    if (map_image.empty()) {
+      std::cout << "failed to load map image!" << std::endl;
+    } else {
+      std::cout << "creating keypint image!" << std::endl;
+      cv::Mat matches_image;
+      std::vector<cv::KeyPoint> image_keypoints;
+      std::cout << "converting image keypoints!" << std::endl;
+      for (int i = 0; i < test_keypoints.cols(); ++i) {
+        Eigen::Vector2d distorted_point;
+        camera_params.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(test_keypoints.col(i), &distorted_point);
+        image_keypoints.emplace_back(cv::KeyPoint(distorted_point.x(), distorted_point.y(), 1.0));
+      }
+
+      std::cout << "converting map keypoints!" << std::endl;
+      std::vector<cv::KeyPoint> map_image_keypoints;
+      std::cout << "keypoint map size: " << cid_to_keypoint_map.size() << std::endl;
+      const auto& map_keypoints = cid_to_keypoint_map[cid];
+      std::cout << "converting map keypoints B!" << std::endl;
+      std::cout << "map keypoints size: " << map_keypoints.cols() << std::endl;
+      for (int i = 0; i < map_keypoints.cols(); ++i) {
+        Eigen::Vector2d distorted_point;
+        camera_params.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(map_keypoints.col(i), &distorted_point);
+        map_image_keypoints.emplace_back(cv::KeyPoint(distorted_point.x(), distorted_point.y(), 1.0));
+      }
+
+      cv::drawMatches(image, image_keypoints, map_image, map_image_keypoints, all_matches[i], matches_image);
+      cv::imshow(cid_to_filename[cid], matches_image);
+      cv::waitKey(0);
+    }
     total += similarity_rank[i];
     if (total >= early_break_landmarks)
       break;
@@ -766,7 +798,11 @@ bool SparseMap::Localize(std::string const& img_file,
   cv::Mat test_descriptors;
   Eigen::Matrix2Xd test_keypoints;
   bool multithreaded = false;
+
+  std::cout << "member keypoint map sizeA: " << cid_to_keypoint_map_.size() << std::endl;
   DetectFeaturesFromFile(img_file, multithreaded, &test_descriptors, &test_keypoints);
+  std::cout << "member keypoint map sizeA2: " << cid_to_keypoint_map_.size() << std::endl;
+  cv::Mat image = cv::imread(img_file, cv::IMREAD_GRAYSCALE);
   return sparse_mapping::Localize(test_descriptors, test_keypoints,
                                   std::cref(camera_params_),
                                   pose,
@@ -784,7 +820,7 @@ bool SparseMap::Localize(std::string const& img_file,
                                   ransac_inlier_tolerance_,
                                   early_break_landmarks_,
                                   histogram_equalization_,
-                                  cid_list);
+                                  cid_list, image);
 }
 
 // delete all the features that do not match to a landmark but are still around!
@@ -959,6 +995,7 @@ bool SparseMap::Localize(const cv::Mat & image, camera::CameraModel* pose,
   cv::Mat test_descriptors;
   Eigen::Matrix2Xd test_keypoints;
   DetectFeatures(image, multithreaded, &test_descriptors, &test_keypoints);
+  std::cout << "member keypoint map sizeB: " << cid_to_keypoint_map_.size() << std::endl;
   return sparse_mapping::Localize(test_descriptors, test_keypoints,
                                   std::cref(camera_params_),
                                   pose,
@@ -976,14 +1013,15 @@ bool SparseMap::Localize(const cv::Mat & image, camera::CameraModel* pose,
                                   ransac_inlier_tolerance_,
                                   early_break_landmarks_,
                                   histogram_equalization_,
-                                  cid_list);
+                                  cid_list, image);
 }
 
 bool SparseMap::Localize(const cv::Mat & test_descriptors, const Eigen::Matrix2Xd & test_keypoints,
                          camera::CameraModel* pose,
                          std::vector<Eigen::Vector3d>* inlier_landmarks,
                          std::vector<Eigen::Vector2d>* inlier_observations,
-                         std::vector<int> * cid_list) {
+                         std::vector<int> * cid_list, cv::Mat image) {
+  std::cout << "member keypoint map sizeC: " << cid_to_keypoint_map_.size() << std::endl;
   return sparse_mapping::Localize(test_descriptors, test_keypoints,
                                   std::cref(camera_params_),
                                   pose,
@@ -1001,7 +1039,7 @@ bool SparseMap::Localize(const cv::Mat & test_descriptors, const Eigen::Matrix2X
                                   ransac_inlier_tolerance_,
                                   early_break_landmarks_,
                                   histogram_equalization_,
-                                  cid_list);
+                                  cid_list, image);
 }
 
 }  // namespace sparse_mapping
