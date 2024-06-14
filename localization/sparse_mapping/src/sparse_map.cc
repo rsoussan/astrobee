@@ -701,19 +701,28 @@ bool Localize(cv::Mat const& test_descriptors,
   std::vector<std::vector<cv::DMatch> > all_matches(indices.size());
   int total = 0;
   // TODO(oalexan1): Use multiple threads here?
+  static int count = 0;
+  std::string image_dir = "set_" + std::to_string(count++);
   for (size_t i = 0; i < indices.size(); i++) {
     int cid = indices[i];
     if (cid_to_filename[cid].rfind("2023", 0) == 0) continue;
     interest_point::FindMatches(test_descriptors,
                                 cid_to_descriptor_map[cid],
                                 &all_matches[i]);
-
+    // TODO(rsoussan): make directory for images! name with count! (AAA)
+    if (!boost::filesystem::exists("image_pairs")) {
+      boost::filesystem::create_directory("image_pairs");
+}
+boost::filesystem::create_directory("image_pairs/" + image_dir);
+boost::filesystem::create_directory("image_pairs/" + image_dir + "/input");
+boost::filesystem::create_directory("image_pairs/" + image_dir + "/map");
+    // store input image and matching images (in order from dbow!) in different dirs!
     for (size_t j = 0; j < all_matches[i].size(); j++) {
       if (cid_fid_to_pid[cid].count(all_matches[i][j].trainIdx) == 0)
         continue;
       similarity_rank[i]++;
     }
-    if (FLAGS_verbose_localization)
+    if (true)
       std::cout << "Overall matches and validated matches to: "
                 << cid_to_filename[cid] << ": "
                 << all_matches[i].size() << " "
@@ -721,8 +730,10 @@ bool Localize(cv::Mat const& test_descriptors,
     const auto map_image = cv::imread(cid_to_filename[cid]);
     if (map_image.empty()) {
       std::cout << "failed to load map image!" << std::endl;
-    } else {
-      std::cout << "creating keypint image!" << std::endl;
+    } else {  // if (all_matches[i].size() > 3){
+      cv::imwrite("image_pairs/" + image_dir + "/map/map_" + std::to_string(cid) + ".png", map_image);
+      cv::imwrite("image_pairs/" + image_dir + "/input/input.png", image);
+      /*std::cout << "creating keypint image!" << std::endl;
       cv::Mat matches_image;
       std::vector<cv::KeyPoint> image_keypoints;
       std::cout << "converting image keypoints!" << std::endl;
@@ -744,9 +755,11 @@ bool Localize(cv::Mat const& test_descriptors,
         map_image_keypoints.emplace_back(cv::KeyPoint(distorted_point.x(), distorted_point.y(), 1.0));
       }
 
-      cv::drawMatches(image, image_keypoints, map_image, map_image_keypoints, all_matches[i], matches_image);
+      cv::drawMatches(image, image_keypoints, map_image, map_image_keypoints, all_matches[i], matches_image, cv::Scalar::all(-1), cv::Scalar::all(-1), std::vector< char >(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
+      cv::resize(matches_image, matches_image, cv::Size(2*960, 2*540));
       cv::imshow(cid_to_filename[cid], matches_image);
       cv::waitKey(0);
+      cv::destroyAllWindows();*/
     }
     total += similarity_rank[i];
     if (total >= early_break_landmarks)
