@@ -117,6 +117,12 @@ void EstimateCamera(camera::CameraModel * camera_estimate, std::vector<Eigen::Ve
                     const std::vector<Eigen::Vector2d> & observations,
                     const ceres::Solver::Options & options, ceres::Solver::Summary* summary);
 
+int ClusteredRansacEstimateCamera(const std::vector<Eigen::Vector3d>& landmarks,
+                                  const std::vector<Eigen::Vector2d>& observations, int num_tries, int inlier_tolerance,
+                                  camera::CameraModel* camera_estimate, const int num_clusters,
+                                  std::vector<Eigen::Vector3d>* inlier_landmarks_out,
+                                  std::vector<Eigen::Vector2d>* inlier_observations_out, bool verbose);
+
 /**
  * Estimate the camera matrix, with translation and rotation, that maps the points in landmarks
  * to the image coordinates observed in observations. This uses ransac with a three

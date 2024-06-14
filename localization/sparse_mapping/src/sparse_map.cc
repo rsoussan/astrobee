@@ -754,11 +754,10 @@ bool Localize(cv::Mat const& test_descriptors,
   }
   if (FLAGS_verbose_localization) std::cout << std::endl;
 
-  int ret = RansacEstimateCamera(landmarks, observations,
-                                 num_ransac_iterations,
-                                 ransac_inlier_tolerance, pose,
-                                 inlier_landmarks, inlier_observations,
-                                 FLAGS_verbose_localization);
+  const int num_clusters = 4;
+  int ret =
+    ClusteredRansacEstimateCamera(landmarks, observations, num_ransac_iterations, ransac_inlier_tolerance, pose,
+                                  num_clusters, inlier_landmarks, inlier_observations, FLAGS_verbose_localization);
   return (ret == 0);
 }
 
