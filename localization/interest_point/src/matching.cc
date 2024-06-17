@@ -33,7 +33,7 @@
 // same settings!
 // TODO(oalexan1): Ideally the settings used here must be saved in the
 // map file, for the localize executable to read them from there.
-DEFINE_int32(hamming_distance, 90,
+DEFINE_int32(hamming_distance, 100,
              "A smaller value keeps fewer but more reliable binary descriptor matches.");
 DEFINE_double(goodness_ratio, 0.8,
               "A smaller value keeps fewer but more reliable float descriptor matches.");

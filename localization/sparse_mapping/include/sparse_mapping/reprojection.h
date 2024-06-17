@@ -21,7 +21,7 @@
 #include <Eigen/Geometry>
 #include <ff_common/eigen_vectors.h>
 #include <ceres/ceres.h>
-
+#include <opencv2/core/core.hpp>
 #include <map>
 #include <vector>
 #include <limits>
@@ -121,7 +121,9 @@ int ClusteredRansacEstimateCamera(const std::vector<Eigen::Vector3d>& landmarks,
                                   const std::vector<Eigen::Vector2d>& observations, int num_tries, int inlier_tolerance,
                                   camera::CameraModel* camera_estimate, const int num_clusters,
                                   std::vector<Eigen::Vector3d>* inlier_landmarks_out,
-                                  std::vector<Eigen::Vector2d>* inlier_observations_out, bool verbose);
+                                  std::vector<Eigen::Vector2d>* inlier_observations_out, bool verbose, cv::Mat image,
+                                  cv::Mat map_image, const Eigen::Matrix2Xd& map_keypoints,
+                                  const std::vector<cv::DMatch>& matches);
 
 /**
  * Estimate the camera matrix, with translation and rotation, that maps the points in landmarks

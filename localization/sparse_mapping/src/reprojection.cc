@@ -16,6 +16,10 @@
  * under the License.
  */
 
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+
+
 #include <sparse_mapping/reprojection.h>
 #include <sparse_mapping/sparse_mapping.h>
 
@@ -352,12 +356,13 @@ size_t CountInliers(const std::vector<Eigen::Vector3d> & landmarks, const std::v
   return num_inliers;
 }
 
-int ClusteredRansacEstimateCamera(const std::vector<Eigen::Vector3d> & landmarks,
-                         const std::vector<Eigen::Vector2d> & observations,
-                         int num_tries, int inlier_tolerance, camera::CameraModel * camera_estimate,
-                         const int num_clusters, std::vector<Eigen::Vector3d> * inlier_landmarks_out,
-                         std::vector<Eigen::Vector2d> * inlier_observations_out,
-                         bool verbose) {
+int ClusteredRansacEstimateCamera(const std::vector<Eigen::Vector3d>& landmarks,
+                                  const std::vector<Eigen::Vector2d>& observations, int num_tries, int inlier_tolerance,
+                                  camera::CameraModel* camera_estimate, const int num_clusters,
+                                  std::vector<Eigen::Vector3d>* inlier_landmarks_out,
+                                  std::vector<Eigen::Vector2d>* inlier_observations_out, bool verbose, cv::Mat image,
+                                  cv::Mat map_image, const Eigen::Matrix2Xd& map_keypoints,
+                                  const std::vector<cv::DMatch>& matches) {
   if (observations.size() < 5) return 2;
   std::vector<int> cluster_ids;
   std::vector<cv::Point2f> obs;
@@ -370,18 +375,53 @@ int ClusteredRansacEstimateCamera(const std::vector<Eigen::Vector3d> & landmarks
   std::vector<std::vector<Eigen::Vector3d>> inlier_landmarks_vec(num_clusters);
   std::vector<std::vector<Eigen::Vector2d>> inlier_observations_vec(num_clusters);
   std::vector<int> rets(num_clusters);
+  cv::Mat keypoints_image = image.clone();
+  std::cout << "num keypoints: " << observations.size() << std::endl;
   for (int i = 0; i < num_clusters; ++i) {
     std::vector<Eigen::Vector2d> clustered_observations;
     std::vector<Eigen::Vector3d> clustered_landmarks;
-    for (const auto id : cluster_ids) {
+    camera::CameraParameters params = camera_estimate->GetParameters();
+
+      std::vector<cv::KeyPoint> clustered_image_keypoints;
+      std::vector<cv::KeyPoint> clustered_map_keypoints;
+      std::vector<cv::DMatch> clustered_matches;
+    cv::Scalar color(RandomInt(0, 255), RandomInt(0, 255), RandomInt(0, 255));
+    for (int j = 0; j < cluster_ids.size(); ++j) {
+      const int id = cluster_ids[j];
       if (id == i) {
-        clustered_observations.emplace_back(observations[i]);
-        clustered_landmarks.emplace_back(landmarks[i]);
+        clustered_matches.emplace_back(cv::DMatch(clustered_observations.size(), clustered_observations.size(), 1));
+        clustered_observations.emplace_back(observations[j]);
+        clustered_landmarks.emplace_back(landmarks[j]);
+
+        {
+          Eigen::Vector2d distorted_point;
+          params.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(map_keypoints.col(matches[j].trainIdx),
+                                                                   &distorted_point);
+          clustered_map_keypoints.emplace_back(cv::KeyPoint(distorted_point.x(), distorted_point.y(), 1.0));
+        }
+        Eigen::Vector2d dist_key;
+        Eigen::Vector2d key(obs[j].x, obs[j].y);
+        params.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(key, &dist_key);
+        clustered_image_keypoints.emplace_back(cv::KeyPoint(dist_key.x(), dist_key.y(), 1.0));
+        cv::drawKeypoints(keypoints_image, {cv::KeyPoint(dist_key.x(), dist_key.y(), 1)}, keypoints_image, color);
       }
     }
-    rets[i] = RansacEstimateCamera(clustered_landmarks, clustered_observations, num_tries, inlier_tolerance,
-                                   &(estimates[i]), &(inlier_landmarks_vec[i]), &(inlier_observations_vec[i]), verbose);
+
+  std::cout << "cluster: " << i << ", keypoints: " << clustered_observations.size() << std::endl;
+  rets[i] = RansacEstimateCamera(clustered_landmarks, clustered_observations, num_tries, inlier_tolerance,
+                                 &(estimates[i]), &(inlier_landmarks_vec[i]), &(inlier_observations_vec[i]), verbose);
+
+  {
+      cv::Mat matches_image;
+      cv::drawMatches(image, clustered_image_keypoints, map_image, clustered_map_keypoints, clustered_matches,
+                      matches_image, cv::Scalar::all(-1), cv::Scalar::all(-1), std::vector<char>(),
+                      cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
+      cv::resize(matches_image, matches_image, cv::Size(1.8*960, 1.8*540));
+      cv::imshow("matches", matches_image);
+      cv::waitKey(0);
+      cv::destroyAllWindows();
   }
+}
 
   for (int i = 0; i < num_clusters; ++i) {
     if (rets[i] == 0) {
