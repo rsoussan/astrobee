@@ -46,13 +46,13 @@ DEFINE_double(orgbrisk_pattern_scale, 1.0,
 DEFINE_int32(detection_retries, 5,
              "Number of attempts to acquire the desired number of features with the detector.");
 // SURF detector
-DEFINE_int32(min_surf_features, 1000,
+DEFINE_int32(min_surf_features, 200,
              "Minimum number of features to be computed using SURF.");
-DEFINE_int32(max_surf_features, 5000,
+DEFINE_int32(max_surf_features, 800,
              "Maximum number of features to be computed using SURF.");
-DEFINE_double(min_surf_threshold, 1.1,
+DEFINE_double(min_surf_threshold, 5,
               "Minimum threshold for feature detection using SURF.");
-DEFINE_double(default_surf_threshold, 10,
+DEFINE_double(default_surf_threshold, 1000,
               "Default threshold for feature detection using SURF.");
 DEFINE_double(max_surf_threshold, 1000,
               "Maximum threshold for feature detection using SURF.");
@@ -150,6 +150,7 @@ namespace interest_point {
                         double min_thresh, double default_thresh, double max_thresh)
       : DynamicDetector(min_features, max_features, max_retries,
                         min_thresh, default_thresh, max_thresh) {
+      std::cout << "setting surf dyn thresho: " << dynamic_thresh_ << std::endl;
       surf_ = cv::xfeatures2d::SURF::create(dynamic_thresh_);
     }
 
@@ -164,12 +165,14 @@ namespace interest_point {
       dynamic_thresh_ *= 1.1;
       if (dynamic_thresh_ > max_thresh_)
         dynamic_thresh_ = max_thresh_;
+      std::cout << "too many!: " << dynamic_thresh_ << std::endl;
       surf_->setHessianThreshold(static_cast<float>(dynamic_thresh_));
     }
     virtual void TooFew(void) {
       dynamic_thresh_ *= 0.9;
       if (dynamic_thresh_ < min_thresh_)
         dynamic_thresh_ = min_thresh_;
+      std::cout << "too few!: " << dynamic_thresh_ << std::endl;
       surf_->setHessianThreshold(static_cast<float>(dynamic_thresh_));
     }
 

@@ -790,6 +790,22 @@ bool Localize(cv::Mat const& test_descriptors,
   std::vector<std::vector<cv::DMatch> > all_matches(indices.size());
   int total = 0;
 
+  // View keypoints
+  {
+  std::vector<cv::KeyPoint> keypoints;
+  cv::Mat keypoints_image;
+  for (int i = 0; i < surf_keypoints.cols(); ++i) {
+    Eigen::Vector2d distorted_point;
+    camera_params.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(surf_keypoints.col(i), &distorted_point);
+    keypoints.emplace_back(cv::KeyPoint(distorted_point.x(), distorted_point.y(), 1.0));
+  }
+        cv::drawKeypoints(image, keypoints, keypoints_image);
+      cv::resize(keypoints_image, keypoints_image, cv::Size(1.8*960, 1.8*540));
+      cv::imshow("keys", keypoints_image);
+      cv::waitKey(0);
+      cv::destroyAllWindows();
+  }
+
   // TODO(oalexan1): Use multiple threads here?
   for (size_t i = 0; i < indices.size(); i++) {
     int cid = indices[i];
