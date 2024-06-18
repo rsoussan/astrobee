@@ -109,7 +109,7 @@ struct SparseMap {
                          double min_thresh, double default_thresh, double max_thresh);
 
   void SetSurfDetectorParams(int min_features, int max_features, int retries,
-                         double min_thresh, double default_thresh, double max_thresh, double hamming);
+                         double min_thresh, double default_thresh, double max_thresh, double hamming, double ratio);
 
 
   /**

@@ -68,7 +68,7 @@ DEFINE_double(default_brisk_threshold, 30,
 DEFINE_double(max_brisk_threshold, 110,
               "Maximum threshold for feature detection using ORGBRISK.");
 
-double hamming_;
+double hamming_, ratio_;
 
 namespace interest_point {
 
@@ -336,10 +336,11 @@ namespace interest_point {
     }
   }
 
-  void FeatureDetector::Reset(std::string const& detector_name,
-                              int min_features, int max_features, int retries,
-                              double min_thresh, double default_thresh, double max_thresh, double hamming) {
+  void FeatureDetector::Reset(std::string const& detector_name, int min_features, int max_features, int retries,
+                              double min_thresh, double default_thresh, double max_thresh, double hamming,
+                              double ratio) {
     hamming_ = hamming;
+    ratio_ = ratio;
     detector_name_ = detector_name;
 
     if (detector_ != NULL) {
@@ -437,20 +438,22 @@ namespace interest_point {
       matches->swap(inlier_matches);  // Doesn't invoke a copy of all elements.
     } else {
       // Traditional floating point descriptor
+      std::cout << "matching surf! hamming: " << hamming_ << ", ratio: " << ratio_ << std::endl;
       cv::FlannBasedMatcher matcher;
       std::vector<std::vector<cv::DMatch> > possible_matches;
       matcher.knnMatch(img1_descriptor_map, img2_descriptor_map, possible_matches, 2);
       matches->clear();
       matches->reserve(possible_matches.size());
       for (std::vector<cv::DMatch> const& best_pair : possible_matches) {
-        std::cout << "surf match distance: " << best_pair.at(0).distance << std::endl;
+        // std::cout << "surf match distance: " << best_pair.at(0).distance << std::endl;
+        // std::cout << "hamming: " << hamming_ << std::endl;
         if (best_pair.at(0).distance > hamming_) continue;
         if (best_pair.size() == 1) {
           // This was the only best match, push it.
           matches->push_back(best_pair.at(0));
         } else {
           // Push back a match only if it is 25% better than the next best.
-          if (best_pair.at(0).distance < FLAGS_goodness_ratio * best_pair.at(1).distance) {
+          if (best_pair.at(0).distance < ratio_ * best_pair.at(1).distance) {
             matches->push_back(best_pair[0]);
           }
         }

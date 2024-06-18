@@ -74,7 +74,7 @@ void Localizer::ReadParams(config_reader::ConfigReader* config) {
     early_break_landmarks = 100;
 
   // For the surf thresholds and other values, quietly assume some defaults
-  double min_surf_threshold, default_surf_threshold, max_surf_threshold, hamming;
+  double min_surf_threshold, default_surf_threshold, max_surf_threshold, hamming, ratio;
   int surf_min_features, surf_max_features;
   if (!config->GetReal("min_surf_threshold", &min_surf_threshold))
     min_surf_threshold = 20.0;
@@ -88,10 +88,12 @@ void Localizer::ReadParams(config_reader::ConfigReader* config) {
     ROS_FATAL("max_features not specified in localization.");
   if (!config->GetReal("hamming", &hamming))
     ROS_FATAL("hamming not specified in localization.");
+  if (!config->GetReal("ratio", &ratio))
+    ROS_FATAL("ratio not specified in localization.");
 
-  map_->SetSurfDetectorParams(surf_min_features, surf_max_features, detection_retries,
-                          min_surf_threshold, default_surf_threshold, max_surf_threshold, hamming);
 
+
+  std::cout << "surf hamming: " << hamming << std::endl;
   // This check must happen before the histogram_equalization flag is set into the map
   // to compare with what is there already.
   sparse_mapping::HistogramEqualizationCheck(map_->GetHistogramEqualization(),
@@ -105,6 +107,9 @@ void Localizer::ReadParams(config_reader::ConfigReader* config) {
   map_->SetHistogramEqualization(histogram_equalization);
   map_->SetDetectorParams(min_features, max_features, detection_retries,
                           min_brisk_threshold, default_brisk_threshold, max_brisk_threshold);
+  // Must be called after setting brisk params due to global variables!
+  map_->SetSurfDetectorParams(surf_min_features, surf_max_features, detection_retries,
+                          min_surf_threshold, default_surf_threshold, max_surf_threshold, hamming, ratio);
 }
 
 bool Localizer::Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLandmarks* vl,

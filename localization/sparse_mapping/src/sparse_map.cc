@@ -448,12 +448,13 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
   close(input_fd);
 }
 
-void SparseMap::SetSurfDetectorParams(int min_features, int max_features, int retries,
-                                  double min_thresh, double default_thresh, double max_thresh, double hamming) {
+void SparseMap::SetSurfDetectorParams(int min_features, int max_features, int retries, double min_thresh,
+                                      double default_thresh, double max_thresh, double hamming, double ratio) {
   mutex_detector_.lock();
   std::cout << "setting surf detector params! default thresho: " << default_thresh << std::endl;
+  std::cout << "setting surf detector params! hamming: " << hamming << std::endl;
   surf_detector_.Reset("SURF", min_features, max_features, retries,
-                  min_thresh, default_thresh, max_thresh, hamming);
+                  min_thresh, default_thresh, max_thresh, hamming, ratio);
   mutex_detector_.unlock();
 }
 
@@ -843,8 +844,8 @@ bool Localize(cv::Mat const& test_descriptors,
           keypoints.emplace_back(cv::KeyPoint(distorted_point.x(), distorted_point.y(), 1.0));
   }
       cv::drawKeypoints(map_image, keypoints, keypoints_image);
-      cv::resize(keypoints_image, keypoints_image, cv::Size(0.9*960, 0.9*540));
-      cv::resize(input_keypoints_image, input_keypoints_image, cv::Size(0.9*960, 0.9*540));
+      cv::resize(keypoints_image, keypoints_image, cv::Size(1.1*960, 1.1*540));
+      cv::resize(input_keypoints_image, input_keypoints_image, cv::Size(1.1*960, 1.1*540));
       cv::Mat combined;
       cv::hconcat(input_keypoints_image, keypoints_image, combined);
       // cv::resize(keypoints_image, keypoints_image, cv::Size(1.8*960, 1.8*540));
