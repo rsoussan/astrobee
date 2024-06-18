@@ -127,6 +127,7 @@ void ProtobufVocabulary<TDescriptor, F>::LoadProtobuf(google::protobuf::io::Zero
   this->m_weighting = (DBoW2::WeightingType)vocab.weighting_type();
   int num_nodes = vocab.num_nodes();
   int num_words = vocab.num_words();
+  std::cout << "db num nodes: " << num_nodes << ", num words: " << num_words << std::endl;
 
   this->createScoringObject();
 
@@ -380,6 +381,7 @@ void MatDescrToVec(cv::Mat const& mat, DBoW2::BriefDescriptor * brief) {
 void QueryDB(std::string const& descriptor, VocabDB * vocab_db,
              int num_similar, cv::Mat const& descriptors,
              std::vector<int> * indices) {
+  std::cout << "Query db!!" << std::endl;
   indices->clear();
 
   if (vocab_db->binary_db != NULL) {
@@ -387,6 +389,7 @@ void QueryDB(std::string const& descriptor, VocabDB * vocab_db,
     BinaryDB & db = *(vocab_db->binary_db);  // shorten
 
     std::vector<DBoW2::BriefDescriptor> descriptors_vec;
+    std::cout << "num descriptors: " << descriptors.rows << std::endl;
     for (int r = 0; r < descriptors.rows; r++) {
       DBoW2::BriefDescriptor descriptor;
       MatDescrToVec(descriptors.row(r), &descriptor);
@@ -394,12 +397,14 @@ void QueryDB(std::string const& descriptor, VocabDB * vocab_db,
     }
 
     DBoW2::QueryResults ret;
+    std::cout << "num similar: " << num_similar << std::endl;
     db.query(descriptors_vec, ret, num_similar);
 
     for (size_t j = 0; j < ret.size(); j++) {
       indices->push_back(ret[j].Id);
     }
   } else {
+  std::cout << "no db!!" << std::endl;
     // no database specified
     return;
   }

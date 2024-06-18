@@ -355,6 +355,8 @@ namespace interest_point {
 
   void FindMatches(const cv::Mat & img1_descriptor_map,
                    const cv::Mat & img2_descriptor_map, std::vector<cv::DMatch> * matches) {
+    std::cout << "d1 depth: " << img1_descriptor_map.depth() << std::endl;
+    std::cout << "d2 depth: " << img2_descriptor_map.depth() << std::endl;
     CHECK(img1_descriptor_map.depth() ==
           img2_descriptor_map.depth())
       << "Mixed descriptor types. Did you mash BRISK with SIFT/SURF?";

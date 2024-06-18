@@ -93,7 +93,7 @@ bool Localizer::Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLa
   vl->header.frame_id = "world";
 
   map_->DetectFeatures(image_ptr->image, multithreaded, &image_descriptors, image_keypoints);
-  map_->image_ = image_ptr->image;
+  map_->image_ = (image_ptr->image).clone();
   camera::CameraModel camera(Eigen::Vector3d(),
                              Eigen::Matrix3d::Identity(),
                              map_->GetCameraParameters());

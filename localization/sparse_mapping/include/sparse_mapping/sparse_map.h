@@ -65,7 +65,8 @@ bool Localize(cv::Mat const& test_descriptors, Eigen::Matrix2Xd const& test_keyp
               std::vector<Eigen::Matrix2Xd> const& cid_to_keypoint_map,
               std::vector<std::map<int, int> > const& cid_fid_to_pid, std::vector<Eigen::Vector3d> const& pid_to_xyz,
               int num_ransac_iterations, int ransac_inlier_tolerance, int early_break_landmarks,
-              int histogram_equalization, std::vector<int>* cid_list, cv::Mat image);
+              int histogram_equalization, std::vector<int>* cid_list, cv::Mat image,
+              cv::Mat const& surf_descriptors = cv::Mat(), Eigen::Matrix2Xd const& surf_keypoints = Eigen::Matrix2Xd());
 
 /**
  * A class representing a sparse map, which consists of a collection
@@ -232,6 +233,8 @@ struct SparseMap {
   // needed for localization.
   void Load(const std::string & protobuf_file, bool localization = false);
 
+  void LoadVocab(const std::string& protobuf_file);
+
   // construct from pid_to_cid_fid
   void InitializeCidFidToPid();
 
@@ -244,6 +247,12 @@ struct SparseMap {
                       bool multithreaded,
                       cv::Mat* descriptors,
                       Eigen::Matrix2Xd* keypoints);
+
+  void SurfDetectFeatures(cv::Mat const& image,
+                      bool multithreaded,
+                      cv::Mat* descriptors,
+                      Eigen::Matrix2Xd* keypoints);
+
   // delete feature descriptors with no matching landmark
   void PruneMap(void);
 
@@ -266,8 +275,10 @@ struct SparseMap {
   std::vector<std::map<int, int> > cid_fid_to_pid_;
 
   interest_point::FeatureDetector detector_;
+  interest_point::FeatureDetector surf_detector_;
+
   camera::CameraParameters camera_params_;
-  mutable sparse_mapping::VocabDB vocab_db_;  // TODO(oalexan1): Mutable means someone is doing something wrong.
+  sparse_mapping::VocabDB vocab_db_;  // TODO(oalexan1): Mutable means someone is doing something wrong.
   int num_similar_;
   int num_ransac_iterations_;
   int ransac_inlier_tolerance_;
