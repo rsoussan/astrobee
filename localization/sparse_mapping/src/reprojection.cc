@@ -418,7 +418,7 @@ int ClusteredRansacEstimateCamera(const std::vector<Eigen::Vector3d>& landmarks,
                       cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
       cv::resize(matches_image, matches_image, cv::Size(1.8*960, 1.8*540));
       cv::resize(keypoints_image, keypoints_image, cv::Size(1.8*960, 1.8*540));
-      cv::imshow("keys", keypoints_image);
+      cv::imshow("clustered matching input keys", keypoints_image);
       cv::waitKey(0);
       cv::destroyAllWindows();
       cv::imshow("matches", matches_image);

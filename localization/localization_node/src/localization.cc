@@ -23,6 +23,7 @@
 #include <msg_conversions/msg_conversions.h>
 #include <ros/ros.h>
 
+#include <config_reader/config_reader.h>
 #include <camera/camera_params.h>
 
 namespace localization_node {
@@ -31,6 +32,12 @@ Localizer::Localizer(sparse_mapping::SparseMap* comp_map_ptr) :
       map_(comp_map_ptr) {
   brisk_map_ = new sparse_mapping::SparseMap("/home/rsoussan/data/maps/20240205_usl_abad.map", true);
   map_->vocab_db_ = brisk_map_->vocab_db_;
+config_reader::ConfigReader config;
+  config.AddFile("cameras.config");
+  config.AddFile("localization.config");
+  config.ReadFiles();
+  std::cout << "reading params!" << std::endl;
+  ReadParams(&config);
 }
 
 Localizer::~Localizer(void) {
@@ -66,10 +73,30 @@ void Localizer::ReadParams(config_reader::ConfigReader* config) {
   if (!config->GetInt("early_break_landmarks", &early_break_landmarks))
     early_break_landmarks = 100;
 
+  // For the surf thresholds and other values, quietly assume some defaults
+  double min_surf_threshold, default_surf_threshold, max_surf_threshold, hamming;
+  int surf_min_features, surf_max_features;
+  if (!config->GetReal("min_surf_threshold", &min_surf_threshold))
+    min_surf_threshold = 20.0;
+  if (!config->GetReal("default_surf_threshold", &default_surf_threshold))
+    default_surf_threshold = 90.0;
+  if (!config->GetReal("max_surf_threshold", &max_surf_threshold))
+    max_surf_threshold = 110.0;
+  if (!config->GetInt("surf_min_features", &surf_min_features))
+    ROS_FATAL("min_features not specified in localization.");
+  if (!config->GetInt("surf_max_features", &surf_max_features))
+    ROS_FATAL("max_features not specified in localization.");
+  if (!config->GetReal("hamming", &hamming))
+    ROS_FATAL("hamming not specified in localization.");
+
+  map_->SetSurfDetectorParams(surf_min_features, surf_max_features, detection_retries,
+                          min_surf_threshold, default_surf_threshold, max_surf_threshold, hamming);
+
   // This check must happen before the histogram_equalization flag is set into the map
   // to compare with what is there already.
   sparse_mapping::HistogramEqualizationCheck(map_->GetHistogramEqualization(),
                                              histogram_equalization);
+  std::cout << "setting map params!" << std::endl;
   map_->SetCameraParameters(cam_params);
   map_->SetNumSimilar(num_similar);
   map_->SetRansacInlierTolerance(ransac_inlier_tolerance);

@@ -448,9 +448,19 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
   close(input_fd);
 }
 
+void SparseMap::SetSurfDetectorParams(int min_features, int max_features, int retries,
+                                  double min_thresh, double default_thresh, double max_thresh, double hamming) {
+  mutex_detector_.lock();
+  std::cout << "setting surf detector params! default thresho: " << default_thresh << std::endl;
+  surf_detector_.Reset("SURF", min_features, max_features, retries,
+                  min_thresh, default_thresh, max_thresh, hamming);
+  mutex_detector_.unlock();
+}
+
 void SparseMap::SetDetectorParams(int min_features, int max_features, int retries,
                                   double min_thresh, double default_thresh, double max_thresh) {
   mutex_detector_.lock();
+  std::cout << "setting brisk detector params! default thresho: " << default_thresh << std::endl;
   detector_.Reset("ORGBRISK", min_features, max_features, retries,
                   min_thresh, default_thresh, max_thresh);
   mutex_detector_.unlock();
@@ -756,7 +766,8 @@ bool Localize(cv::Mat const& test_descriptors,
   // Query the vocab tree.
   if (cid_list == NULL) {
     std::cout << "using db!" << std::endl;
-    std::cout << "num descriptors: " << test_descriptors.rows << std::endl;
+    std::cout << "num brisk descriptors: " << test_descriptors.rows << std::endl;
+    std::cout << "num surf descriptors: " << surf_descriptors.rows << std::endl;
     sparse_mapping::QueryDB("ORGBRISK",
                             vocab_db,
                             // Notice that we request more similar
@@ -790,22 +801,6 @@ bool Localize(cv::Mat const& test_descriptors,
   std::vector<std::vector<cv::DMatch> > all_matches(indices.size());
   int total = 0;
 
-  // View keypoints
-  {
-  std::vector<cv::KeyPoint> keypoints;
-  cv::Mat keypoints_image;
-  for (int i = 0; i < surf_keypoints.cols(); ++i) {
-    Eigen::Vector2d distorted_point;
-    camera_params.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(surf_keypoints.col(i), &distorted_point);
-    keypoints.emplace_back(cv::KeyPoint(distorted_point.x(), distorted_point.y(), 1.0));
-  }
-        cv::drawKeypoints(image, keypoints, keypoints_image);
-      cv::resize(keypoints_image, keypoints_image, cv::Size(1.8*960, 1.8*540));
-      cv::imshow("keys", keypoints_image);
-      cv::waitKey(0);
-      cv::destroyAllWindows();
-  }
-
   // TODO(oalexan1): Use multiple threads here?
   for (size_t i = 0; i < indices.size(); i++) {
     int cid = indices[i];
@@ -819,6 +814,46 @@ bool Localize(cv::Mat const& test_descriptors,
       std::cout << "failed to load map image: " << map_filename << std::endl;
       continue;
     }
+
+  // View keypoints
+  {
+  std::vector<cv::KeyPoint> input_keypoints;
+  cv::Mat input_keypoints_image;
+  for (int i = 0; i < surf_keypoints.cols(); ++i) {
+    Eigen::Vector2d distorted_point;
+    camera_params.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(surf_keypoints.col(i), &distorted_point);
+    input_keypoints.emplace_back(cv::KeyPoint(distorted_point.x(), distorted_point.y(), 1.0));
+  }
+        cv::drawKeypoints(image, input_keypoints, input_keypoints_image);
+    //  cv::resize(keypoints_image, keypoints_image, cv::Size(1.8*960, 1.8*540));
+        //   cv::imshow("input keys", keypoints_image);
+        //    cv::waitKey(0);
+        //    cv::destroyAllWindows();
+
+        // view map keypoints
+        std::vector<cv::KeyPoint> keypoints;
+        cv::Mat keypoints_image;
+        const auto& map_keypoints = cid_to_keypoint_map[cid];
+        const auto& fid_to_pid = cid_fid_to_pid[cid];
+        for (int i = 0; i < map_keypoints.cols(); ++i) {
+          // Ignore points that we don't have pids for
+          if (fid_to_pid.count(i) == 0) continue;
+          Eigen::Vector2d distorted_point;
+          camera_params.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(map_keypoints.col(i), &distorted_point);
+          keypoints.emplace_back(cv::KeyPoint(distorted_point.x(), distorted_point.y(), 1.0));
+  }
+      cv::drawKeypoints(map_image, keypoints, keypoints_image);
+      cv::resize(keypoints_image, keypoints_image, cv::Size(0.9*960, 0.9*540));
+      cv::resize(input_keypoints_image, input_keypoints_image, cv::Size(0.9*960, 0.9*540));
+      cv::Mat combined;
+      cv::hconcat(input_keypoints_image, keypoints_image, combined);
+      // cv::resize(keypoints_image, keypoints_image, cv::Size(1.8*960, 1.8*540));
+      cv::imshow("input and map_keys", combined);
+      cv::waitKey(0);
+      cv::destroyAllWindows();
+  }
+
+
   std::vector<Eigen::Vector2d> observations;
   std::vector<Eigen::Vector3d> landmarks;
   std::vector<cv::DMatch> new_matches;
@@ -840,7 +875,7 @@ bool Localize(cv::Mat const& test_descriptors,
   if (matches->size() > 0) {
     std::cout << "cid to keypoint map size:" << cid_to_keypoint_map[cid].cols() << std::endl;
     std::cout << "new matches size:" << new_matches.size() << ", obs size: " << observations.size() << std::endl;
-    const int num_clusters = new_matches.size() /5;
+    const int num_clusters = 1;  // new_matches.size() /5;
     int ret = ClusteredRansacEstimateCamera(
       landmarks, observations, num_ransac_iterations, ransac_inlier_tolerance, pose, num_clusters, inlier_landmarks,
       inlier_observations, FLAGS_verbose_localization, image, map_image, cid_to_keypoint_map[cid], new_matches);

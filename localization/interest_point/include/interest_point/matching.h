@@ -68,7 +68,7 @@ namespace interest_point {
 
     void Reset(std::string const& detector_name,
                     int min_features = 0, int max_features = 0, int retries = 0,
-                    double min_thresh = 0, double default_thresh = 0, double max_thresh = 0);
+                    double min_thresh = 0, double default_thresh = 0, double max_thresh = 0, double hamming = 0);
 
     void Detect(const cv::Mat& image, std::vector<cv::KeyPoint>* keypoints,
                 cv::Mat* keypoints_description);

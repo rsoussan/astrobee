@@ -52,21 +52,23 @@ DEFINE_int32(max_surf_features, 800,
              "Maximum number of features to be computed using SURF.");
 DEFINE_double(min_surf_threshold, 5,
               "Minimum threshold for feature detection using SURF.");
-DEFINE_double(default_surf_threshold, 1000,
+DEFINE_double(default_surf_threshold, 10000,
               "Default threshold for feature detection using SURF.");
-DEFINE_double(max_surf_threshold, 1000,
+DEFINE_double(max_surf_threshold, 1000000,
               "Maximum threshold for feature detection using SURF.");
 // ORGBRISK detector
 DEFINE_int32(min_brisk_features, 400,
              "Minimum number of features to be computed using ORGBRISK.");
-DEFINE_int32(max_brisk_features, 800,
+DEFINE_int32(max_brisk_features, 1000000,
              "Maximum number of features to be computed using ORGBRISK.");
-DEFINE_double(min_brisk_threshold, 20,
+DEFINE_double(min_brisk_threshold, 1,
               "Minimum threshold for feature detection using ORGBRISK.");
-DEFINE_double(default_brisk_threshold, 90,
+DEFINE_double(default_brisk_threshold, 30,
               "Default threshold for feature detection using ORGBRISK.");
 DEFINE_double(max_brisk_threshold, 110,
               "Maximum threshold for feature detection using ORGBRISK.");
+
+double hamming_;
 
 namespace interest_point {
 
@@ -110,6 +112,7 @@ namespace interest_point {
                          double min_thresh, double default_thresh, double max_thresh)
       : DynamicDetector(min_features, max_features, max_retries,
                         min_thresh, default_thresh, max_thresh) {
+      std::cout << "set brisk with default thresh: " << default_thresh << std::endl;
       Reset();
     }
 
@@ -162,7 +165,7 @@ namespace interest_point {
       surf_->compute(image, *keypoints, *keypoints_description);
     }
     virtual void TooMany(void) {
-      dynamic_thresh_ *= 1.1;
+      dynamic_thresh_ *= 1.5;
       if (dynamic_thresh_ > max_thresh_)
         dynamic_thresh_ = max_thresh_;
       std::cout << "too many!: " << dynamic_thresh_ << std::endl;
@@ -179,6 +182,49 @@ namespace interest_point {
    private:
     cv::Ptr<cv::xfeatures2d::SURF> surf_;
   };
+  /*class SurfDynamicDetector : public DynamicDetector {
+   public:
+    SurfDynamicDetector(int min_features, int max_features, int max_retries,
+                        double min_thresh, double default_thresh, double max_thresh)
+      : DynamicDetector(min_features, max_features, max_retries,
+                        min_thresh, default_thresh, max_thresh) {
+      Reset();
+    }
+
+    void Reset(void) {
+      surf_ = cv::xfeatures2d::SURF::create(dynamic_thresh_);
+      brisk_ = interest_point::BRISK::create(dynamic_thresh_, FLAGS_orgbrisk_octaves,
+                                 FLAGS_orgbrisk_pattern_scale);
+    }
+
+    virtual void DetectImpl(const cv::Mat& image, std::vector<cv::KeyPoint>* keypoints) {
+      brisk_->detect(image, *keypoints);
+    }
+    virtual void ComputeImpl(const cv::Mat& image, std::vector<cv::KeyPoint>* keypoints,
+                             cv::Mat* keypoints_description) {
+      surf_->compute(image, *keypoints, *keypoints_description);
+    }
+    virtual void TooMany(void) {
+      dynamic_thresh_ *= 1.25;
+      dynamic_thresh_ = static_cast<int>(dynamic_thresh_);  // for backwards compatibility
+      if (dynamic_thresh_ > max_thresh_)
+        dynamic_thresh_ = max_thresh_;
+      brisk_->setThreshold(dynamic_thresh_);
+    }
+    virtual void TooFew(void) {
+      dynamic_thresh_ *= 0.8;
+      dynamic_thresh_ = static_cast<int>(dynamic_thresh_);  // for backwards compatibility
+      if (dynamic_thresh_ < min_thresh_)
+        dynamic_thresh_ = min_thresh_;
+      brisk_->setThreshold(dynamic_thresh_);
+    }
+
+   private:
+    cv::Ptr<cv::xfeatures2d::SURF> surf_;
+    cv::Ptr<interest_point::BRISK> brisk_;
+  };*/
+
+
 
   class HashSIFTDynamicDetector : public DynamicDetector {
    public:
@@ -292,7 +338,8 @@ namespace interest_point {
 
   void FeatureDetector::Reset(std::string const& detector_name,
                               int min_features, int max_features, int retries,
-                              double min_thresh, double default_thresh, double max_thresh) {
+                              double min_thresh, double default_thresh, double max_thresh, double hamming) {
+    hamming_ = hamming;
     detector_name_ = detector_name;
 
     if (detector_ != NULL) {
@@ -303,14 +350,14 @@ namespace interest_point {
     // Populate the defaults
     if (max_features <= 0) {
       // SURF and HASHSIFT both use SURF to detect features
-      if (detector_name == "SURF" || detector_name == "HASHSIFT") {
+      if (detector_name == "notSURF") {
         min_features   = FLAGS_min_surf_features;
         max_features   = FLAGS_max_surf_features;
         retries        = FLAGS_detection_retries;
         min_thresh     = FLAGS_min_surf_threshold;
         default_thresh = FLAGS_default_surf_threshold;
         max_thresh     = FLAGS_max_surf_threshold;
-      } else if (detector_name == "ORGBRISK") {
+      } else if (detector_name == "ORGBRISK" || detector_name == "SURF") {
         min_features   = FLAGS_min_brisk_features;
         max_features   = FLAGS_max_brisk_features;
         retries        = FLAGS_detection_retries;
@@ -396,6 +443,8 @@ namespace interest_point {
       matches->clear();
       matches->reserve(possible_matches.size());
       for (std::vector<cv::DMatch> const& best_pair : possible_matches) {
+        std::cout << "surf match distance: " << best_pair.at(0).distance << std::endl;
+        if (best_pair.at(0).distance > hamming_) continue;
         if (best_pair.size() == 1) {
           // This was the only best match, push it.
           matches->push_back(best_pair.at(0));
