@@ -21,6 +21,7 @@
 #include <interest_point/HashSIFT.h>
 #include <interest_point/matching.h>
 #include <opencv2/xfeatures2d.hpp>
+#include <localization_common/timer.h>
 
 #include <Eigen/Core>
 #include <gflags/gflags.h>
@@ -162,7 +163,10 @@ namespace interest_point {
     }
     virtual void ComputeImpl(const cv::Mat& image, std::vector<cv::KeyPoint>* keypoints,
                              cv::Mat* keypoints_description) {
+      static localization_common::Timer mt("surf detect timer");
+      mt.Start();
       surf_->compute(image, *keypoints, *keypoints_description);
+      mt.StopAndLog();
     }
     virtual void TooMany(void) {
       dynamic_thresh_ *= 1.5;
@@ -437,6 +441,8 @@ namespace interest_point {
       }
       matches->swap(inlier_matches);  // Doesn't invoke a copy of all elements.
     } else {
+      static localization_common::Timer mt("matching timer");
+      mt.Start();
       // Traditional floating point descriptor
       std::cout << "matching surf! hamming: " << hamming_ << ", ratio: " << ratio_ << std::endl;
       cv::FlannBasedMatcher matcher;
@@ -458,6 +464,7 @@ namespace interest_point {
           }
         }
       }
+      mt.StopAndLog();
     }
   }
 }  // namespace interest_point

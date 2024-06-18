@@ -23,7 +23,7 @@ add_compile_options(-std=c++14)
 
 ## Find catkin macros and libraries
 find_package(catkin2 REQUIRED COMPONENTS
-  roscpp
+  roscpp localization_common
 )
 
 # System dependencies are found with CMake's conventions
@@ -38,7 +38,7 @@ find_package(OpenCV4WithXFeatures REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES interest_point  ${OpenCV_LIBRARIES}
-  CATKIN_DEPENDS
+  CATKIN_DEPENDS localization_common
 #  DEPENDS system_lib
 )
 
