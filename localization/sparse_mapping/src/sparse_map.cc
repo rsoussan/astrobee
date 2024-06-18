@@ -292,7 +292,6 @@ void SparseMap::LoadVocab(const std::string & protobuf_file) {
 }
 
 void SparseMap::Load(const std::string & protobuf_file, bool localization) {
-  LoadVocab("/home/rsoussan/data/maps/20240205_usl_abad.map");
   localization = false;
   sparse_mapping_protobuf::Map map;
   int input_fd = open(protobuf_file.c_str(), O_RDONLY);
@@ -428,8 +427,8 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
     LOG(WARNING) << "There appear to be no landmarks in map file.";
   }
 
-  // if (map.has_vocab_db())
-  // vocab_db_.LoadProtobuf(input, map.vocab_db());
+  if (map.has_vocab_db())
+    vocab_db_.LoadProtobuf(input, map.vocab_db());
 
   histogram_equalization_ = map.histogram_equalization();
 

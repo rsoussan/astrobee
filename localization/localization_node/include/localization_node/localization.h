@@ -37,6 +37,7 @@ class Localizer {
      Eigen::Matrix2Xd* image_keypoints = NULL);
  private:
   sparse_mapping::SparseMap* map_;
+  sparse_mapping::SparseMap* brisk_map_;
 };
 
 };  // namespace localization_node

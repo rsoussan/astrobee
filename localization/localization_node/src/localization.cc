@@ -29,6 +29,8 @@ namespace localization_node {
 
 Localizer::Localizer(sparse_mapping::SparseMap* comp_map_ptr) :
       map_(comp_map_ptr) {
+  brisk_map_ = new sparse_mapping::SparseMap("/home/rsoussan/data/maps/20240205_usl_abad.map", true);
+  map_->vocab_db_ = brisk_map_->vocab_db_;
 }
 
 Localizer::~Localizer(void) {
