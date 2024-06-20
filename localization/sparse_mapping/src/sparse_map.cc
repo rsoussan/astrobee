@@ -845,9 +845,8 @@ bool Localize(cv::Mat const& test_descriptors,
     }
 
     // SurfDetectFeatures(map_image_copy, false, &map_descriptors, &map_keypoints);
-    interest_point::FindMatches(surf_descriptors, cid_to_descriptor_map[cid],
-                                // map_descriptors,
-                                &all_matches[i]);
+    interest_point::FindMatches(surf_descriptors,  // cid_to_descriptor_map[cid],
+                                map_descriptors, &all_matches[i]);
     const auto matches = &(all_matches[i]);
   // View keypoints
   {
