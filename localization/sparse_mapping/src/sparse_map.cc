@@ -817,14 +817,18 @@ bool Localize(cv::Mat const& test_descriptors,
     // Convert map keypoints from eigen to cv, only use ones with pids
         std::vector<cv::KeyPoint> map_keypoints;
         const auto& map_keypoints2 = cid_to_keypoint_map[cid];
+        std::cout << "original map keypoints count: " << map_keypoints2.cols() << std::endl;
         const auto& fid_to_pid = cid_fid_to_pid[cid];
         for (int i = 0; i < map_keypoints2.cols(); ++i) {
+          // TODO(rsoussan): Put this back! Make new datastrcture with corresponding landmarks and use this for ransac!
           // Ignore points that we don't have pids for
-          if (fid_to_pid.count(i) == 0) continue;
+          // if (fid_to_pid.count(i) == 0) continue;
           Eigen::Vector2d distorted_point;
           camera_params.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(map_keypoints2.col(i), &distorted_point);
           map_keypoints.emplace_back(cv::KeyPoint(distorted_point.x(), distorted_point.y(), 1.0));
       }
+
+        std::cout << "final map keypoints count: " << map_keypoints.size() << std::endl;
     const cv::Mat map_image_copy = map_image.clone();
     cv::Mat map_descriptors;
     // Redo map descriptors using desired detector with same keypoints from mapping
@@ -841,9 +845,9 @@ bool Localize(cv::Mat const& test_descriptors,
     }
 
     // SurfDetectFeatures(map_image_copy, false, &map_descriptors, &map_keypoints);
-    interest_point::FindMatches(surf_descriptors,
-                                // cid_to_descriptor_map[cid],
-                                map_descriptors, &all_matches[i]);
+    interest_point::FindMatches(surf_descriptors, cid_to_descriptor_map[cid],
+                                // map_descriptors,
+                                &all_matches[i]);
     const auto matches = &(all_matches[i]);
   // View keypoints
   {
