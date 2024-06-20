@@ -822,7 +822,7 @@ bool Localize(cv::Mat const& test_descriptors,
         for (int i = 0; i < map_keypoints2.cols(); ++i) {
           // TODO(rsoussan): Put this back! Make new datastrcture with corresponding landmarks and use this for ransac!
           // Ignore points that we don't have pids for
-          // if (fid_to_pid.count(i) == 0) continue;
+          if (fid_to_pid.count(i) == 0) continue;
           Eigen::Vector2d distorted_point;
           camera_params.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(map_keypoints2.col(i), &distorted_point);
           map_keypoints.emplace_back(cv::KeyPoint(distorted_point.x(), distorted_point.y(), 1.0));
@@ -848,6 +848,8 @@ bool Localize(cv::Mat const& test_descriptors,
     interest_point::FindMatches(surf_descriptors,  // cid_to_descriptor_map[cid],
                                 map_descriptors, &all_matches[i]);
     const auto matches = &(all_matches[i]);
+    std::cout << "matches size: " << matches->size() << std::endl;
+    std::cout << "Num input keypoints: " << surf_keypoints.cols() << std::endl;
   // View keypoints
   {
   std::vector<cv::KeyPoint> input_keypoints;
@@ -864,7 +866,7 @@ bool Localize(cv::Mat const& test_descriptors,
         //    cv::destroyAllWindows();
 
         // view map keypoints
-        std::vector<cv::KeyPoint> keypoints;
+       /* std::vector<cv::KeyPoint> keypoints;
         cv::Mat keypoints_image;
         const auto& map_keypoints = cid_to_keypoint_map[cid];
         const auto& fid_to_pid = cid_fid_to_pid[cid];
@@ -874,14 +876,25 @@ bool Localize(cv::Mat const& test_descriptors,
           Eigen::Vector2d distorted_point;
           camera_params.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(map_keypoints.col(i), &distorted_point);
           keypoints.emplace_back(cv::KeyPoint(distorted_point.x(), distorted_point.y(), 1.0));
-  }
-      cv::drawKeypoints(map_image, keypoints, keypoints_image);
+  }*/
+      cv::Mat keypoints_image;
+      cv::drawKeypoints(map_image, map_keypoints, keypoints_image);
       cv::resize(keypoints_image, keypoints_image, cv::Size(1.1*960, 1.1*540));
       cv::resize(input_keypoints_image, input_keypoints_image, cv::Size(1.1*960, 1.1*540));
       cv::Mat combined;
       cv::hconcat(input_keypoints_image, keypoints_image, combined);
       // cv::resize(keypoints_image, keypoints_image, cv::Size(1.8*960, 1.8*540));
       cv::imshow("input and map_keys", combined);
+      cv::waitKey(0);
+      cv::destroyAllWindows();
+
+  // Draw matches
+    cv::Mat matches_image;
+      cv::drawMatches(image, input_keypoints, map_image, map_keypoints, *matches,
+                      matches_image, cv::Scalar::all(-1), cv::Scalar::all(-1), std::vector<char>(),
+                      cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
+      cv::resize(matches_image, matches_image, cv::Size(1.8*960, 1.8*540));
+      cv::imshow("raw matches", matches_image);
       cv::waitKey(0);
       cv::destroyAllWindows();
   }
@@ -904,6 +917,8 @@ bool Localize(cv::Mat const& test_descriptors,
       new_matches.emplace_back(cv::DMatch(observations.size() - 1, matches->at(j).trainIdx, 1));
     }
   }
+  std::cout << "new matches size: " << new_matches.size() << std::endl;
+  std::cout << "matches size: " << matches->size() << std::endl;
 
   if (matches->size() > 0) {
     std::cout << "cid to keypoint map size:" << cid_to_keypoint_map[cid].cols() << std::endl;

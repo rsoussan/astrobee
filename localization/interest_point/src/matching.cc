@@ -255,15 +255,19 @@ namespace interest_point {
     virtual void TooMany(void) {
       dynamic_thresh_ *= 1.25;
       dynamic_thresh_ = static_cast<int>(dynamic_thresh_);  // for backwards compatibility
-      if (dynamic_thresh_ > max_thresh_)
+      if (dynamic_thresh_ > max_thresh_) {
+      std::cout << "too many!: " << dynamic_thresh_ << std::endl;
         dynamic_thresh_ = max_thresh_;
+      }
       brisk_->setThreshold(dynamic_thresh_);
     }
     virtual void TooFew(void) {
       dynamic_thresh_ *= 0.8;
       dynamic_thresh_ = static_cast<int>(dynamic_thresh_);  // for backwards compatibility
-      if (dynamic_thresh_ < min_thresh_)
+      if (dynamic_thresh_ < min_thresh_) {
+      std::cout << "too few!: " << dynamic_thresh_ << std::endl;
         dynamic_thresh_ = min_thresh_;
+      }
       brisk_->setThreshold(dynamic_thresh_);
     }
 
@@ -435,6 +439,7 @@ namespace interest_point {
       std::vector<cv::DMatch> inlier_matches;
       inlier_matches.reserve(matches->size());  // This saves time in allocation
       for (cv::DMatch const& dmatch : *matches) {
+        // std::cout << "matching binary! hamming: " << hamming_ << ", distance: " << dmatch.distance << std::endl;
         if (dmatch.distance < hamming_) {
           inlier_matches.push_back(dmatch);
         }
