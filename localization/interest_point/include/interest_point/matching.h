@@ -73,6 +73,10 @@ namespace interest_point {
     void Detect(const cv::Mat& image, std::vector<cv::KeyPoint>* keypoints,
                 cv::Mat* keypoints_description);
 
+    void Compute(const cv::Mat& image, std::vector<cv::KeyPoint>* keypoints, cv::Mat* keypoints_description) {
+      return detector_->ComputeImpl(image, keypoints, keypoints_description);
+    }
+
     std::string GetDetectorName() const {return detector_name_;}
 
     void GetDetectorParams(int & min_features, int & max_features, int & max_retries,

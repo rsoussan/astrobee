@@ -451,8 +451,8 @@ namespace interest_point {
       matches->clear();
       matches->reserve(possible_matches.size());
       for (std::vector<cv::DMatch> const& best_pair : possible_matches) {
-        // std::cout << "surf match distance: " << best_pair.at(0).distance << std::endl;
-        // std::cout << "hamming: " << hamming_ << std::endl;
+        std::cout << "surf match distance: " << best_pair.at(0).distance << std::endl;
+        std::cout << "hamming: " << hamming_ << std::endl;
         if (best_pair.at(0).distance > hamming_) continue;
         if (best_pair.size() == 1) {
           // This was the only best match, push it.

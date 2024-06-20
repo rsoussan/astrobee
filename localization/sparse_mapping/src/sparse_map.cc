@@ -813,11 +813,21 @@ bool Localize(cv::Mat const& test_descriptors,
       std::cout << "failed to load map image: " << map_filename << std::endl;
       continue;
     }
-    const auto& map_keypoints = cid_to_keypoint_map[cid];
+
+    // Convert map keypoints from eigen to cv, only use ones with pids
+        std::vector<cv::KeyPoint> map_keypoints;
+        const auto& map_keypoints2 = cid_to_keypoint_map[cid];
+        const auto& fid_to_pid = cid_fid_to_pid[cid];
+        for (int i = 0; i < map_keypoints2.cols(); ++i) {
+          // Ignore points that we don't have pids for
+          if (fid_to_pid.count(i) == 0) continue;
+          Eigen::Vector2d distorted_point;
+          camera_params.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(map_keypoints2.col(i), &distorted_point);
+          map_keypoints.emplace_back(cv::KeyPoint(distorted_point.x(), distorted_point.y(), 1.0));
+      }
     const cv::Mat map_image_copy = map_image.clone();
     cv::Mat map_descriptors;
-    // Redo map descriptors using desired detector
-    // in place of surf detect features call, since non member function...
+    // Redo map descriptors using desired detector with same keypoints from mapping
     {
       // If using histogram equalization, need an extra image to store it
       cv::Mat * image_ptr = const_cast<cv::Mat*>(&map_image_copy);
@@ -827,8 +837,7 @@ bool Localize(cv::Mat const& test_descriptors,
         cv::equalizeHist(image, hist_image);
         image_ptr = &hist_image;
       }
-      std::vector<cv::KeyPoint> storage;
-      surf_detector.Detect(*image_ptr, &storage, &map_descriptors);
+      surf_detector.Compute(*image_ptr, &map_keypoints, &map_descriptors);
     }
 
     // SurfDetectFeatures(map_image_copy, false, &map_descriptors, &map_keypoints);
