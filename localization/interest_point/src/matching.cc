@@ -435,7 +435,7 @@ namespace interest_point {
       std::vector<cv::DMatch> inlier_matches;
       inlier_matches.reserve(matches->size());  // This saves time in allocation
       for (cv::DMatch const& dmatch : *matches) {
-        if (dmatch.distance < FLAGS_hamming_distance) {
+        if (dmatch.distance < hamming_) {
           inlier_matches.push_back(dmatch);
         }
       }

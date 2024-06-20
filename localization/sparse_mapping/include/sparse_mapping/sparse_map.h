@@ -66,7 +66,8 @@ bool Localize(cv::Mat const& test_descriptors, Eigen::Matrix2Xd const& test_keyp
               std::vector<std::map<int, int> > const& cid_fid_to_pid, std::vector<Eigen::Vector3d> const& pid_to_xyz,
               int num_ransac_iterations, int ransac_inlier_tolerance, int early_break_landmarks,
               int histogram_equalization, std::vector<int>* cid_list, cv::Mat image,
-              cv::Mat const& surf_descriptors = cv::Mat(), Eigen::Matrix2Xd const& surf_keypoints = Eigen::Matrix2Xd());
+              cv::Mat const& surf_descriptors = cv::Mat(), Eigen::Matrix2Xd const& surf_keypoints = Eigen::Matrix2Xd(),
+              interest_point::FeatureDetector* surf_detector = nullptr);
 
 /**
  * A class representing a sparse map, which consists of a collection
@@ -108,9 +109,8 @@ struct SparseMap {
   void SetDetectorParams(int min_features, int max_features, int retries,
                          double min_thresh, double default_thresh, double max_thresh);
 
-  void SetSurfDetectorParams(int min_features, int max_features, int retries,
-                         double min_thresh, double default_thresh, double max_thresh, double hamming, double ratio);
-
+  void SetSurfDetectorParams(int min_features, int max_features, int retries, double min_thresh, double default_thresh,
+                             double max_thresh, double hamming, double ratio, const std::string& detector_name);
 
   /**
    * Detect features in given images

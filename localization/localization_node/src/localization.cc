@@ -76,6 +76,7 @@ void Localizer::ReadParams(config_reader::ConfigReader* config) {
   // For the surf thresholds and other values, quietly assume some defaults
   double min_surf_threshold, default_surf_threshold, max_surf_threshold, hamming, ratio;
   int surf_min_features, surf_max_features;
+  std::string detector_name;
   if (!config->GetReal("min_surf_threshold", &min_surf_threshold))
     min_surf_threshold = 20.0;
   if (!config->GetReal("default_surf_threshold", &default_surf_threshold))
@@ -90,6 +91,9 @@ void Localizer::ReadParams(config_reader::ConfigReader* config) {
     ROS_FATAL("hamming not specified in localization.");
   if (!config->GetReal("ratio", &ratio))
     ROS_FATAL("ratio not specified in localization.");
+  if (!config->GetStr("detector_name", &detector_name))
+    ROS_FATAL("detector_name not specified in localization.");
+
 
 
 
@@ -108,8 +112,8 @@ void Localizer::ReadParams(config_reader::ConfigReader* config) {
   map_->SetDetectorParams(min_features, max_features, detection_retries,
                           min_brisk_threshold, default_brisk_threshold, max_brisk_threshold);
   // Must be called after setting brisk params due to global variables!
-  map_->SetSurfDetectorParams(surf_min_features, surf_max_features, detection_retries,
-                          min_surf_threshold, default_surf_threshold, max_surf_threshold, hamming, ratio);
+  map_->SetSurfDetectorParams(surf_min_features, surf_max_features, detection_retries, min_surf_threshold,
+                              default_surf_threshold, max_surf_threshold, hamming, ratio, detector_name);
 }
 
 bool Localizer::Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLandmarks* vl,

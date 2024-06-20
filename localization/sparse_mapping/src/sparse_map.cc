@@ -449,11 +449,12 @@ void SparseMap::Load(const std::string & protobuf_file, bool localization) {
 }
 
 void SparseMap::SetSurfDetectorParams(int min_features, int max_features, int retries, double min_thresh,
-                                      double default_thresh, double max_thresh, double hamming, double ratio) {
+                                      double default_thresh, double max_thresh, double hamming, double ratio,
+                                      const std::string& detector_name) {
   mutex_detector_.lock();
   std::cout << "setting surf detector params! default thresho: " << default_thresh << std::endl;
   std::cout << "setting surf detector params! hamming: " << hamming << std::endl;
-  surf_detector_.Reset("SURF", min_features, max_features, retries,
+  surf_detector_.Reset(detector_name, min_features, max_features, retries,
                   min_thresh, default_thresh, max_thresh, hamming, ratio);
   mutex_detector_.unlock();
 }
@@ -762,7 +763,8 @@ bool Localize(cv::Mat const& test_descriptors,
               int num_ransac_iterations, int ransac_inlier_tolerance,
               int early_break_landmarks, int histogram_equalization,
               std::vector<int> * cid_list, cv::Mat image, cv::Mat const& surf_descriptors,
-              Eigen::Matrix2Xd const& surf_keypoints) {
+              Eigen::Matrix2Xd const& surf_keypoints, interest_point::FeatureDetector* surf_detector_ptr) {
+  auto& surf_detector = *surf_detector_ptr;
   std::vector<int> indices;
   // Query the vocab tree.
   if (cid_list == NULL) {
@@ -805,17 +807,35 @@ bool Localize(cv::Mat const& test_descriptors,
   // TODO(oalexan1): Use multiple threads here?
   for (size_t i = 0; i < indices.size(); i++) {
     int cid = indices[i];
-    interest_point::FindMatches(surf_descriptors,
-                                cid_to_descriptor_map[cid],
-                                &all_matches[i]);
-    const auto matches = &(all_matches[i]);
   const auto map_filename = cid_to_filename[cid];
   const auto map_image = cv::imread(map_filename);
   if (map_image.empty()) {
       std::cout << "failed to load map image: " << map_filename << std::endl;
       continue;
     }
+    const auto& map_keypoints = cid_to_keypoint_map[cid];
+    const cv::Mat map_image_copy = map_image.clone();
+    cv::Mat map_descriptors;
+    // Redo map descriptors using desired detector
+    // in place of surf detect features call, since non member function...
+    {
+      // If using histogram equalization, need an extra image to store it
+      cv::Mat * image_ptr = const_cast<cv::Mat*>(&map_image_copy);
+      cv::Mat hist_image;
+      if (true) {  // histogram_equalization_) {
+        // clahe_->apply(image, hist_image);
+        cv::equalizeHist(image, hist_image);
+        image_ptr = &hist_image;
+      }
+      std::vector<cv::KeyPoint> storage;
+      surf_detector.Detect(*image_ptr, &storage, &map_descriptors);
+    }
 
+    // SurfDetectFeatures(map_image_copy, false, &map_descriptors, &map_keypoints);
+    interest_point::FindMatches(surf_descriptors,
+                                // cid_to_descriptor_map[cid],
+                                map_descriptors, &all_matches[i]);
+    const auto matches = &(all_matches[i]);
   // View keypoints
   {
   std::vector<cv::KeyPoint> input_keypoints;
@@ -963,7 +983,7 @@ bool SparseMap::Localize(std::string const& img_file,
                                   ransac_inlier_tolerance_,
                                   early_break_landmarks_,
                                   histogram_equalization_,
-                                  cid_list, image_, surf_descriptors, surf_keypoints);
+                                  cid_list, image_, surf_descriptors, surf_keypoints, &surf_detector_);
 }
 
 // delete all the features that do not match to a landmark but are still around!
@@ -1158,7 +1178,7 @@ bool SparseMap::Localize(const cv::Mat & image, camera::CameraModel* pose,
                                   ransac_inlier_tolerance_,
                                   early_break_landmarks_,
                                   histogram_equalization_,
-                                  cid_list, image_, surf_descriptors, surf_keypoints);
+                                  cid_list, image_, surf_descriptors, surf_keypoints, &surf_detector_);
 }
 
 bool SparseMap::Localize(const cv::Mat & test_descriptors, const Eigen::Matrix2Xd & test_keypoints,
@@ -1186,7 +1206,7 @@ bool SparseMap::Localize(const cv::Mat & test_descriptors, const Eigen::Matrix2X
                                   ransac_inlier_tolerance_,
                                   early_break_landmarks_,
                                   histogram_equalization_,
-                                  cid_list, image_, surf_descriptors, surf_keypoints);
+                                  cid_list, image_, surf_descriptors, surf_keypoints, &surf_detector_);
 }
 
 }  // namespace sparse_mapping
