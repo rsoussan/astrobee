@@ -633,8 +633,8 @@ void SparseMap::SurfDetectFeatures(const cv::Mat& image,
   cv::Mat * image_ptr = const_cast<cv::Mat*>(&image);
   cv::Mat hist_image;
   if (true) {
-    // clahe_->apply(image, hist_image);
-    cv::equalizeHist(image, hist_image);
+    clahe_->apply(image, hist_image);
+    // cv::equalizeHist(image, hist_image);
     image_ptr = &hist_image;
   }
 
@@ -832,14 +832,15 @@ bool Localize(cv::Mat const& test_descriptors,
         std::cout << "final map keypoints count: " << map_keypoints.size() << std::endl;*/
     cv::Mat map_descriptors;
     std::vector<cv::KeyPoint> map_keypoints;
+    auto clahe = cv::createCLAHE(2, cv::Size(8, 8));
     // Redo map descriptors using desired detector with same keypoints from mapping
     {
       // If using histogram equalization, need an extra image to store it
       cv::Mat * image_ptr = const_cast<cv::Mat*>(&map_image);
       cv::Mat hist_image;
       if (true) {  // histogram_equalization_) {
-        // clahe_->apply(image, hist_image);
-        cv::equalizeHist(map_image, hist_image);
+        clahe->apply(map_image, hist_image);
+        // cv::equalizeHist(map_image, hist_image);
         image_ptr = &hist_image;
       }
       surf_detector.Detect(*image_ptr, &map_keypoints, &map_descriptors);
