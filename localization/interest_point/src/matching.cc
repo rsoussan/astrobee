@@ -430,7 +430,7 @@ namespace interest_point {
         img2_descriptor_map.rows == 0)
       return;
 
-    if (img1_descriptor_map.depth() == CV_8U) {
+    if (false) {  // img1_descriptor_map.depth() == CV_8U) {
       static localization_common::Timer mt("matching timer");
       mt.Start();
       // Binary descriptor
@@ -457,12 +457,14 @@ namespace interest_point {
       mt.Start();
       // Traditional floating point descriptor
       std::cout << "matching surf! hamming: " << hamming_ << ", ratio: " << ratio_ << std::endl;
-      cv::FlannBasedMatcher matcher;
+      // cv::FlannBasedMatcher matcher;
+      cv::FlannBasedMatcher matcher(cv::makePtr<cv::flann::LshIndexParams>(3, 18, 2));
       std::vector<std::vector<cv::DMatch> > possible_matches;
       matcher.knnMatch(img1_descriptor_map, img2_descriptor_map, possible_matches, 2);
       matches->clear();
       matches->reserve(possible_matches.size());
       for (std::vector<cv::DMatch> const& best_pair : possible_matches) {
+        if (best_pair.size() == 0) continue;
         // std::cout << "surf match distance: " << best_pair.at(0).distance << std::endl;
         // std::cout << "hamming: " << hamming_ << std::endl;
         if (best_pair.at(0).distance > hamming_) continue;
