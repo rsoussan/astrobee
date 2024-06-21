@@ -290,7 +290,7 @@ namespace interest_point {
     }
 
     void Reset(void) {
-      bad_ = upm::BAD::create(5.0, upm::BAD::SIZE_256_BITS);
+      bad_ = upm::BAD::create(5.0, upm::BAD::SIZE_512_BITS);
       brisk_ = interest_point::BRISK::create(dynamic_thresh_, FLAGS_orgbrisk_octaves,
                                  FLAGS_orgbrisk_pattern_scale);
     }
