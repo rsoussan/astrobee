@@ -632,7 +632,7 @@ void SparseMap::SurfDetectFeatures(const cv::Mat& image,
   // If using histogram equalization, need an extra image to store it
   cv::Mat * image_ptr = const_cast<cv::Mat*>(&image);
   cv::Mat hist_image;
-  if (histogram_equalization_) {
+  if (true) {
     // clahe_->apply(image, hist_image);
     cv::equalizeHist(image, hist_image);
     image_ptr = &hist_image;
@@ -654,6 +654,7 @@ void SparseMap::SurfDetectFeatures(const cv::Mat& image,
   mutex_detector_.lock();
   if (!multithreaded) {
     surf_detector_.Detect(*image_ptr, &storage, descriptors);
+    std::cout << "surf got features: " << storage.size() << std::endl;
   } else {
     // When using multiple threads, need an individual detector
     // instance, to avoid a crash. This is being used only in
@@ -679,7 +680,7 @@ void SparseMap::SurfDetectFeatures(const cv::Mat& image,
   for (size_t j = 0; j < storage.size(); j++) {
     camera_params_.Convert<camera::DISTORTED_C, camera::UNDISTORTED_C>
       (Eigen::Vector2d(storage[j].pt.x, storage[j].pt.y), &output);
-    keypoints->col(j) = output;
+    keypoints->col(j) = Eigen::Vector2d(storage[j].pt.x, storage[j].pt.y);  // output;
   }
 }
 
@@ -808,14 +809,14 @@ bool Localize(cv::Mat const& test_descriptors,
   for (size_t i = 0; i < indices.size(); i++) {
     int cid = indices[i];
   const auto map_filename = cid_to_filename[cid];
-  const auto map_image = cv::imread(map_filename);
+  const auto map_image = cv::imread(map_filename, cv::IMREAD_GRAYSCALE);
   if (map_image.empty()) {
       std::cout << "failed to load map image: " << map_filename << std::endl;
       continue;
     }
 
     // Convert map keypoints from eigen to cv, only use ones with pids
-        std::vector<cv::KeyPoint> map_keypoints;
+/*        std::vector<cv::KeyPoint> map_keypoints;
         const auto& map_keypoints2 = cid_to_keypoint_map[cid];
         std::cout << "original map keypoints count: " << map_keypoints2.cols() << std::endl;
         const auto& fid_to_pid = cid_fid_to_pid[cid];
@@ -828,23 +829,27 @@ bool Localize(cv::Mat const& test_descriptors,
           map_keypoints.emplace_back(cv::KeyPoint(distorted_point.x(), distorted_point.y(), 1.0));
       }
 
-        std::cout << "final map keypoints count: " << map_keypoints.size() << std::endl;
-    const cv::Mat map_image_copy = map_image.clone();
+        std::cout << "final map keypoints count: " << map_keypoints.size() << std::endl;*/
     cv::Mat map_descriptors;
+    std::vector<cv::KeyPoint> map_keypoints;
     // Redo map descriptors using desired detector with same keypoints from mapping
     {
       // If using histogram equalization, need an extra image to store it
-      cv::Mat * image_ptr = const_cast<cv::Mat*>(&map_image_copy);
+      cv::Mat * image_ptr = const_cast<cv::Mat*>(&map_image);
       cv::Mat hist_image;
       if (true) {  // histogram_equalization_) {
         // clahe_->apply(image, hist_image);
-        cv::equalizeHist(image, hist_image);
+        cv::equalizeHist(map_image, hist_image);
         image_ptr = &hist_image;
       }
-      surf_detector.Compute(*image_ptr, &map_keypoints, &map_descriptors);
+      surf_detector.Detect(*image_ptr, &map_keypoints, &map_descriptors);
+      // surf_detector.Compute(*image_ptr, &map_keypoints, &map_descriptors);
     }
 
     // SurfDetectFeatures(map_image_copy, false, &map_descriptors, &map_keypoints);
+    std::cout << "input descriptors size: " << surf_descriptors.cols << ", map: " << map_descriptors.cols << std::endl;
+    std::cout << "rows input descriptors size: " << surf_descriptors.rows << ", map: " << map_descriptors.rows
+              << std::endl;
     interest_point::FindMatches(surf_descriptors,  // cid_to_descriptor_map[cid],
                                 map_descriptors, &all_matches[i]);
     const auto matches = &(all_matches[i]);
@@ -855,9 +860,10 @@ bool Localize(cv::Mat const& test_descriptors,
   std::vector<cv::KeyPoint> input_keypoints;
   cv::Mat input_keypoints_image;
   for (int i = 0; i < surf_keypoints.cols(); ++i) {
-    Eigen::Vector2d distorted_point;
-    camera_params.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(surf_keypoints.col(i), &distorted_point);
-    input_keypoints.emplace_back(cv::KeyPoint(distorted_point.x(), distorted_point.y(), 1.0));
+    // Eigen::Vector2d distorted_point;
+    // camera_params.Convert<camera::UNDISTORTED_C, camera::DISTORTED>(surf_keypoints.col(i), &distorted_point);
+    // input_keypoints.emplace_back(cv::KeyPoint(distorted_point.x(), distorted_point.y(), 1.0));
+    input_keypoints.emplace_back(cv::KeyPoint(surf_keypoints.col(i).x(), surf_keypoints.col(i).y(), 1.0));
   }
         cv::drawKeypoints(image, input_keypoints, input_keypoints_image);
     //  cv::resize(keypoints_image, keypoints_image, cv::Size(1.8*960, 1.8*540));
@@ -893,11 +899,13 @@ bool Localize(cv::Mat const& test_descriptors,
       cv::drawMatches(image, input_keypoints, map_image, map_keypoints, *matches,
                       matches_image, cv::Scalar::all(-1), cv::Scalar::all(-1), std::vector<char>(),
                       cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
-      cv::resize(matches_image, matches_image, cv::Size(1.8*960, 1.8*540));
+      cv::resize(matches_image, matches_image, cv::Size(1.7*960, 1.7*540));
       cv::imshow("raw matches", matches_image);
       cv::waitKey(0);
       cv::destroyAllWindows();
   }
+
+  return false;
 
 
   std::vector<Eigen::Vector2d> observations;

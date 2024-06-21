@@ -104,7 +104,11 @@ namespace interest_point {
       else
         break;
     }
+
+      static localization_common::Timer mt("detect timer");
+    mt.Start();
     ComputeImpl(image, keypoints, keypoints_description);
+    mt.StopAndLog();
   }
 
   class BriskDynamicDetector : public DynamicDetector {
@@ -407,8 +411,8 @@ namespace interest_point {
 
     // Normalize the image points relative to the center of the image
     for (cv::KeyPoint& key : *keypoints) {
-      key.pt.x -= image.cols/2.0;
-      key.pt.y -= image.rows/2.0;
+    //  key.pt.x -= image.cols/2.0;
+     // key.pt.y -= image.rows/2.0;
     }
   }
 
@@ -427,10 +431,12 @@ namespace interest_point {
       return;
 
     if (img1_descriptor_map.depth() == CV_8U) {
+      static localization_common::Timer mt("matching timer");
+      mt.Start();
       // Binary descriptor
 
-      // cv::BFMatcher matcher(cv::NORM_HAMMING, true  /* Forward & Backward matching */);
-      cv::FlannBasedMatcher matcher(cv::makePtr<cv::flann::LshIndexParams>(3, 18, 2));
+      cv::BFMatcher matcher(cv::NORM_HAMMING, true  /* Forward & Backward matching */);
+      // cv::FlannBasedMatcher matcher(cv::makePtr<cv::flann::LshIndexParams>(3, 18, 2));
       matcher.match(img1_descriptor_map, img2_descriptor_map, *matches);
 
       // Select only inlier matches that meet a BRISK threshold of
@@ -445,6 +451,7 @@ namespace interest_point {
         }
       }
       matches->swap(inlier_matches);  // Doesn't invoke a copy of all elements.
+      mt.StopAndLog();
     } else {
       static localization_common::Timer mt("matching timer");
       mt.Start();
