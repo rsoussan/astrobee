@@ -59,6 +59,8 @@ void Localizer::ReadParams(config_reader::ConfigReader& config) {
   LOAD_PARAM(loc_params.goodness_ratio, config, prefix);
   LOAD_PARAM(loc_params.use_clahe, config, prefix);
   LOAD_PARAM(loc_params.num_extra_localization_db_images, config, prefix);
+  LOAD_PARAM(loc_params.clustered_ransac_estimate_camera, config, prefix);
+  LOAD_PARAM(loc_params.cluster_size, config, prefix);
   LOAD_PARAM(loc_params.verbose_localization, config, "");
   LOAD_PARAM(loc_params.visualize_localization_matches, config, "");
 

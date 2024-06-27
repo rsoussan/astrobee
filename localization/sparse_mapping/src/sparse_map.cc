@@ -918,11 +918,21 @@ bool SparseMap::Localize(cv::Mat const& test_descriptors, Eigen::Matrix2Xd const
   }
   if (loc_params_.verbose_localization) std::cout << std::endl;
 
-  int ret = RansacEstimateCamera(landmarks, observations,
-                                 loc_params_.num_ransac_iterations,
-                                 loc_params_.ransac_inlier_tolerance, pose,
-                                 inlier_landmarks, inlier_observations,
-                                 loc_params_.verbose_localization);
+  int ret;
+  if (loc_params_.clustered_ransac_estimate_camera) {
+    const int num_clusters = observations.size()/loc_params_.cluster_size;
+    ret = ClusteredRansacEstimateCamera(landmarks, observations,
+                                        loc_params_.num_ransac_iterations,
+                                        loc_params_.ransac_inlier_tolerance, pose,
+                                        num_clusters, inlier_landmarks, inlier_observations,
+                                        loc_params_.verbose_localization);
+  } else {
+    ret = RansacEstimateCamera(landmarks, observations,
+                               loc_params_.num_ransac_iterations,
+                               loc_params_.ransac_inlier_tolerance, pose,
+                               inlier_landmarks, inlier_observations,
+                               loc_params_.verbose_localization);
+  }
   return (ret == 0);
 }
 

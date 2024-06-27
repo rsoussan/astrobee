@@ -35,6 +35,8 @@ struct LocalizationParameters {
   double goodness_ratio;
   bool use_clahe;
   int num_extra_localization_db_images;
+  bool clustered_ransac_estimate_camera;
+  int cluster_size;
   bool verbose_localization;
   bool visualize_localization_matches;
 };

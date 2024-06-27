@@ -514,4 +514,49 @@ void Find3DAffineTransform(Eigen::Matrix3Xd const & in,
   result->translation() = scale*(out_ctr - R*in_ctr);
 }
 
+int ClusteredRansacEstimateCamera(const std::vector<Eigen::Vector3d> & landmarks,
+                         const std::vector<Eigen::Vector2d> & observations,
+                         int num_tries, int inlier_tolerance, camera::CameraModel * camera_estimate,
+                         const int num_clusters, std::vector<Eigen::Vector3d> * inlier_landmarks_out,
+                         std::vector<Eigen::Vector2d> * inlier_observations_out,
+                         bool verbose) {
+  if (observations.size() < 5) return 2;
+  std::vector<int> cluster_ids;
+  std::vector<cv::Point2f> obs;
+  for (const auto& ob : observations) {
+    obs.emplace_back(cv::Point2f(ob.x(), ob.y()));
+  }
+  cv::kmeans(obs, num_clusters, cluster_ids, cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 10, 1.0),
+             3, cv::KMEANS_PP_CENTERS);
+  std::vector<camera::CameraModel> estimates(num_clusters, *camera_estimate);
+  std::vector<std::vector<Eigen::Vector3d>> inlier_landmarks_vec(num_clusters);
+  std::vector<std::vector<Eigen::Vector2d>> inlier_observations_vec(num_clusters);
+  std::vector<int> rets(num_clusters);
+  std::cout << "num clusters: " << num_clusters << std::endl;
+  for (int i = 0; i < num_clusters; ++i) {
+    std::vector<Eigen::Vector2d> clustered_observations;
+    std::vector<Eigen::Vector3d> clustered_landmarks;
+    for (const auto id : cluster_ids) {
+      if (id == i) {
+        clustered_observations.emplace_back(observations[i]);
+        clustered_landmarks.emplace_back(landmarks[i]);
+      }
+    }
+    std::cout << "test cluster size: " << clustered_observations.size() << std::endl;
+    rets[i] = RansacEstimateCamera(clustered_landmarks, clustered_observations, num_tries, inlier_tolerance,
+                                   &(estimates[i]), &(inlier_landmarks_vec[i]), &(inlier_observations_vec[i]), verbose);
+  }
+
+  for (int i = 0; i < num_clusters; ++i) {
+    if (rets[i] == 0) {
+      std::cout << "cam estimate: " << estimates[i].GetTransform().matrix() << std::endl;
+    } else {
+      std::cout << "failed to get estimate" << std::endl;
+      std::cout << "failed cam estimate: " << estimates[i].GetTransform().matrix() << std::endl;
+    }
+  }
+  // TODO(rsoussan): pick best estimate!
+  return 2;
+}
+
 }  // namespace sparse_mapping

@@ -133,6 +133,22 @@ int RansacEstimateCamera(const std::vector<Eigen::Vector3d> & landmarks,
                          std::vector<Eigen::Vector2d> * inlier_observations_out = NULL,
                          bool verbose = false);
 
+
+/**
+ * Clusters observations using kmeans algorithm and attempts to estimate the camera pose for each cluster
+ * wrt the landmarks. Choose the best matching pose. This first This uses ransac with a three
+ * point perspective algorithm, and does not use an initial guess for the camera pose.
+ *
+ * After the function is called, camera_estimate is updated to contain the results.
+ *
+ * Returns zero on success, nonzero on failure.
+ **/
+int ClusteredRansacEstimateCamera(const std::vector<Eigen::Vector3d>& landmarks,
+                                  const std::vector<Eigen::Vector2d>& observations, int num_tries, int inlier_tolerance,
+                                  camera::CameraModel* camera_estimate, const int num_clusters,
+                                  std::vector<Eigen::Vector3d>* inlier_landmarks_out = NULL,
+                                  std::vector<Eigen::Vector2d>* inlier_observations_out = NULL, bool verbose = false);
+
 // ICP solver that given matching 3D points, finds an affine transform that
 // best fits in to out.
 void Find3DAffineTransform(Eigen::Matrix3Xd const& in,
