@@ -37,27 +37,17 @@
 namespace localization_node {
 
 LocalizationNodelet::LocalizationNodelet() : ff_util::FreeFlyerNodelet(NODE_MAPPED_LANDMARKS),
-        enabled_(false), count_(0), processing_image_(true) {
-  pthread_mutex_init(&mutex_features_, NULL);
-  pthread_cond_init(&cond_features_, NULL);
-}
-
-LocalizationNodelet::~LocalizationNodelet(void) {
-  thread_->join();
-  pthread_mutex_destroy(&mutex_features_);
-  pthread_cond_destroy(&cond_features_);
+        enabled_(false), count_(0) {
+  private_nh_.setCallbackQueue(&private_queue_);
+  heartbeat_.node = GetName();
+  heartbeat_.nodelet_manager = ros::this_node::getName();
+  last_heartbeat_time_ = ros::Time::now();
 }
 
 bool LocalizationNodelet::ResetMap(const std::string& map_file) {
   if (!boost::filesystem::exists(map_file)) {
     LOG(ERROR) << "Map file " << map_file << " does not exist, failed to reset map.";
     return false;
-  }
-  // Disable and wait for localization to finish running if it is running
-  // before resetting the localizer
-  enabled_ = false;
-  while (processing_image_) {
-    usleep(100000);
   }
   map_.reset(new sparse_mapping::SparseMap(map_file, true));
   inst_.reset(new Localizer(map_.get()));
@@ -69,7 +59,6 @@ bool LocalizationNodelet::ResetMap(const std::string& map_file) {
 
 void LocalizationNodelet::Initialize(ros::NodeHandle* nh) {
   ff_common::InitFreeFlyerApplication(getMyArgv());
-
   config_.AddFile("cameras.config");
   config_.AddFile("localization.config");
   if (!config_.ReadFiles()) {
@@ -82,14 +71,13 @@ void LocalizationNodelet::Initialize(ros::NodeHandle* nh) {
     ROS_ERROR("Cannot read world_vision_map_filename from LUA config");
 
   // Reset all internal shared pointers
-  it_.reset(new image_transport::ImageTransport(*nh));
+  it_.reset(new image_transport::ImageTransport(private_nh_));
   map_.reset(new sparse_mapping::SparseMap(map_file, true));
   inst_.reset(new Localizer(map_.get()));
 
-  registration_publisher_ = nh->advertise<ff_msgs::CameraRegistration>(
-      TOPIC_LOCALIZATION_ML_REGISTRATION, 10);
   landmark_publisher_     = nh->advertise<ff_msgs::VisualLandmarks>(
       TOPIC_LOCALIZATION_ML_FEATURES, 10);
+  heartbeat_pub_ = nh->advertise<ff_msgs::Heartbeat>(TOPIC_HEARTBEAT, 5, true);
 
   // Subscribe to input video feed and publish output odometry info
   image_sub_ = it_->subscribe(TOPIC_HARDWARE_NAV_CAM, 1, &LocalizationNodelet::ImageCallback, this);
@@ -106,24 +94,19 @@ void LocalizationNodelet::Initialize(ros::NodeHandle* nh) {
     detected_features_publisher_ = nh->advertise<sensor_msgs::Image>("rviz/detected_features", 10);
   }
 
-  // start a new thread to run everything
-  thread_.reset(new std::thread(&localization_node::LocalizationNodelet::Run, this));
-
   ReadParams();
-
   // only do this once, will cause a crash if done in middle of thread execution
   int num_threads;
   if (!config_.GetInt("num_threads", &num_threads))
     ROS_FATAL("num_threads not specified in localization.");
   cv::setNumThreads(num_threads);
 
-  config_timer_ = nh->createTimer(ros::Duration(1), [this](ros::TimerEvent e) {
-      config_.CheckFilesUpdated(std::bind(&LocalizationNodelet::ReadParams, this));}, false, true);
-
-  enable_srv_ = nh->advertiseService(SERVICE_LOCALIZATION_ML_ENABLE, &LocalizationNodelet::EnableService, this);
-  reset_map_srv_ = nh->advertiseService(SERVICE_LOCALIZATION_RESET_MAP, &LocalizationNodelet::ResetMapService, this);
-  reset_map_loc_client_ = nh->serviceClient<ff_msgs::ResetMap>(
+  enable_srv_ = private_nh_.advertiseService(SERVICE_LOCALIZATION_ML_ENABLE, &LocalizationNodelet::EnableService, this);
+  reset_map_srv_ =
+    private_nh_.advertiseService(SERVICE_LOCALIZATION_RESET_MAP, &LocalizationNodelet::ResetMapService, this);
+  reset_map_loc_client_ = private_nh_.serviceClient<ff_msgs::ResetMap>(
                                                 SERVICE_LOCALIZATION_RESET_MAP_LOC);
+  Run();
 }
 
 void LocalizationNodelet::ReadParams(void) {
@@ -159,29 +142,12 @@ bool LocalizationNodelet::ResetMapService(ff_msgs::ResetMap::Request& req, ff_ms
 
 void LocalizationNodelet::ImageCallback(const sensor_msgs::ImageConstPtr& msg) {
   ros::Time timestamp = ros::Time::now();
-  pthread_mutex_lock(&mutex_features_);
-  bool cont = processing_image_;
-  pthread_mutex_unlock(&mutex_features_);
-  if (cont) return;
-
-  ff_msgs::CameraRegistration r;
-  r.header = std_msgs::Header();
-  r.header.stamp = timestamp;
-  r.camera_id = count_;
-  registration_publisher_.publish(r);
-  ros::spinOnce();
-
   try {
     image_ptr_ = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::MONO8);
   } catch (cv_bridge::Exception& e) {
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
-
-  pthread_mutex_lock(&mutex_features_);
-  processing_image_ = true;
-  pthread_cond_signal(&cond_features_);
-  pthread_mutex_unlock(&mutex_features_);
 }
 
 void LocalizationNodelet::Localize(void) {
@@ -192,7 +158,6 @@ void LocalizationNodelet::Localize(void) {
 
   vl.camera_id = count_;
   if (enabled_) landmark_publisher_.publish(vl);
-  ros::spinOnce();
 
   // only send transform if succeeded
   if (!success)
@@ -243,41 +208,26 @@ void LocalizationNodelet::Localize(void) {
   br.sendTransform(transformStamped);
 }
 
-void LocalizationNodelet::Run(void) {
-  struct timespec ts;
-  bool running = false;
-  while (ros::ok()) {
-    if (!enabled_) {
-      image_sub_.shutdown();
-      running = false;
-    }
-    if (!running) {
-      if (enabled_) {
-        image_sub_ = it_->subscribe(TOPIC_HARDWARE_NAV_CAM, 1, &LocalizationNodelet::ImageCallback, this);
-        running = true;
-      } else {
-        usleep(100000);
-        continue;
-      }
-    }
-    pthread_mutex_lock(&mutex_features_);
-    processing_image_ = false;  // initialize this here so we don't get images before thread starts
-    clock_gettime(CLOCK_REALTIME, &ts);
-    ts.tv_sec += 1;
-    pthread_cond_timedwait(&cond_features_, &mutex_features_, &ts);
-    bool ready = processing_image_;
-    pthread_mutex_unlock(&mutex_features_);
-    if (!ready)
-      continue;
-    // unlock the mutex for localizing so we can ignore images we get during this
-    Localize();
-    count_++;
-    pthread_mutex_lock(&mutex_features_);
-    processing_image_ = false;
-    pthread_mutex_unlock(&mutex_features_);
-  }
+void LocalizationNodelet::PublishHeartbeat() {
+  heartbeat_.header.stamp = ros::Time::now();
+  if ((heartbeat_.header.stamp - last_heartbeat_time_).toSec() < 1.0) return;
+  heartbeat_pub_.publish(heartbeat_);
+  last_heartbeat_time_ = heartbeat_.header.stamp;
 }
 
+void LocalizationNodelet::Run() {
+  ros::Rate rate(100);
+  while (ros::ok()) {
+    private_queue_.callAvailable();
+    if (enabled_) {
+        Localize();
+       count_++;
+    }
+    PublishHeartbeat();
+    ReadParams();
+    rate.sleep();
+  }
+}
 };  // namespace localization_node
 
 PLUGINLIB_EXPORT_CLASS(localization_node::LocalizationNodelet, nodelet::Nodelet)

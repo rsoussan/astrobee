@@ -38,7 +38,6 @@ namespace localization_node {
 class LocalizationNodelet : public ff_util::FreeFlyerNodelet {
  public:
   LocalizationNodelet();
-  virtual ~LocalizationNodelet();
 
  protected:
   virtual void Initialize(ros::NodeHandle* nh);
@@ -51,28 +50,28 @@ class LocalizationNodelet : public ff_util::FreeFlyerNodelet {
   void ImageCallback(const sensor_msgs::ImageConstPtr& msg);
   bool EnableService(ff_msgs::SetBool::Request & req, ff_msgs::SetBool::Response & res);
   bool ResetMapService(ff_msgs::ResetMap::Request & req, ff_msgs::ResetMap::Response & res);
+  void PublishHeartbeat();
 
   std::shared_ptr<Localizer> inst_;
   std::shared_ptr<sparse_mapping::SparseMap> map_;
-  std::shared_ptr<std::thread> thread_;
   config_reader::ConfigReader config_;
-  ros::Timer config_timer_;
 
   std::shared_ptr<image_transport::ImageTransport> it_;
   image_transport::Subscriber image_sub_;
   ros::ServiceServer enable_srv_, reset_map_srv_;
   ros::ServiceClient reset_map_loc_client_;
   ros::Publisher registration_publisher_, landmark_publisher_,
-    detected_features_publisher_, used_features_publisher_, all_features_publisher_;
+    detected_features_publisher_, used_features_publisher_, all_features_publisher_, heartbeat_pub_;
   bool enabled_;
   int count_;
 
   bool matched_features_on_, all_features_on_;
   cv_bridge::CvImageConstPtr image_ptr_;
 
-  volatile bool processing_image_;
-  pthread_mutex_t mutex_features_;
-  pthread_cond_t cond_features_;
+  ff_msgs::Heartbeat heartbeat_;
+  ros::Time last_heartbeat_time_;
+  ros::NodeHandle private_nh_;
+  ros::CallbackQueue private_queue_;
 };
 
 };  // namespace localization_node
