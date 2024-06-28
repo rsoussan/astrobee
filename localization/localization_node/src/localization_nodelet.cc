@@ -224,7 +224,6 @@ void LocalizationNodelet::Run() {
        count_++;
     }
     PublishHeartbeat();
-    ReadParams();
     rate.sleep();
   }
 }
