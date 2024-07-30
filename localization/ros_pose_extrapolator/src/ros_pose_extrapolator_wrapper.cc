@@ -118,7 +118,7 @@ RosPoseExtrapolatorWrapper::LatestExtrapolatedStateAndCovariances() {
   // Extrapolate VIO data with latest IMU measurements.
   // Don't add IMU data if at standstill to avoid adding noisy IMU measurements to
   // extrapolated state. Avoid adding IMU data if too few measurements ( < 2) are in imu integrator.
-  if (!standstill() && static_cast<int>(imu_integrator_->size()) > 1) {
+  if (false && !standstill() && static_cast<int>(imu_integrator_->size()) > 1) {
     const auto latest_extrapolated_state = imu_integrator_->ExtrapolateLatest(*latest_extrapolated_vio_state_);
     if (!latest_extrapolated_state) {
       LogError("LatestExtrapolatedCombinedNavStateAndCovariances: Failed to extrapolate latest vio state.");

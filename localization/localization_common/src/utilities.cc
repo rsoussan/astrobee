@@ -83,9 +83,12 @@ void LoadGraphLocalizerConfig(config_reader::ConfigReader& config, const std::st
 }
 
 void LoadGraphVIOConfig(config_reader::ConfigReader& config, const std::string& path_prefix) {
+  config.AddFile((path_prefix + "localization/localization.config").c_str());
   config.AddFile((path_prefix + "localization/graph_vio.config").c_str());
   config.AddFile((path_prefix + "localization/imu_integrator.config").c_str());
   config.AddFile((path_prefix + "localization/imu_filter.config").c_str());
+  config.AddFile((path_prefix + "localization/imu_bias_initializer.config").c_str());
+  config.AddFile((path_prefix + "localization/ros_graph_vio.config").c_str());
   config.AddFile("transforms.config");
   config.AddFile("cameras.config");
   config.AddFile("geometry.config");

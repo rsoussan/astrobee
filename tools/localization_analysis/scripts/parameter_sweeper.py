@@ -85,6 +85,10 @@ def test_values(
     config_path = os.path.join(
         rospkg.RosPack().get_path("astrobee"), "config/localization"
     )
+    config_path2 = os.path.join(
+        rospkg.RosPack().get_path("astrobee"), "config"
+    )
+  
     make_config_file(
         "graph_localizer.config", new_output_dir, config_path, values, value_names
     )
@@ -97,6 +101,17 @@ def test_values(
     make_config_file(
         "imu_filter.config", new_output_dir, config_path, values, value_names
     )
+    make_config_file(
+        "imu_bias_initializer.config", new_output_dir, config_path, values, value_names
+    )
+    make_config_file(
+        "ros_graph_vio.config", new_output_dir, config_path, values, value_names
+    )
+    make_config_file(
+        "localization.config", new_output_dir, config_path2, values, value_names
+    )
+ 
+ 
     output_bag = os.path.join(new_output_dir, "results.bag")
     output_stats_file = os.path.join(new_output_dir, "graph_stats.csv")
     graph_config_prefix = new_output_dir_prefix + "/"
@@ -215,13 +230,13 @@ def parameter_sweep(
 def make_value_ranges():
     value_ranges = []
     value_names = []
-    steps = 10
+    steps = 1
 
     # tune num smart factors
     # value_ranges.append(np.logspace(-3, -5, steps, endpoint=True))
     # value_names.append("ii_accel_bias_sigma")
-    value_ranges.append(np.logspace(-3, -1, steps, endpoint=True))
-    value_names.append("gv_fa_do_point_noise_scale")
+    value_ranges.append(np.logspace(2, 2, steps, endpoint=True))
+    value_names.append("teblid256_num_ransac_iterations")
     # value_ranges.append(np.logspace(-3, -7, steps, endpoint=True))
     # value_names.append("ii_bias_acc_omega_int")
 

@@ -67,6 +67,8 @@ OfflineReplay::OfflineReplay(const std::string& bag_name, const std::string& map
   // TODO(rsoussan): clean this up
   params.use_bag_image_feature_msgs = use_bag_image_feature_msgs;
   live_measurement_simulator_.reset(new LiveMeasurementSimulator(params));
+  live_measurement_simulator_->map_feature_matcher_.ReadParams(config);
+
 
   GraphLocalizerSimulatorParams graph_loc_params;
   LoadGraphLocalizerSimulatorParams(config, graph_loc_params);

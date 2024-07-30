@@ -60,6 +60,8 @@ class LiveMeasurementSimulator {
   boost::optional<ff_msgs::VisualLandmarks> GetARMessage(const localization_common::Time current_time);
   boost::optional<ff_msgs::FlightMode> GetFlightModeMessage(const localization_common::Time current_time);
 
+  localization_node::Localizer map_feature_matcher_;
+
  private:
   ff_msgs::Feature2dArray GenerateOFFeatures(const sensor_msgs::ImageConstPtr& image_msg);
 
@@ -67,7 +69,6 @@ class LiveMeasurementSimulator {
 
   rosbag::Bag bag_;
   sparse_mapping::SparseMap map_;
-  localization_node::Localizer map_feature_matcher_;
   depth_odometry::DepthOdometryWrapper depth_odometry_wrapper_;
   LiveMeasurementSimulatorParams params_;
   lk_optical_flow::LKOpticalFlow optical_flow_tracker_;

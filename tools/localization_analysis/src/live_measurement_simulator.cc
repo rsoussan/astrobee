@@ -41,7 +41,7 @@ LiveMeasurementSimulator::LiveMeasurementSimulator(const LiveMeasurementSimulato
   config_reader::ConfigReader config;
   config.AddFile("cameras.config");
   config.AddFile("geometry.config");
-  config.AddFile("localization.config");
+  // config.AddFile("localization.config");
   config.AddFile("optical_flow.config");
 
   if (!config.ReadFiles()) {
@@ -49,7 +49,7 @@ LiveMeasurementSimulator::LiveMeasurementSimulator(const LiveMeasurementSimulato
     exit(0);
   }
 
-  map_feature_matcher_.ReadParams(config);
+  // map_feature_matcher_.ReadParams(config);
   optical_flow_tracker_.ReadParams(&config);
   std::vector<std::string> topics;
   topics.push_back(std::string("/") + TOPIC_HARDWARE_IMU);
@@ -147,7 +147,8 @@ bool LiveMeasurementSimulator::ProcessMessage() {
   } else if (params_.use_bag_image_feature_msgs && string_ends_with(msg.getTopic(), TOPIC_LOCALIZATION_OF_FEATURES)) {
     const ff_msgs::Feature2dArrayConstPtr of_features = msg.instantiate<ff_msgs::Feature2dArray>();
     of_buffer_.BufferMessage(*of_features);
-  } else if (params_.use_bag_image_feature_msgs && string_ends_with(msg.getTopic(), TOPIC_LOCALIZATION_ML_FEATURES)) {
+  } else if (false) {  // params_.use_bag_image_feature_msgs && string_ends_with(msg.getTopic(),
+                       // TOPIC_LOCALIZATION_ML_FEATURES)) {
     const ff_msgs::VisualLandmarksConstPtr vl_features = msg.instantiate<ff_msgs::VisualLandmarks>();
     vl_buffer_.BufferMessage(*vl_features);
   } else if (string_ends_with(msg.getTopic(), kImageTopic_)) {
@@ -155,12 +156,13 @@ bool LiveMeasurementSimulator::ProcessMessage() {
     if (params_.save_optical_flow_images) {
       img_buffer_.emplace(localization_common::TimeFromHeader(image_msg->header), image_msg);
     }
-    if (!params_.use_bag_image_feature_msgs) {
-      const ff_msgs::Feature2dArray of_features = GenerateOFFeatures(image_msg);
-      of_buffer_.BufferMessage(of_features);
+    if (true) {  //! params_.use_bag_image_feature_msgs) {
+      // const ff_msgs::Feature2dArray of_features = GenerateOFFeatures(image_msg);
+      // of_buffer_.BufferMessage(of_features);
 
       ff_msgs::VisualLandmarks vl_features;
       if (GenerateVLFeatures(image_msg, vl_features)) {
+        std::cout << "generating vl feature!" << std::endl;
         vl_buffer_.BufferMessage(vl_features);
       }
     }

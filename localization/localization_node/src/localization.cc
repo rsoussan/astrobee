@@ -147,7 +147,7 @@ bool Localizer::Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLa
   Eigen::Affine3d global_pose = camera.GetTransform().inverse();
   Eigen::Quaterniond quat(global_pose.rotation());
 
-  vl->runtime = timer_.last_value();
+  // vl->runtime = timer_.last_value();
   vl->pose.position = msg_conversions::eigen_to_ros_point(global_pose.translation());
   vl->pose.orientation = msg_conversions::eigen_to_ros_quat(quat);
   assert(landmarks.size() == observations.size());
