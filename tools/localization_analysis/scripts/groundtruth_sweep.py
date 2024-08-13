@@ -72,9 +72,6 @@ def check_params(groundtruth_params_list):
         if not os.path.isfile(params.base_surf_map):
             print(("Base surf map " + params.base_surf_map + " does not exist."))
             sys.exit()
-        if not os.path.isdir(params.maps_directory):
-            print(("Maps directory " + params.maps_directory + " does not exist."))
-            sys.exit()
         if not os.path.isfile(params.loc_map):
             print(("Loc map " + params.loc_map + " does not exist."))
             sys.exit()
@@ -118,7 +115,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "config_file",
-        help="Config file containing arguments for each job to run.  Should be formatted with one job per line and using a single space between each argument.  Arguments for a job in order are: bagfile base_surf_map maps_directory loc_map config_path world image_topic robot_name use_image_features.  See make_groundtruth.py description for more details on each argument.",
+        help="Config file containing arguments for each job to run.  Should be formatted with one job per line and using a single space between each argument.  Arguments for a job in order are: bagfile base_surf_map loc_map image_topic use_image_features.  See make_groundtruth.py description for more details on each argument.",
     )
     parser.add_argument("-o", "--output-directory", default="groundtruth_sweep")
     parser.add_argument(

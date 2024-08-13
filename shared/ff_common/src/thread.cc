@@ -45,7 +45,8 @@ void* ff_common::HolderFunction(void* ptr) {
 }
 
 ff_common::ThreadPool::ThreadPool()
-  : max_concurrent_jobs_(FLAGS_num_threads) {
+  //: max_concurrent_jobs_(FLAGS_num_threads) {
+  : max_concurrent_jobs_(30) {
   pthread_mutex_init(&cond_mutex_, NULL);
   pthread_cond_init(&cond_, NULL);
   if (max_concurrent_jobs_ <= 0) {
