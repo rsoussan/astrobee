@@ -118,6 +118,7 @@ bool LiveMeasurementSimulator::ProcessMessage() {
   if (*view_it_ == view_->end()) return false;
   const auto& msg = **view_it_;
   current_time_ = lc::TimeFromRosTime(msg.getTime());
+  const bool teblid =  true;
   /*if (string_ends_with(msg.getTopic(), TOPIC_MOBILITY_FLIGHT_MODE)) {
     const ff_msgs::FlightModeConstPtr flight_mode = msg.instantiate<ff_msgs::FlightMode>();
     flight_mode_buffer_.BufferMessage(*flight_mode);
@@ -147,8 +148,9 @@ bool LiveMeasurementSimulator::ProcessMessage() {
   } else if (params_.use_bag_image_feature_msgs && string_ends_with(msg.getTopic(), TOPIC_LOCALIZATION_OF_FEATURES)) {
     const ff_msgs::Feature2dArrayConstPtr of_features = msg.instantiate<ff_msgs::Feature2dArray>();
     of_buffer_.BufferMessage(*of_features);
-  } else if (false) {  // params_.use_bag_image_feature_msgs && string_ends_with(msg.getTopic(),
-                       // TOPIC_LOCALIZATION_ML_FEATURES)) {
+  } else if (!teblid && params_.use_bag_image_feature_msgs && string_ends_with(msg.getTopic(),
+                        TOPIC_LOCALIZATION_ML_FEATURES)) {
+    std::cout << "adding bag vl msg!" << std::endl;
     const ff_msgs::VisualLandmarksConstPtr vl_features = msg.instantiate<ff_msgs::VisualLandmarks>();
     vl_buffer_.BufferMessage(*vl_features);
   } else if (string_ends_with(msg.getTopic(), kImageTopic_)) {
@@ -156,7 +158,7 @@ bool LiveMeasurementSimulator::ProcessMessage() {
     if (params_.save_optical_flow_images) {
       img_buffer_.emplace(localization_common::TimeFromHeader(image_msg->header), image_msg);
     }
-    if (true) {  //! params_.use_bag_image_feature_msgs) {
+    if (teblid) {  //! params_.use_bag_image_feature_msgs) {
       // const ff_msgs::Feature2dArray of_features = GenerateOFFeatures(image_msg);
       // of_buffer_.BufferMessage(of_features);
 
