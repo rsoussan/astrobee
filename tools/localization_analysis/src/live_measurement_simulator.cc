@@ -92,6 +92,7 @@ LiveMeasurementSimulator::LiveMeasurementSimulator(const LiveMeasurementSimulato
 ff_msgs::Feature2dArray LiveMeasurementSimulator::GenerateOFFeatures(const sensor_msgs::ImageConstPtr& image_msg) {
   ff_msgs::Feature2dArray of_features;
   optical_flow_tracker_.OpticalFlow(image_msg, &of_features);
+  std::cout << "of feature count: " << of_features.feature_array.size();
   return of_features;
 }
 
@@ -145,11 +146,13 @@ bool LiveMeasurementSimulator::ProcessMessage() {
     // Always use ar features until have data with dock cam images
     const ff_msgs::VisualLandmarksConstPtr ar_features = msg.instantiate<ff_msgs::VisualLandmarks>();
     ar_buffer_.BufferMessage(*ar_features);
-  } else if (params_.use_bag_image_feature_msgs && string_ends_with(msg.getTopic(), TOPIC_LOCALIZATION_OF_FEATURES)) {
+  } else if (false && params_.use_bag_image_feature_msgs &&
+             string_ends_with(msg.getTopic(), TOPIC_LOCALIZATION_OF_FEATURES)) {
+    std::cout << "adding bag of msg!" << std::endl;
     const ff_msgs::Feature2dArrayConstPtr of_features = msg.instantiate<ff_msgs::Feature2dArray>();
     of_buffer_.BufferMessage(*of_features);
-  } else if (!teblid && params_.use_bag_image_feature_msgs && string_ends_with(msg.getTopic(),
-                        TOPIC_LOCALIZATION_ML_FEATURES)) {
+  } else if (!teblid && params_.use_bag_image_feature_msgs &&
+             string_ends_with(msg.getTopic(), TOPIC_LOCALIZATION_ML_FEATURES)) {
     std::cout << "adding bag vl msg!" << std::endl;
     const ff_msgs::VisualLandmarksConstPtr vl_features = msg.instantiate<ff_msgs::VisualLandmarks>();
     vl_buffer_.BufferMessage(*vl_features);
@@ -159,13 +162,17 @@ bool LiveMeasurementSimulator::ProcessMessage() {
       img_buffer_.emplace(localization_common::TimeFromHeader(image_msg->header), image_msg);
     }
     if (teblid) {  //! params_.use_bag_image_feature_msgs) {
-      // const ff_msgs::Feature2dArray of_features = GenerateOFFeatures(image_msg);
-      // of_buffer_.BufferMessage(of_features);
-
-      ff_msgs::VisualLandmarks vl_features;
-      if (GenerateVLFeatures(image_msg, vl_features)) {
-        std::cout << "generating vl feature!" << std::endl;
-        vl_buffer_.BufferMessage(vl_features);
+      if (true) {
+        std::cout << "generating of features!" << std::endl;
+        const ff_msgs::Feature2dArray of_features = GenerateOFFeatures(image_msg);
+        of_buffer_.BufferMessage(of_features);
+      }
+      if (true) {
+        ff_msgs::VisualLandmarks vl_features;
+        if (GenerateVLFeatures(image_msg, vl_features)) {
+          std::cout << "generating vl feature!" << std::endl;
+          vl_buffer_.BufferMessage(vl_features);
+        }
       }
     }
   }

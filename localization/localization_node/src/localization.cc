@@ -137,12 +137,12 @@ bool Localizer::Localize(cv_bridge::CvImageConstPtr image_ptr, ff_msgs::VisualLa
     successes_.emplace_back(0);
     AdjustThresholds();
     // LOG(INFO) << "Failed to localize image.";
-    timer_.Stop();
+    timer_.StopAndLog();
     return false;
   }
   successes_.emplace_back(1);
   AdjustThresholds();
-  timer_.Stop();
+  timer_.StopAndLog();
 
   Eigen::Affine3d global_pose = camera.GetTransform().inverse();
   Eigen::Quaterniond quat(global_pose.rotation());

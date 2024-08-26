@@ -76,10 +76,12 @@ void MapMatcher::AddMapMatches() {
   topics.push_back(std::string("/") + image_topic_);
   rosbag::View view(input_bag_, rosbag::TopicQuery(topics));
   image_count_ = view.size();
+  int tmp_count = 0;
   for (const rosbag::MessageInstance msg : view) {
     if (string_ends_with(msg.getTopic(), image_topic_)) {
       sensor_msgs::ImageConstPtr image_msg = msg.instantiate<sensor_msgs::Image>();
       ff_msgs::VisualLandmarks vl_msg;
+      ++tmp_count;
       if (GenerateVLFeatures(image_msg, vl_msg)) {
         match_count_++;
         feature_averager_.Update(vl_msg.landmarks.size());
@@ -95,6 +97,10 @@ void MapMatcher::AddMapMatches() {
         const ros::Time timestamp = lc::RosTimeFromHeader(image_msg->header);
         nonloc_bag_.write(std::string("/") + image_topic_, timestamp, image_msg);
       }
+       std::stringstream ss;
+       ss << "Localized " << match_count_ << " / " << tmp_count << " images with mean of "
+          << feature_averager_.average() << " features";
+       ROS_INFO_STREAM(ss.str());
     }
   }
 }
